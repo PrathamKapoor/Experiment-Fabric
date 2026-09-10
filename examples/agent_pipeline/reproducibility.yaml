@@ -1,0 +1,128 @@
+# A controlled reproducibility perturbation study.
+#
+# One thing changes per condition, and Fabric measures how far the result
+# moves compared to how far it moves when nothing changes.
+#
+#   fabric run examples/agent_pipeline/reproducibility.yaml
+#   fabric report <EXP> --format html
+
+experiment:
+  name: agent-reproducibility-profile
+  research_question: >
+    How far does the accuracy of the retrieval agent move under controlled
+    perturbations of the software environment, the accelerator, the benchmark
+    version, the model version, the implementation, and the temperature -
+    relative to how far it moves when only the random seed changes?
+  hypothesis: >
+    Seed variance dominates the environment and hardware axes, but the dataset
+    version and the model version move the result by more than one seed
+    standard deviation, which means a reproduction that differs on those axes
+    should not be expected to match.
+  tags: [reproducibility, perturbation, agents]
+
+dataset:
+  name: agent-benchmark
+  version: v1
+  path: examples/agent_pipeline/data/benchmark-v1
+  n_examples: 400
+
+model:
+  name: sim-reasoner
+  version: v1
+  architecture: simulated log-odds responder
+  precision: float64
+  config:
+    capability: 0.0
+
+algorithm:
+  name: full-agent
+  entrypoint: python:examples.agent_pipeline.pipeline:run
+  commit: auto
+
+components: [retrieval, reranking, memory, planning, verification]
+
+configuration:
+  top_k: 8
+  rerank_depth: 10
+  memory_size: 32
+  temperature: 0.2
+  verification_threshold: 0.45
+
+seeds:
+  strategy: fixed
+  values: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+baselines:
+  - name: rag-classic
+    description: Retained so decision stability has a comparison to be stable about.
+    algorithm:
+      name: rag-classic
+      entrypoint: python:examples.agent_pipeline.pipeline:rag_classic
+      commit: auto
+
+metrics:
+  - name: accuracy
+    direction: maximize
+    primary: true
+    tolerance: 0.01
+    description: >
+      A reproduction is treated as successful if accuracy is within one
+      percentage point of the reference. Declared here, before the runs.
+  - name: latency_ms
+    direction: minimize
+    unit: ms
+    tolerance: 5.0
+  - name: robustness
+    direction: maximize
+    tolerance: 0.015
+
+reproducibility:
+  enabled: true
+  determinism_replicates: 3
+  perturbations:
+    environment:
+      values:
+        - label: single-threaded
+          OMP_NUM_THREADS: "1"
+          MKL_NUM_THREADS: "1"
+          OPENBLAS_NUM_THREADS: "1"
+        - label: hash-randomised
+          PYTHONHASHSEED: random
+    hardware:
+      values:
+        - label: no-accelerator
+          CUDA_VISIBLE_DEVICES: ""
+    dataset:
+      values:
+        - name: agent-benchmark
+          version: v2
+          path: examples/agent_pipeline/data/benchmark-v2
+          n_examples: 400
+    model:
+      values:
+        - name: sim-reasoner
+          version: v2
+          architecture: simulated log-odds responder
+          precision: float64
+          config:
+            capability: 0.15
+    implementation:
+      values:
+        - name: full-agent-reordered
+          entrypoint: python:examples.agent_pipeline.pipeline:run_reordered
+          commit: auto
+    configuration:
+      values:
+        - label: temperature-0.8
+          temperature: 0.8
+
+analysis:
+  primary_metric: accuracy
+  alpha: 0.05
+  correction: holm
+  bootstrap_resamples: 5000
+
+execution:
+  max_workers: 4
+  isolation: inline
+  timeout_seconds: 120

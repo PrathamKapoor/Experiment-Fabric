@@ -1,0 +1,400 @@
+{"difficulty": 0.650692, "distractors": 0, "hops": 1, "id": "q0000", "is_repeat": false, "is_trap": false, "topic": "opera"}
+{"difficulty": 0.737526, "distractors": 6, "hops": 1, "id": "q0001", "is_repeat": false, "is_trap": false, "topic": "orbital mechanics"}
+{"difficulty": 0.233754, "distractors": 1, "hops": 1, "id": "q0002", "is_repeat": false, "is_trap": false, "topic": "tectonic drift"}
+{"difficulty": 0.758999, "distractors": 0, "hops": 2, "id": "q0003", "is_repeat": false, "is_trap": false, "topic": "opera"}
+{"difficulty": 0.633301, "distractors": 0, "hops": 2, "id": "q0004", "is_repeat": false, "is_trap": false, "topic": "monetary policy"}
+{"difficulty": 0.023808, "distractors": 0, "hops": 2, "id": "q0005", "is_repeat": false, "is_trap": false, "topic": "roman law"}
+{"difficulty": 0.634242, "distractors": 0, "hops": 1, "id": "q0006", "is_repeat": false, "is_trap": false, "topic": "supply chains"}
+{"difficulty": 0.757721, "distractors": 0, "hops": 1, "id": "q0007", "is_repeat": false, "is_trap": false, "topic": "copyright"}
+{"difficulty": 0.632154, "distractors": 6, "hops": 1, "id": "q0008", "is_repeat": false, "is_trap": true, "topic": "graph colouring"}
+{"difficulty": 0.247182, "distractors": 1, "hops": 1, "id": "q0009", "is_repeat": false, "is_trap": true, "topic": "tectonic drift"}
+{"difficulty": 0.345798, "distractors": 2, "hops": 2, "id": "q0010", "is_repeat": false, "is_trap": false, "topic": "orbital mechanics"}
+{"difficulty": 0.642358, "distractors": 5, "hops": 2, "id": "q0011", "is_repeat": false, "is_trap": false, "topic": "photosynthesis"}
+{"difficulty": 0.602104, "distractors": 5, "hops": 1, "id": "q0012", "is_repeat": false, "is_trap": false, "topic": "photosynthesis"}
+{"difficulty": 0.055996, "distractors": 4, "hops": 2, "id": "q0013", "is_repeat": true, "is_trap": false, "topic": "roman law"}
+{"difficulty": 0.550762, "distractors": 4, "hops": 2, "id": "q0014", "is_repeat": false, "is_trap": false, "topic": "tectonic drift"}
+{"difficulty": 0.279239, "distractors": 4, "hops": 1, "id": "q0015", "is_repeat": false, "is_trap": true, "topic": "opera"}
+{"difficulty": 0.037601, "distractors": 0, "hops": 2, "id": "q0016", "is_repeat": false, "is_trap": false, "topic": "copyright"}
+{"difficulty": 0.445703, "distractors": 0, "hops": 2, "id": "q0017", "is_repeat": true, "is_trap": true, "topic": "tectonic drift"}
+{"difficulty": 0.060442, "distractors": 1, "hops": 1, "id": "q0018", "is_repeat": false, "is_trap": false, "topic": "monetary policy"}
+{"difficulty": 0.740834, "distractors": 6, "hops": 1, "id": "q0019", "is_repeat": false, "is_trap": false, "topic": "graph colouring"}
+{"difficulty": 0.423356, "distractors": 1, "hops": 1, "id": "q0020", "is_repeat": false, "is_trap": true, "topic": "immunology"}
+{"difficulty": 0.73729, "distractors": 0, "hops": 2, "id": "q0021", "is_repeat": false, "is_trap": false, "topic": "orbital mechanics"}
+{"difficulty": 0.608412, "distractors": 0, "hops": 1, "id": "q0022", "is_repeat": false, "is_trap": true, "topic": "roman law"}
+{"difficulty": 0.561284, "distractors": 1, "hops": 1, "id": "q0023", "is_repeat": false, "is_trap": false, "topic": "photosynthesis"}
+{"difficulty": 0.553427, "distractors": 2, "hops": 1, "id": "q0024", "is_repeat": true, "is_trap": false, "topic": "roman law"}
+{"difficulty": 0.218894, "distractors": 0, "hops": 1, "id": "q0025", "is_repeat": false, "is_trap": false, "topic": "roman law"}
+{"difficulty": 0.681491, "distractors": 6, "hops": 2, "id": "q0026", "is_repeat": false, "is_trap": false, "topic": "protein folding"}
+{"difficulty": 0.69233, "distractors": 5, "hops": 1, "id": "q0027", "is_repeat": true, "is_trap": false, "topic": "copyright"}
+{"difficulty": 0.475837, "distractors": 0, "hops": 1, "id": "q0028", "is_repeat": false, "is_trap": false, "topic": "supply chains"}
+{"difficulty": 0.913995, "distractors": 3, "hops": 1, "id": "q0029", "is_repeat": false, "is_trap": false, "topic": "tectonic drift"}
+{"difficulty": 0.139037, "distractors": 6, "hops": 2, "id": "q0030", "is_repeat": false, "is_trap": false, "topic": "roman law"}
+{"difficulty": 0.117247, "distractors": 6, "hops": 1, "id": "q0031", "is_repeat": false, "is_trap": false, "topic": "opera"}
+{"difficulty": 0.770527, "distractors": 0, "hops": 2, "id": "q0032", "is_repeat": false, "is_trap": false, "topic": "protein folding"}
+{"difficulty": 0.421998, "distractors": 0, "hops": 1, "id": "q0033", "is_repeat": false, "is_trap": true, "topic": "supply chains"}
+{"difficulty": 0.88347, "distractors": 0, "hops": 1, "id": "q0034", "is_repeat": false, "is_trap": false, "topic": "supply chains"}
+{"difficulty": 0.136927, "distractors": 0, "hops": 2, "id": "q0035", "is_repeat": false, "is_trap": true, "topic": "tectonic drift"}
+{"difficulty": 0.853651, "distractors": 0, "hops": 2, "id": "q0036", "is_repeat": false, "is_trap": false, "topic": "copyright"}
+{"difficulty": 0.236331, "distractors": 1, "hops": 2, "id": "q0037", "is_repeat": false, "is_trap": false, "topic": "protein folding"}
+{"difficulty": 0.300147, "distractors": 2, "hops": 2, "id": "q0038", "is_repeat": false, "is_trap": false, "topic": "roman law"}
+{"difficulty": 0.699964, "distractors": 3, "hops": 1, "id": "q0039", "is_repeat": false, "is_trap": false, "topic": "antibiotic resistance"}
+{"difficulty": 0.696275, "distractors": 0, "hops": 1, "id": "q0040", "is_repeat": false, "is_trap": false, "topic": "antibiotic resistance"}
+{"difficulty": 0.009166, "distractors": 0, "hops": 1, "id": "q0041", "is_repeat": false, "is_trap": true, "topic": "tectonic drift"}
+{"difficulty": 0.351298, "distractors": 0, "hops": 1, "id": "q0042", "is_repeat": false, "is_trap": false, "topic": "photosynthesis"}
+{"difficulty": 0.756804, "distractors": 0, "hops": 2, "id": "q0043", "is_repeat": false, "is_trap": false, "topic": "protein folding"}
+{"difficulty": 0.160851, "distractors": 3, "hops": 2, "id": "q0044", "is_repeat": false, "is_trap": false, "topic": "copyright"}
+{"difficulty": 0.485054, "distractors": 0, "hops": 2, "id": "q0045", "is_repeat": false, "is_trap": false, "topic": "supply chains"}
+{"difficulty": 0.529985, "distractors": 1, "hops": 2, "id": "q0046", "is_repeat": false, "is_trap": false, "topic": "monetary policy"}
+{"difficulty": 0.760712, "distractors": 2, "hops": 1, "id": "q0047", "is_repeat": false, "is_trap": false, "topic": "copyright"}
+{"difficulty": 0.849235, "distractors": 4, "hops": 1, "id": "q0048", "is_repeat": false, "is_trap": true, "topic": "copyright"}
+{"difficulty": 0.925174, "distractors": 6, "hops": 1, "id": "q0049", "is_repeat": false, "is_trap": false, "topic": "photosynthesis"}
+{"difficulty": 0.687072, "distractors": 1, "hops": 2, "id": "q0050", "is_repeat": false, "is_trap": true, "topic": "supply chains"}
+{"difficulty": 0.993008, "distractors": 1, "hops": 2, "id": "q0051", "is_repeat": false, "is_trap": false, "topic": "orbital mechanics"}
+{"difficulty": 0.54335, "distractors": 2, "hops": 2, "id": "q0052", "is_repeat": false, "is_trap": false, "topic": "supply chains"}
+{"difficulty": 0.400724, "distractors": 2, "hops": 1, "id": "q0053", "is_repeat": false, "is_trap": false, "topic": "monetary policy"}
+{"difficulty": 0.299383, "distractors": 0, "hops": 2, "id": "q0054", "is_repeat": false, "is_trap": false, "topic": "opera"}
+{"difficulty": 0.834987, "distractors": 1, "hops": 2, "id": "q0055", "is_repeat": false, "is_trap": false, "topic": "graph colouring"}
+{"difficulty": 0.416349, "distractors": 1, "hops": 1, "id": "q0056", "is_repeat": true, "is_trap": true, "topic": "opera"}
+{"difficulty": 0.868817, "distractors": 0, "hops": 2, "id": "q0057", "is_repeat": false, "is_trap": true, "topic": "graph colouring"}
+{"difficulty": 0.021655, "distractors": 6, "hops": 2, "id": "q0058", "is_repeat": true, "is_trap": false, "topic": "opera"}
+{"difficulty": 0.510554, "distractors": 0, "hops": 2, "id": "q0059", "is_repeat": false, "is_trap": true, "topic": "protein folding"}
+{"difficulty": 0.399931, "distractors": 1, "hops": 1, "id": "q0060", "is_repeat": false, "is_trap": true, "topic": "copyright"}
+{"difficulty": 0.469488, "distractors": 0, "hops": 2, "id": "q0061", "is_repeat": true, "is_trap": false, "topic": "antibiotic resistance"}
+{"difficulty": 0.433832, "distractors": 3, "hops": 1, "id": "q0062", "is_repeat": false, "is_trap": false, "topic": "protein folding"}
+{"difficulty": 0.363328, "distractors": 3, "hops": 2, "id": "q0063", "is_repeat": false, "is_trap": true, "topic": "protein folding"}
+{"difficulty": 0.17407, "distractors": 3, "hops": 2, "id": "q0064", "is_repeat": false, "is_trap": false, "topic": "orbital mechanics"}
+{"difficulty": 0.422758, "distractors": 2, "hops": 2, "id": "q0065", "is_repeat": false, "is_trap": false, "topic": "orbital mechanics"}
+{"difficulty": 0.167434, "distractors": 0, "hops": 1, "id": "q0066", "is_repeat": false, "is_trap": false, "topic": "monetary policy"}
+{"difficulty": 0.165505, "distractors": 5, "hops": 1, "id": "q0067", "is_repeat": false, "is_trap": false, "topic": "immunology"}
+{"difficulty": 0.231826, "distractors": 1, "hops": 1, "id": "q0068", "is_repeat": true, "is_trap": false, "topic": "copyright"}
+{"difficulty": 0.338596, "distractors": 1, "hops": 2, "id": "q0069", "is_repeat": false, "is_trap": false, "topic": "antibiotic resistance"}
+{"difficulty": 0.292295, "distractors": 0, "hops": 1, "id": "q0070", "is_repeat": false, "is_trap": true, "topic": "monetary policy"}
+{"difficulty": 0.052881, "distractors": 1, "hops": 2, "id": "q0071", "is_repeat": false, "is_trap": false, "topic": "graph colouring"}
+{"difficulty": 0.677949, "distractors": 1, "hops": 1, "id": "q0072", "is_repeat": false, "is_trap": false, "topic": "graph colouring"}
+{"difficulty": 0.744102, "distractors": 6, "hops": 1, "id": "q0073", "is_repeat": false, "is_trap": false, "topic": "protein folding"}
+{"difficulty": 0.03205, "distractors": 3, "hops": 2, "id": "q0074", "is_repeat": false, "is_trap": false, "topic": "supply chains"}
+{"difficulty": 0.862196, "distractors": 3, "hops": 2, "id": "q0075", "is_repeat": false, "is_trap": false, "topic": "immunology"}
+{"difficulty": 0.325314, "distractors": 0, "hops": 1, "id": "q0076", "is_repeat": false, "is_trap": true, "topic": "supply chains"}
+{"difficulty": 0.256396, "distractors": 0, "hops": 2, "id": "q0077", "is_repeat": false, "is_trap": false, "topic": "roman law"}
+{"difficulty": 0.103962, "distractors": 1, "hops": 2, "id": "q0078", "is_repeat": true, "is_trap": true, "topic": "graph colouring"}
+{"difficulty": 0.903695, "distractors": 2, "hops": 2, "id": "q0079", "is_repeat": false, "is_trap": false, "topic": "orbital mechanics"}
+{"difficulty": 0.804866, "distractors": 6, "hops": 2, "id": "q0080", "is_repeat": false, "is_trap": false, "topic": "roman law"}
+{"difficulty": 0.449379, "distractors": 2, "hops": 1, "id": "q0081", "is_repeat": true, "is_trap": false, "topic": "orbital mechanics"}
+{"difficulty": 0.524615, "distractors": 1, "hops": 2, "id": "q0082", "is_repeat": false, "is_trap": false, "topic": "orbital mechanics"}
+{"difficulty": 0.847659, "distractors": 1, "hops": 2, "id": "q0083", "is_repeat": false, "is_trap": false, "topic": "opera"}
+{"difficulty": 0.444528, "distractors": 1, "hops": 1, "id": "q0084", "is_repeat": false, "is_trap": true, "topic": "immunology"}
+{"difficulty": 0.062383, "distractors": 1, "hops": 1, "id": "q0085", "is_repeat": false, "is_trap": true, "topic": "immunology"}
+{"difficulty": 0.819182, "distractors": 0, "hops": 1, "id": "q0086", "is_repeat": false, "is_trap": false, "topic": "opera"}
+{"difficulty": 0.241721, "distractors": 1, "hops": 2, "id": "q0087", "is_repeat": false, "is_trap": false, "topic": "graph colouring"}
+{"difficulty": 0.753434, "distractors": 2, "hops": 2, "id": "q0088", "is_repeat": false, "is_trap": false, "topic": "orbital mechanics"}
+{"difficulty": 0.64902, "distractors": 1, "hops": 2, "id": "q0089", "is_repeat": false, "is_trap": false, "topic": "roman law"}
+{"difficulty": 0.235322, "distractors": 2, "hops": 2, "id": "q0090", "is_repeat": true, "is_trap": false, "topic": "immunology"}
+{"difficulty": 0.602084, "distractors": 2, "hops": 2, "id": "q0091", "is_repeat": false, "is_trap": false, "topic": "graph colouring"}
+{"difficulty": 0.337086, "distractors": 1, "hops": 1, "id": "q0092", "is_repeat": false, "is_trap": true, "topic": "opera"}
+{"difficulty": 0.371193, "distractors": 1, "hops": 1, "id": "q0093", "is_repeat": false, "is_trap": false, "topic": "copyright"}
+{"difficulty": 0.416589, "distractors": 0, "hops": 1, "id": "q0094", "is_repeat": false, "is_trap": false, "topic": "protein folding"}
+{"difficulty": 0.360327, "distractors": 3, "hops": 1, "id": "q0095", "is_repeat": false, "is_trap": false, "topic": "photosynthesis"}
+{"difficulty": 0.100487, "distractors": 0, "hops": 1, "id": "q0096", "is_repeat": false, "is_trap": false, "topic": "photosynthesis"}
+{"difficulty": 0.477059, "distractors": 2, "hops": 2, "id": "q0097", "is_repeat": false, "is_trap": false, "topic": "supply chains"}
+{"difficulty": 0.755795, "distractors": 1, "hops": 1, "id": "q0098", "is_repeat": false, "is_trap": false, "topic": "monetary policy"}
+{"difficulty": 0.542643, "distractors": 1, "hops": 1, "id": "q0099", "is_repeat": false, "is_trap": false, "topic": "antibiotic resistance"}
+{"difficulty": 0.060765, "distractors": 0, "hops": 1, "id": "q0100", "is_repeat": false, "is_trap": false, "topic": "tectonic drift"}
+{"difficulty": 0.548844, "distractors": 2, "hops": 2, "id": "q0101", "is_repeat": false, "is_trap": false, "topic": "opera"}
+{"difficulty": 0.403272, "distractors": 1, "hops": 2, "id": "q0102", "is_repeat": false, "is_trap": false, "topic": "immunology"}
+{"difficulty": 0.038338, "distractors": 0, "hops": 1, "id": "q0103", "is_repeat": false, "is_trap": false, "topic": "protein folding"}
+{"difficulty": 0.963246, "distractors": 6, "hops": 2, "id": "q0104", "is_repeat": false, "is_trap": false, "topic": "monetary policy"}
+{"difficulty": 0.107137, "distractors": 1, "hops": 1, "id": "q0105", "is_repeat": false, "is_trap": false, "topic": "roman law"}
+{"difficulty": 0.656248, "distractors": 5, "hops": 2, "id": "q0106", "is_repeat": false, "is_trap": false, "topic": "antibiotic resistance"}
+{"difficulty": 0.632335, "distractors": 1, "hops": 1, "id": "q0107", "is_repeat": false, "is_trap": false, "topic": "tectonic drift"}
+{"difficulty": 0.356112, "distractors": 6, "hops": 2, "id": "q0108", "is_repeat": true, "is_trap": false, "topic": "tectonic drift"}
+{"difficulty": 0.934162, "distractors": 0, "hops": 1, "id": "q0109", "is_repeat": false, "is_trap": false, "topic": "roman law"}
+{"difficulty": 0.236946, "distractors": 1, "hops": 1, "id": "q0110", "is_repeat": false, "is_trap": false, "topic": "copyright"}
+{"difficulty": 0.485642, "distractors": 3, "hops": 2, "id": "q0111", "is_repeat": false, "is_trap": false, "topic": "tectonic drift"}
+{"difficulty": 0.9951, "distractors": 1, "hops": 2, "id": "q0112", "is_repeat": true, "is_trap": false, "topic": "tectonic drift"}
+{"difficulty": 0.516774, "distractors": 2, "hops": 2, "id": "q0113", "is_repeat": true, "is_trap": true, "topic": "monetary policy"}
+{"difficulty": 0.449942, "distractors": 6, "hops": 1, "id": "q0114", "is_repeat": false, "is_trap": false, "topic": "immunology"}
+{"difficulty": 0.671741, "distractors": 0, "hops": 2, "id": "q0115", "is_repeat": false, "is_trap": true, "topic": "immunology"}
+{"difficulty": 0.646025, "distractors": 0, "hops": 1, "id": "q0116", "is_repeat": false, "is_trap": false, "topic": "supply chains"}
+{"difficulty": 0.144639, "distractors": 6, "hops": 2, "id": "q0117", "is_repeat": false, "is_trap": false, "topic": "antibiotic resistance"}
+{"difficulty": 0.335105, "distractors": 1, "hops": 1, "id": "q0118", "is_repeat": false, "is_trap": false, "topic": "photosynthesis"}
+{"difficulty": 0.9906, "distractors": 6, "hops": 1, "id": "q0119", "is_repeat": true, "is_trap": false, "topic": "photosynthesis"}
+{"difficulty": 0.199904, "distractors": 1, "hops": 1, "id": "q0120", "is_repeat": false, "is_trap": true, "topic": "immunology"}
+{"difficulty": 0.712113, "distractors": 1, "hops": 1, "id": "q0121", "is_repeat": false, "is_trap": false, "topic": "roman law"}
+{"difficulty": 0.70785, "distractors": 3, "hops": 2, "id": "q0122", "is_repeat": false, "is_trap": false, "topic": "protein folding"}
+{"difficulty": 0.761369, "distractors": 2, "hops": 1, "id": "q0123", "is_repeat": false, "is_trap": false, "topic": "orbital mechanics"}
+{"difficulty": 0.364088, "distractors": 5, "hops": 2, "id": "q0124", "is_repeat": true, "is_trap": false, "topic": "immunology"}
+{"difficulty": 0.42768, "distractors": 3, "hops": 1, "id": "q0125", "is_repeat": false, "is_trap": true, "topic": "immunology"}
+{"difficulty": 0.389069, "distractors": 0, "hops": 2, "id": "q0126", "is_repeat": true, "is_trap": false, "topic": "graph colouring"}
+{"difficulty": 0.757063, "distractors": 0, "hops": 2, "id": "q0127", "is_repeat": true, "is_trap": false, "topic": "photosynthesis"}
+{"difficulty": 0.144233, "distractors": 1, "hops": 2, "id": "q0128", "is_repeat": false, "is_trap": false, "topic": "roman law"}
+{"difficulty": 0.651224, "distractors": 2, "hops": 1, "id": "q0129", "is_repeat": false, "is_trap": true, "topic": "photosynthesis"}
+{"difficulty": 0.074085, "distractors": 4, "hops": 1, "id": "q0130", "is_repeat": false, "is_trap": false, "topic": "protein folding"}
+{"difficulty": 0.679963, "distractors": 0, "hops": 1, "id": "q0131", "is_repeat": false, "is_trap": true, "topic": "opera"}
+{"difficulty": 0.954759, "distractors": 1, "hops": 1, "id": "q0132", "is_repeat": false, "is_trap": true, "topic": "immunology"}
+{"difficulty": 0.299242, "distractors": 3, "hops": 1, "id": "q0133", "is_repeat": false, "is_trap": false, "topic": "tectonic drift"}
+{"difficulty": 0.588745, "distractors": 2, "hops": 1, "id": "q0134", "is_repeat": false, "is_trap": false, "topic": "supply chains"}
+{"difficulty": 0.855291, "distractors": 1, "hops": 1, "id": "q0135", "is_repeat": false, "is_trap": false, "topic": "orbital mechanics"}
+{"difficulty": 0.444945, "distractors": 1, "hops": 1, "id": "q0136", "is_repeat": false, "is_trap": true, "topic": "photosynthesis"}
+{"difficulty": 0.502643, "distractors": 5, "hops": 2, "id": "q0137", "is_repeat": true, "is_trap": false, "topic": "antibiotic resistance"}
+{"difficulty": 0.429091, "distractors": 1, "hops": 1, "id": "q0138", "is_repeat": false, "is_trap": true, "topic": "monetary policy"}
+{"difficulty": 0.619629, "distractors": 1, "hops": 1, "id": "q0139", "is_repeat": false, "is_trap": false, "topic": "photosynthesis"}
+{"difficulty": 0.222889, "distractors": 1, "hops": 1, "id": "q0140", "is_repeat": true, "is_trap": false, "topic": "immunology"}
+{"difficulty": 0.012233, "distractors": 0, "hops": 1, "id": "q0141", "is_repeat": false, "is_trap": false, "topic": "opera"}
+{"difficulty": 0.313655, "distractors": 0, "hops": 2, "id": "q0142", "is_repeat": false, "is_trap": false, "topic": "monetary policy"}
+{"difficulty": 0.455675, "distractors": 4, "hops": 2, "id": "q0143", "is_repeat": false, "is_trap": false, "topic": "orbital mechanics"}
+{"difficulty": 0.705984, "distractors": 1, "hops": 1, "id": "q0144", "is_repeat": true, "is_trap": false, "topic": "monetary policy"}
+{"difficulty": 0.716432, "distractors": 4, "hops": 1, "id": "q0145", "is_repeat": false, "is_trap": false, "topic": "photosynthesis"}
+{"difficulty": 0.560516, "distractors": 4, "hops": 1, "id": "q0146", "is_repeat": false, "is_trap": true, "topic": "monetary policy"}
+{"difficulty": 0.569404, "distractors": 1, "hops": 1, "id": "q0147", "is_repeat": false, "is_trap": false, "topic": "orbital mechanics"}
+{"difficulty": 0.642648, "distractors": 6, "hops": 2, "id": "q0148", "is_repeat": true, "is_trap": false, "topic": "copyright"}
+{"difficulty": 0.962617, "distractors": 0, "hops": 2, "id": "q0149", "is_repeat": false, "is_trap": false, "topic": "copyright"}
+{"difficulty": 0.657505, "distractors": 2, "hops": 1, "id": "q0150", "is_repeat": false, "is_trap": false, "topic": "orbital mechanics"}
+{"difficulty": 0.87866, "distractors": 1, "hops": 2, "id": "q0151", "is_repeat": false, "is_trap": true, "topic": "graph colouring"}
+{"difficulty": 0.786428, "distractors": 1, "hops": 1, "id": "q0152", "is_repeat": false, "is_trap": false, "topic": "supply chains"}
+{"difficulty": 0.311296, "distractors": 6, "hops": 1, "id": "q0153", "is_repeat": false, "is_trap": false, "topic": "graph colouring"}
+{"difficulty": 0.905273, "distractors": 0, "hops": 2, "id": "q0154", "is_repeat": false, "is_trap": false, "topic": "tectonic drift"}
+{"difficulty": 0.86593, "distractors": 2, "hops": 1, "id": "q0155", "is_repeat": true, "is_trap": false, "topic": "photosynthesis"}
+{"difficulty": 0.971588, "distractors": 0, "hops": 2, "id": "q0156", "is_repeat": true, "is_trap": false, "topic": "tectonic drift"}
+{"difficulty": 0.395079, "distractors": 1, "hops": 2, "id": "q0157", "is_repeat": false, "is_trap": false, "topic": "opera"}
+{"difficulty": 0.601668, "distractors": 0, "hops": 1, "id": "q0158", "is_repeat": false, "is_trap": false, "topic": "tectonic drift"}
+{"difficulty": 0.448046, "distractors": 2, "hops": 1, "id": "q0159", "is_repeat": false, "is_trap": false, "topic": "photosynthesis"}
+{"difficulty": 0.153944, "distractors": 0, "hops": 1, "id": "q0160", "is_repeat": false, "is_trap": false, "topic": "photosynthesis"}
+{"difficulty": 0.269711, "distractors": 2, "hops": 2, "id": "q0161", "is_repeat": true, "is_trap": false, "topic": "monetary policy"}
+{"difficulty": 0.059552, "distractors": 1, "hops": 2, "id": "q0162", "is_repeat": false, "is_trap": false, "topic": "photosynthesis"}
+{"difficulty": 0.904081, "distractors": 0, "hops": 1, "id": "q0163", "is_repeat": false, "is_trap": false, "topic": "tectonic drift"}
+{"difficulty": 0.081379, "distractors": 4, "hops": 1, "id": "q0164", "is_repeat": false, "is_trap": false, "topic": "graph colouring"}
+{"difficulty": 0.61629, "distractors": 5, "hops": 1, "id": "q0165", "is_repeat": false, "is_trap": false, "topic": "photosynthesis"}
+{"difficulty": 0.548426, "distractors": 3, "hops": 2, "id": "q0166", "is_repeat": false, "is_trap": false, "topic": "graph colouring"}
+{"difficulty": 0.998999, "distractors": 1, "hops": 1, "id": "q0167", "is_repeat": false, "is_trap": false, "topic": "graph colouring"}
+{"difficulty": 0.89151, "distractors": 5, "hops": 1, "id": "q0168", "is_repeat": false, "is_trap": false, "topic": "roman law"}
+{"difficulty": 0.276526, "distractors": 2, "hops": 1, "id": "q0169", "is_repeat": false, "is_trap": false, "topic": "immunology"}
+{"difficulty": 0.034211, "distractors": 0, "hops": 2, "id": "q0170", "is_repeat": false, "is_trap": false, "topic": "copyright"}
+{"difficulty": 0.347733, "distractors": 6, "hops": 1, "id": "q0171", "is_repeat": false, "is_trap": false, "topic": "protein folding"}
+{"difficulty": 0.450184, "distractors": 1, "hops": 1, "id": "q0172", "is_repeat": false, "is_trap": false, "topic": "orbital mechanics"}
+{"difficulty": 0.069055, "distractors": 0, "hops": 1, "id": "q0173", "is_repeat": false, "is_trap": false, "topic": "immunology"}
+{"difficulty": 0.739085, "distractors": 0, "hops": 2, "id": "q0174", "is_repeat": false, "is_trap": false, "topic": "roman law"}
+{"difficulty": 0.895395, "distractors": 0, "hops": 1, "id": "q0175", "is_repeat": false, "is_trap": true, "topic": "protein folding"}
+{"difficulty": 0.06045, "distractors": 2, "hops": 2, "id": "q0176", "is_repeat": false, "is_trap": false, "topic": "antibiotic resistance"}
+{"difficulty": 0.836254, "distractors": 3, "hops": 2, "id": "q0177", "is_repeat": false, "is_trap": false, "topic": "protein folding"}
+{"difficulty": 0.39223, "distractors": 3, "hops": 2, "id": "q0178", "is_repeat": false, "is_trap": false, "topic": "antibiotic resistance"}
+{"difficulty": 0.169287, "distractors": 0, "hops": 1, "id": "q0179", "is_repeat": false, "is_trap": false, "topic": "copyright"}
+{"difficulty": 0.742194, "distractors": 0, "hops": 1, "id": "q0180", "is_repeat": false, "is_trap": false, "topic": "roman law"}
+{"difficulty": 0.096581, "distractors": 5, "hops": 2, "id": "q0181", "is_repeat": false, "is_trap": false, "topic": "opera"}
+{"difficulty": 0.072246, "distractors": 1, "hops": 2, "id": "q0182", "is_repeat": false, "is_trap": true, "topic": "copyright"}
+{"difficulty": 0.339413, "distractors": 1, "hops": 2, "id": "q0183", "is_repeat": false, "is_trap": false, "topic": "photosynthesis"}
+{"difficulty": 0.165898, "distractors": 6, "hops": 1, "id": "q0184", "is_repeat": false, "is_trap": false, "topic": "antibiotic resistance"}
+{"difficulty": 0.911798, "distractors": 1, "hops": 1, "id": "q0185", "is_repeat": false, "is_trap": false, "topic": "tectonic drift"}
+{"difficulty": 0.242854, "distractors": 1, "hops": 2, "id": "q0186", "is_repeat": false, "is_trap": false, "topic": "antibiotic resistance"}
+{"difficulty": 0.722292, "distractors": 0, "hops": 1, "id": "q0187", "is_repeat": true, "is_trap": false, "topic": "supply chains"}
+{"difficulty": 0.389441, "distractors": 1, "hops": 2, "id": "q0188", "is_repeat": true, "is_trap": false, "topic": "antibiotic resistance"}
+{"difficulty": 0.017538, "distractors": 3, "hops": 1, "id": "q0189", "is_repeat": false, "is_trap": false, "topic": "monetary policy"}
+{"difficulty": 0.535151, "distractors": 1, "hops": 1, "id": "q0190", "is_repeat": true, "is_trap": false, "topic": "copyright"}
+{"difficulty": 0.281727, "distractors": 1, "hops": 1, "id": "q0191", "is_repeat": true, "is_trap": true, "topic": "photosynthesis"}
+{"difficulty": 0.377945, "distractors": 6, "hops": 2, "id": "q0192", "is_repeat": true, "is_trap": false, "topic": "immunology"}
+{"difficulty": 0.399413, "distractors": 1, "hops": 1, "id": "q0193", "is_repeat": true, "is_trap": false, "topic": "graph colouring"}
+{"difficulty": 0.177311, "distractors": 0, "hops": 1, "id": "q0194", "is_repeat": false, "is_trap": false, "topic": "protein folding"}
+{"difficulty": 0.223147, "distractors": 3, "hops": 1, "id": "q0195", "is_repeat": false, "is_trap": true, "topic": "antibiotic resistance"}
+{"difficulty": 0.60477, "distractors": 1, "hops": 1, "id": "q0196", "is_repeat": false, "is_trap": false, "topic": "opera"}
+{"difficulty": 0.696816, "distractors": 0, "hops": 2, "id": "q0197", "is_repeat": false, "is_trap": false, "topic": "orbital mechanics"}
+{"difficulty": 0.574256, "distractors": 6, "hops": 2, "id": "q0198", "is_repeat": false, "is_trap": true, "topic": "supply chains"}
+{"difficulty": 0.002525, "distractors": 0, "hops": 1, "id": "q0199", "is_repeat": true, "is_trap": false, "topic": "antibiotic resistance"}
+{"difficulty": 0.935095, "distractors": 0, "hops": 1, "id": "q0200", "is_repeat": false, "is_trap": false, "topic": "antibiotic resistance"}
+{"difficulty": 0.915306, "distractors": 0, "hops": 2, "id": "q0201", "is_repeat": false, "is_trap": true, "topic": "immunology"}
+{"difficulty": 0.527726, "distractors": 5, "hops": 2, "id": "q0202", "is_repeat": false, "is_trap": false, "topic": "opera"}
+{"difficulty": 0.550384, "distractors": 0, "hops": 1, "id": "q0203", "is_repeat": false, "is_trap": false, "topic": "opera"}
+{"difficulty": 0.684695, "distractors": 2, "hops": 1, "id": "q0204", "is_repeat": false, "is_trap": false, "topic": "orbital mechanics"}
+{"difficulty": 0.230593, "distractors": 0, "hops": 2, "id": "q0205", "is_repeat": false, "is_trap": false, "topic": "protein folding"}
+{"difficulty": 0.398464, "distractors": 0, "hops": 1, "id": "q0206", "is_repeat": false, "is_trap": false, "topic": "photosynthesis"}
+{"difficulty": 0.084079, "distractors": 4, "hops": 1, "id": "q0207", "is_repeat": true, "is_trap": false, "topic": "photosynthesis"}
+{"difficulty": 0.642, "distractors": 1, "hops": 2, "id": "q0208", "is_repeat": false, "is_trap": false, "topic": "copyright"}
+{"difficulty": 0.781585, "distractors": 2, "hops": 1, "id": "q0209", "is_repeat": false, "is_trap": false, "topic": "immunology"}
+{"difficulty": 0.598122, "distractors": 1, "hops": 2, "id": "q0210", "is_repeat": true, "is_trap": true, "topic": "protein folding"}
+{"difficulty": 0.224881, "distractors": 2, "hops": 1, "id": "q0211", "is_repeat": false, "is_trap": false, "topic": "protein folding"}
+{"difficulty": 0.238125, "distractors": 3, "hops": 1, "id": "q0212", "is_repeat": false, "is_trap": false, "topic": "copyright"}
+{"difficulty": 0.066044, "distractors": 4, "hops": 2, "id": "q0213", "is_repeat": true, "is_trap": false, "topic": "protein folding"}
+{"difficulty": 0.59309, "distractors": 0, "hops": 2, "id": "q0214", "is_repeat": false, "is_trap": false, "topic": "copyright"}
+{"difficulty": 0.831583, "distractors": 4, "hops": 2, "id": "q0215", "is_repeat": false, "is_trap": false, "topic": "tectonic drift"}
+{"difficulty": 0.559643, "distractors": 1, "hops": 2, "id": "q0216", "is_repeat": false, "is_trap": false, "topic": "antibiotic resistance"}
+{"difficulty": 0.378093, "distractors": 0, "hops": 1, "id": "q0217", "is_repeat": false, "is_trap": false, "topic": "monetary policy"}
+{"difficulty": 0.848641, "distractors": 0, "hops": 1, "id": "q0218", "is_repeat": false, "is_trap": false, "topic": "supply chains"}
+{"difficulty": 0.147277, "distractors": 1, "hops": 2, "id": "q0219", "is_repeat": true, "is_trap": false, "topic": "immunology"}
+{"difficulty": 0.638042, "distractors": 0, "hops": 2, "id": "q0220", "is_repeat": false, "is_trap": false, "topic": "tectonic drift"}
+{"difficulty": 0.672165, "distractors": 4, "hops": 1, "id": "q0221", "is_repeat": false, "is_trap": false, "topic": "monetary policy"}
+{"difficulty": 0.654223, "distractors": 0, "hops": 1, "id": "q0222", "is_repeat": true, "is_trap": true, "topic": "supply chains"}
+{"difficulty": 0.130882, "distractors": 2, "hops": 1, "id": "q0223", "is_repeat": false, "is_trap": false, "topic": "orbital mechanics"}
+{"difficulty": 0.732365, "distractors": 0, "hops": 2, "id": "q0224", "is_repeat": false, "is_trap": false, "topic": "graph colouring"}
+{"difficulty": 0.131324, "distractors": 4, "hops": 1, "id": "q0225", "is_repeat": true, "is_trap": false, "topic": "immunology"}
+{"difficulty": 0.034446, "distractors": 0, "hops": 2, "id": "q0226", "is_repeat": false, "is_trap": false, "topic": "protein folding"}
+{"difficulty": 0.031665, "distractors": 0, "hops": 2, "id": "q0227", "is_repeat": false, "is_trap": true, "topic": "immunology"}
+{"difficulty": 0.209276, "distractors": 6, "hops": 1, "id": "q0228", "is_repeat": false, "is_trap": false, "topic": "antibiotic resistance"}
+{"difficulty": 0.885888, "distractors": 1, "hops": 2, "id": "q0229", "is_repeat": false, "is_trap": false, "topic": "roman law"}
+{"difficulty": 0.124373, "distractors": 2, "hops": 1, "id": "q0230", "is_repeat": false, "is_trap": false, "topic": "immunology"}
+{"difficulty": 0.804843, "distractors": 6, "hops": 1, "id": "q0231", "is_repeat": false, "is_trap": false, "topic": "antibiotic resistance"}
+{"difficulty": 0.752871, "distractors": 2, "hops": 1, "id": "q0232", "is_repeat": false, "is_trap": false, "topic": "monetary policy"}
+{"difficulty": 0.654398, "distractors": 6, "hops": 1, "id": "q0233", "is_repeat": false, "is_trap": false, "topic": "tectonic drift"}
+{"difficulty": 0.611161, "distractors": 0, "hops": 1, "id": "q0234", "is_repeat": false, "is_trap": false, "topic": "opera"}
+{"difficulty": 0.307996, "distractors": 0, "hops": 2, "id": "q0235", "is_repeat": false, "is_trap": false, "topic": "immunology"}
+{"difficulty": 0.838513, "distractors": 6, "hops": 1, "id": "q0236", "is_repeat": false, "is_trap": false, "topic": "immunology"}
+{"difficulty": 0.346339, "distractors": 1, "hops": 2, "id": "q0237", "is_repeat": true, "is_trap": false, "topic": "supply chains"}
+{"difficulty": 0.268102, "distractors": 1, "hops": 2, "id": "q0238", "is_repeat": true, "is_trap": false, "topic": "photosynthesis"}
+{"difficulty": 0.848473, "distractors": 1, "hops": 2, "id": "q0239", "is_repeat": false, "is_trap": false, "topic": "copyright"}
+{"difficulty": 0.838078, "distractors": 2, "hops": 1, "id": "q0240", "is_repeat": true, "is_trap": false, "topic": "graph colouring"}
+{"difficulty": 0.399761, "distractors": 0, "hops": 1, "id": "q0241", "is_repeat": false, "is_trap": false, "topic": "monetary policy"}
+{"difficulty": 0.592521, "distractors": 3, "hops": 2, "id": "q0242", "is_repeat": false, "is_trap": false, "topic": "photosynthesis"}
+{"difficulty": 0.618503, "distractors": 0, "hops": 1, "id": "q0243", "is_repeat": false, "is_trap": false, "topic": "immunology"}
+{"difficulty": 0.745005, "distractors": 5, "hops": 1, "id": "q0244", "is_repeat": true, "is_trap": false, "topic": "copyright"}
+{"difficulty": 0.686349, "distractors": 1, "hops": 2, "id": "q0245", "is_repeat": false, "is_trap": false, "topic": "photosynthesis"}
+{"difficulty": 0.804627, "distractors": 4, "hops": 1, "id": "q0246", "is_repeat": false, "is_trap": false, "topic": "opera"}
+{"difficulty": 0.956457, "distractors": 6, "hops": 2, "id": "q0247", "is_repeat": false, "is_trap": false, "topic": "antibiotic resistance"}
+{"difficulty": 0.203901, "distractors": 2, "hops": 2, "id": "q0248", "is_repeat": false, "is_trap": false, "topic": "monetary policy"}
+{"difficulty": 0.733013, "distractors": 0, "hops": 1, "id": "q0249", "is_repeat": false, "is_trap": false, "topic": "roman law"}
+{"difficulty": 0.969543, "distractors": 2, "hops": 1, "id": "q0250", "is_repeat": false, "is_trap": false, "topic": "supply chains"}
+{"difficulty": 0.379584, "distractors": 5, "hops": 1, "id": "q0251", "is_repeat": false, "is_trap": true, "topic": "orbital mechanics"}
+{"difficulty": 0.994055, "distractors": 4, "hops": 1, "id": "q0252", "is_repeat": false, "is_trap": true, "topic": "protein folding"}
+{"difficulty": 0.981428, "distractors": 6, "hops": 2, "id": "q0253", "is_repeat": false, "is_trap": true, "topic": "copyright"}
+{"difficulty": 0.314068, "distractors": 3, "hops": 1, "id": "q0254", "is_repeat": false, "is_trap": true, "topic": "immunology"}
+{"difficulty": 0.562728, "distractors": 6, "hops": 2, "id": "q0255", "is_repeat": false, "is_trap": false, "topic": "graph colouring"}
+{"difficulty": 0.770568, "distractors": 3, "hops": 1, "id": "q0256", "is_repeat": false, "is_trap": false, "topic": "antibiotic resistance"}
+{"difficulty": 0.813195, "distractors": 3, "hops": 1, "id": "q0257", "is_repeat": false, "is_trap": false, "topic": "immunology"}
+{"difficulty": 0.446609, "distractors": 6, "hops": 2, "id": "q0258", "is_repeat": false, "is_trap": false, "topic": "orbital mechanics"}
+{"difficulty": 0.181395, "distractors": 1, "hops": 1, "id": "q0259", "is_repeat": false, "is_trap": true, "topic": "supply chains"}
+{"difficulty": 0.500838, "distractors": 1, "hops": 2, "id": "q0260", "is_repeat": false, "is_trap": false, "topic": "antibiotic resistance"}
+{"difficulty": 0.935864, "distractors": 5, "hops": 2, "id": "q0261", "is_repeat": false, "is_trap": false, "topic": "monetary policy"}
+{"difficulty": 0.918809, "distractors": 6, "hops": 1, "id": "q0262", "is_repeat": false, "is_trap": false, "topic": "copyright"}
+{"difficulty": 0.72582, "distractors": 4, "hops": 1, "id": "q0263", "is_repeat": false, "is_trap": false, "topic": "photosynthesis"}
+{"difficulty": 0.295685, "distractors": 6, "hops": 2, "id": "q0264", "is_repeat": true, "is_trap": false, "topic": "tectonic drift"}
+{"difficulty": 0.863003, "distractors": 0, "hops": 1, "id": "q0265", "is_repeat": false, "is_trap": false, "topic": "protein folding"}
+{"difficulty": 0.048609, "distractors": 5, "hops": 2, "id": "q0266", "is_repeat": false, "is_trap": true, "topic": "copyright"}
+{"difficulty": 0.597081, "distractors": 5, "hops": 1, "id": "q0267", "is_repeat": true, "is_trap": false, "topic": "monetary policy"}
+{"difficulty": 0.961619, "distractors": 6, "hops": 2, "id": "q0268", "is_repeat": true, "is_trap": false, "topic": "copyright"}
+{"difficulty": 0.720406, "distractors": 0, "hops": 1, "id": "q0269", "is_repeat": false, "is_trap": false, "topic": "protein folding"}
+{"difficulty": 0.534366, "distractors": 2, "hops": 2, "id": "q0270", "is_repeat": false, "is_trap": true, "topic": "roman law"}
+{"difficulty": 0.417519, "distractors": 0, "hops": 1, "id": "q0271", "is_repeat": false, "is_trap": false, "topic": "copyright"}
+{"difficulty": 0.431433, "distractors": 4, "hops": 1, "id": "q0272", "is_repeat": false, "is_trap": false, "topic": "supply chains"}
+{"difficulty": 0.820242, "distractors": 6, "hops": 1, "id": "q0273", "is_repeat": false, "is_trap": false, "topic": "supply chains"}
+{"difficulty": 0.280313, "distractors": 0, "hops": 2, "id": "q0274", "is_repeat": true, "is_trap": false, "topic": "tectonic drift"}
+{"difficulty": 0.290789, "distractors": 6, "hops": 1, "id": "q0275", "is_repeat": false, "is_trap": false, "topic": "protein folding"}
+{"difficulty": 0.317009, "distractors": 3, "hops": 2, "id": "q0276", "is_repeat": true, "is_trap": true, "topic": "roman law"}
+{"difficulty": 0.55071, "distractors": 1, "hops": 2, "id": "q0277", "is_repeat": false, "is_trap": false, "topic": "graph colouring"}
+{"difficulty": 0.1739, "distractors": 2, "hops": 1, "id": "q0278", "is_repeat": false, "is_trap": false, "topic": "supply chains"}
+{"difficulty": 0.522941, "distractors": 3, "hops": 2, "id": "q0279", "is_repeat": true, "is_trap": false, "topic": "supply chains"}
+{"difficulty": 0.465521, "distractors": 0, "hops": 1, "id": "q0280", "is_repeat": false, "is_trap": false, "topic": "antibiotic resistance"}
+{"difficulty": 0.759414, "distractors": 0, "hops": 1, "id": "q0281", "is_repeat": false, "is_trap": false, "topic": "immunology"}
+{"difficulty": 0.762734, "distractors": 0, "hops": 1, "id": "q0282", "is_repeat": true, "is_trap": false, "topic": "tectonic drift"}
+{"difficulty": 0.078871, "distractors": 1, "hops": 1, "id": "q0283", "is_repeat": true, "is_trap": false, "topic": "antibiotic resistance"}
+{"difficulty": 0.150737, "distractors": 1, "hops": 1, "id": "q0284", "is_repeat": false, "is_trap": false, "topic": "orbital mechanics"}
+{"difficulty": 0.38578, "distractors": 6, "hops": 1, "id": "q0285", "is_repeat": false, "is_trap": true, "topic": "immunology"}
+{"difficulty": 0.10005, "distractors": 0, "hops": 1, "id": "q0286", "is_repeat": false, "is_trap": false, "topic": "graph colouring"}
+{"difficulty": 0.321498, "distractors": 0, "hops": 1, "id": "q0287", "is_repeat": false, "is_trap": false, "topic": "photosynthesis"}
+{"difficulty": 0.308536, "distractors": 0, "hops": 2, "id": "q0288", "is_repeat": false, "is_trap": false, "topic": "antibiotic resistance"}
+{"difficulty": 0.974619, "distractors": 0, "hops": 1, "id": "q0289", "is_repeat": true, "is_trap": false, "topic": "graph colouring"}
+{"difficulty": 0.439787, "distractors": 6, "hops": 2, "id": "q0290", "is_repeat": true, "is_trap": false, "topic": "protein folding"}
+{"difficulty": 0.159462, "distractors": 2, "hops": 1, "id": "q0291", "is_repeat": false, "is_trap": true, "topic": "monetary policy"}
+{"difficulty": 0.891723, "distractors": 1, "hops": 2, "id": "q0292", "is_repeat": false, "is_trap": false, "topic": "tectonic drift"}
+{"difficulty": 0.099492, "distractors": 0, "hops": 1, "id": "q0293", "is_repeat": false, "is_trap": false, "topic": "monetary policy"}
+{"difficulty": 0.672623, "distractors": 1, "hops": 2, "id": "q0294", "is_repeat": true, "is_trap": false, "topic": "supply chains"}
+{"difficulty": 0.762662, "distractors": 4, "hops": 1, "id": "q0295", "is_repeat": false, "is_trap": false, "topic": "graph colouring"}
+{"difficulty": 0.907487, "distractors": 0, "hops": 1, "id": "q0296", "is_repeat": false, "is_trap": false, "topic": "roman law"}
+{"difficulty": 0.22911, "distractors": 0, "hops": 1, "id": "q0297", "is_repeat": false, "is_trap": false, "topic": "orbital mechanics"}
+{"difficulty": 0.755805, "distractors": 2, "hops": 1, "id": "q0298", "is_repeat": false, "is_trap": false, "topic": "roman law"}
+{"difficulty": 0.234895, "distractors": 2, "hops": 1, "id": "q0299", "is_repeat": false, "is_trap": true, "topic": "copyright"}
+{"difficulty": 0.444746, "distractors": 2, "hops": 1, "id": "q0300", "is_repeat": false, "is_trap": true, "topic": "supply chains"}
+{"difficulty": 0.833184, "distractors": 1, "hops": 1, "id": "q0301", "is_repeat": false, "is_trap": true, "topic": "orbital mechanics"}
+{"difficulty": 0.890868, "distractors": 0, "hops": 1, "id": "q0302", "is_repeat": false, "is_trap": false, "topic": "orbital mechanics"}
+{"difficulty": 0.570028, "distractors": 6, "hops": 2, "id": "q0303", "is_repeat": false, "is_trap": true, "topic": "graph colouring"}
+{"difficulty": 0.720127, "distractors": 0, "hops": 1, "id": "q0304", "is_repeat": false, "is_trap": false, "topic": "immunology"}
+{"difficulty": 0.536026, "distractors": 1, "hops": 2, "id": "q0305", "is_repeat": false, "is_trap": false, "topic": "protein folding"}
+{"difficulty": 0.379256, "distractors": 0, "hops": 2, "id": "q0306", "is_repeat": false, "is_trap": false, "topic": "copyright"}
+{"difficulty": 0.418157, "distractors": 1, "hops": 1, "id": "q0307", "is_repeat": false, "is_trap": false, "topic": "opera"}
+{"difficulty": 0.907015, "distractors": 0, "hops": 1, "id": "q0308", "is_repeat": false, "is_trap": false, "topic": "antibiotic resistance"}
+{"difficulty": 0.828656, "distractors": 4, "hops": 2, "id": "q0309", "is_repeat": true, "is_trap": false, "topic": "supply chains"}
+{"difficulty": 0.146956, "distractors": 6, "hops": 2, "id": "q0310", "is_repeat": false, "is_trap": false, "topic": "supply chains"}
+{"difficulty": 0.366054, "distractors": 1, "hops": 1, "id": "q0311", "is_repeat": true, "is_trap": false, "topic": "monetary policy"}
+{"difficulty": 0.222753, "distractors": 1, "hops": 1, "id": "q0312", "is_repeat": false, "is_trap": false, "topic": "antibiotic resistance"}
+{"difficulty": 0.881057, "distractors": 0, "hops": 1, "id": "q0313", "is_repeat": false, "is_trap": false, "topic": "opera"}
+{"difficulty": 0.564116, "distractors": 2, "hops": 2, "id": "q0314", "is_repeat": false, "is_trap": false, "topic": "copyright"}
+{"difficulty": 0.765405, "distractors": 2, "hops": 1, "id": "q0315", "is_repeat": false, "is_trap": true, "topic": "protein folding"}
+{"difficulty": 0.086175, "distractors": 2, "hops": 2, "id": "q0316", "is_repeat": true, "is_trap": false, "topic": "antibiotic resistance"}
+{"difficulty": 0.888079, "distractors": 0, "hops": 1, "id": "q0317", "is_repeat": false, "is_trap": false, "topic": "opera"}
+{"difficulty": 0.193018, "distractors": 0, "hops": 1, "id": "q0318", "is_repeat": false, "is_trap": false, "topic": "graph colouring"}
+{"difficulty": 0.670971, "distractors": 1, "hops": 1, "id": "q0319", "is_repeat": false, "is_trap": false, "topic": "graph colouring"}
+{"difficulty": 0.13066, "distractors": 0, "hops": 2, "id": "q0320", "is_repeat": false, "is_trap": true, "topic": "antibiotic resistance"}
+{"difficulty": 0.839058, "distractors": 0, "hops": 1, "id": "q0321", "is_repeat": false, "is_trap": false, "topic": "immunology"}
+{"difficulty": 0.7895, "distractors": 0, "hops": 1, "id": "q0322", "is_repeat": false, "is_trap": false, "topic": "copyright"}
+{"difficulty": 0.148796, "distractors": 6, "hops": 1, "id": "q0323", "is_repeat": false, "is_trap": false, "topic": "supply chains"}
+{"difficulty": 0.434382, "distractors": 2, "hops": 1, "id": "q0324", "is_repeat": false, "is_trap": false, "topic": "antibiotic resistance"}
+{"difficulty": 0.060057, "distractors": 5, "hops": 2, "id": "q0325", "is_repeat": false, "is_trap": true, "topic": "immunology"}
+{"difficulty": 0.35493, "distractors": 0, "hops": 1, "id": "q0326", "is_repeat": true, "is_trap": false, "topic": "immunology"}
+{"difficulty": 0.128334, "distractors": 6, "hops": 2, "id": "q0327", "is_repeat": true, "is_trap": false, "topic": "monetary policy"}
+{"difficulty": 0.528046, "distractors": 5, "hops": 1, "id": "q0328", "is_repeat": false, "is_trap": false, "topic": "tectonic drift"}
+{"difficulty": 0.32888, "distractors": 1, "hops": 1, "id": "q0329", "is_repeat": false, "is_trap": false, "topic": "monetary policy"}
+{"difficulty": 0.598311, "distractors": 0, "hops": 2, "id": "q0330", "is_repeat": false, "is_trap": true, "topic": "roman law"}
+{"difficulty": 0.383082, "distractors": 3, "hops": 1, "id": "q0331", "is_repeat": false, "is_trap": true, "topic": "antibiotic resistance"}
+{"difficulty": 0.850428, "distractors": 0, "hops": 2, "id": "q0332", "is_repeat": true, "is_trap": true, "topic": "antibiotic resistance"}
+{"difficulty": 0.301072, "distractors": 2, "hops": 1, "id": "q0333", "is_repeat": false, "is_trap": false, "topic": "roman law"}
+{"difficulty": 0.309635, "distractors": 6, "hops": 2, "id": "q0334", "is_repeat": false, "is_trap": false, "topic": "supply chains"}
+{"difficulty": 0.425519, "distractors": 0, "hops": 2, "id": "q0335", "is_repeat": false, "is_trap": false, "topic": "antibiotic resistance"}
+{"difficulty": 0.039176, "distractors": 0, "hops": 2, "id": "q0336", "is_repeat": false, "is_trap": false, "topic": "protein folding"}
+{"difficulty": 0.602916, "distractors": 6, "hops": 2, "id": "q0337", "is_repeat": false, "is_trap": false, "topic": "antibiotic resistance"}
+{"difficulty": 0.918171, "distractors": 1, "hops": 1, "id": "q0338", "is_repeat": false, "is_trap": false, "topic": "tectonic drift"}
+{"difficulty": 0.548553, "distractors": 0, "hops": 1, "id": "q0339", "is_repeat": false, "is_trap": false, "topic": "opera"}
+{"difficulty": 0.101072, "distractors": 0, "hops": 1, "id": "q0340", "is_repeat": true, "is_trap": false, "topic": "graph colouring"}
+{"difficulty": 0.733865, "distractors": 5, "hops": 2, "id": "q0341", "is_repeat": false, "is_trap": false, "topic": "monetary policy"}
+{"difficulty": 0.282523, "distractors": 2, "hops": 1, "id": "q0342", "is_repeat": true, "is_trap": false, "topic": "opera"}
+{"difficulty": 0.56523, "distractors": 1, "hops": 2, "id": "q0343", "is_repeat": false, "is_trap": false, "topic": "supply chains"}
+{"difficulty": 0.29054, "distractors": 5, "hops": 2, "id": "q0344", "is_repeat": false, "is_trap": false, "topic": "monetary policy"}
+{"difficulty": 0.089311, "distractors": 2, "hops": 1, "id": "q0345", "is_repeat": false, "is_trap": false, "topic": "immunology"}
+{"difficulty": 0.144536, "distractors": 0, "hops": 2, "id": "q0346", "is_repeat": false, "is_trap": false, "topic": "copyright"}
+{"difficulty": 0.966175, "distractors": 2, "hops": 1, "id": "q0347", "is_repeat": false, "is_trap": false, "topic": "graph colouring"}
+{"difficulty": 0.090007, "distractors": 0, "hops": 1, "id": "q0348", "is_repeat": false, "is_trap": false, "topic": "monetary policy"}
+{"difficulty": 0.098241, "distractors": 4, "hops": 2, "id": "q0349", "is_repeat": false, "is_trap": true, "topic": "supply chains"}
+{"difficulty": 0.816153, "distractors": 2, "hops": 2, "id": "q0350", "is_repeat": false, "is_trap": false, "topic": "antibiotic resistance"}
+{"difficulty": 0.396518, "distractors": 0, "hops": 1, "id": "q0351", "is_repeat": true, "is_trap": false, "topic": "roman law"}
+{"difficulty": 0.640059, "distractors": 0, "hops": 1, "id": "q0352", "is_repeat": false, "is_trap": false, "topic": "opera"}
+{"difficulty": 0.404935, "distractors": 0, "hops": 1, "id": "q0353", "is_repeat": false, "is_trap": false, "topic": "monetary policy"}
+{"difficulty": 0.78706, "distractors": 3, "hops": 2, "id": "q0354", "is_repeat": false, "is_trap": false, "topic": "opera"}
+{"difficulty": 0.847253, "distractors": 0, "hops": 1, "id": "q0355", "is_repeat": false, "is_trap": false, "topic": "supply chains"}
+{"difficulty": 0.249233, "distractors": 4, "hops": 1, "id": "q0356", "is_repeat": false, "is_trap": false, "topic": "opera"}
+{"difficulty": 0.361555, "distractors": 0, "hops": 2, "id": "q0357", "is_repeat": false, "is_trap": false, "topic": "monetary policy"}
+{"difficulty": 0.868635, "distractors": 1, "hops": 2, "id": "q0358", "is_repeat": false, "is_trap": false, "topic": "monetary policy"}
+{"difficulty": 0.55041, "distractors": 2, "hops": 1, "id": "q0359", "is_repeat": false, "is_trap": false, "topic": "antibiotic resistance"}
+{"difficulty": 0.665266, "distractors": 1, "hops": 1, "id": "q0360", "is_repeat": false, "is_trap": false, "topic": "copyright"}
+{"difficulty": 0.019925, "distractors": 1, "hops": 1, "id": "q0361", "is_repeat": false, "is_trap": false, "topic": "roman law"}
+{"difficulty": 0.767308, "distractors": 3, "hops": 1, "id": "q0362", "is_repeat": true, "is_trap": true, "topic": "antibiotic resistance"}
+{"difficulty": 0.139779, "distractors": 0, "hops": 2, "id": "q0363", "is_repeat": false, "is_trap": true, "topic": "roman law"}
+{"difficulty": 0.645743, "distractors": 1, "hops": 2, "id": "q0364", "is_repeat": false, "is_trap": false, "topic": "tectonic drift"}
+{"difficulty": 0.600598, "distractors": 1, "hops": 1, "id": "q0365", "is_repeat": false, "is_trap": false, "topic": "tectonic drift"}
+{"difficulty": 0.06463, "distractors": 1, "hops": 1, "id": "q0366", "is_repeat": false, "is_trap": false, "topic": "antibiotic resistance"}
+{"difficulty": 0.659578, "distractors": 3, "hops": 1, "id": "q0367", "is_repeat": false, "is_trap": false, "topic": "opera"}
+{"difficulty": 0.653147, "distractors": 2, "hops": 2, "id": "q0368", "is_repeat": false, "is_trap": true, "topic": "copyright"}
+{"difficulty": 0.263587, "distractors": 3, "hops": 2, "id": "q0369", "is_repeat": false, "is_trap": false, "topic": "graph colouring"}
+{"difficulty": 0.665187, "distractors": 2, "hops": 2, "id": "q0370", "is_repeat": true, "is_trap": false, "topic": "monetary policy"}
+{"difficulty": 0.680723, "distractors": 2, "hops": 1, "id": "q0371", "is_repeat": false, "is_trap": false, "topic": "roman law"}
+{"difficulty": 0.340537, "distractors": 2, "hops": 1, "id": "q0372", "is_repeat": true, "is_trap": false, "topic": "supply chains"}
+{"difficulty": 0.162142, "distractors": 6, "hops": 1, "id": "q0373", "is_repeat": false, "is_trap": false, "topic": "opera"}
+{"difficulty": 0.496024, "distractors": 0, "hops": 1, "id": "q0374", "is_repeat": false, "is_trap": false, "topic": "copyright"}
+{"difficulty": 0.495169, "distractors": 2, "hops": 1, "id": "q0375", "is_repeat": false, "is_trap": false, "topic": "orbital mechanics"}
+{"difficulty": 0.13619, "distractors": 0, "hops": 1, "id": "q0376", "is_repeat": true, "is_trap": false, "topic": "graph colouring"}
+{"difficulty": 0.127754, "distractors": 4, "hops": 1, "id": "q0377", "is_repeat": true, "is_trap": false, "topic": "opera"}
+{"difficulty": 0.740383, "distractors": 3, "hops": 1, "id": "q0378", "is_repeat": false, "is_trap": false, "topic": "supply chains"}
+{"difficulty": 0.906324, "distractors": 2, "hops": 2, "id": "q0379", "is_repeat": false, "is_trap": false, "topic": "antibiotic resistance"}
+{"difficulty": 0.803055, "distractors": 2, "hops": 2, "id": "q0380", "is_repeat": true, "is_trap": false, "topic": "monetary policy"}
+{"difficulty": 0.180213, "distractors": 5, "hops": 1, "id": "q0381", "is_repeat": true, "is_trap": false, "topic": "immunology"}
+{"difficulty": 0.732566, "distractors": 0, "hops": 1, "id": "q0382", "is_repeat": false, "is_trap": true, "topic": "opera"}
+{"difficulty": 0.551827, "distractors": 1, "hops": 2, "id": "q0383", "is_repeat": true, "is_trap": false, "topic": "roman law"}
+{"difficulty": 0.173311, "distractors": 0, "hops": 1, "id": "q0384", "is_repeat": false, "is_trap": false, "topic": "monetary policy"}
+{"difficulty": 0.770368, "distractors": 0, "hops": 2, "id": "q0385", "is_repeat": false, "is_trap": false, "topic": "graph colouring"}
+{"difficulty": 0.835655, "distractors": 2, "hops": 1, "id": "q0386", "is_repeat": true, "is_trap": false, "topic": "monetary policy"}
+{"difficulty": 0.505982, "distractors": 0, "hops": 2, "id": "q0387", "is_repeat": false, "is_trap": false, "topic": "supply chains"}
+{"difficulty": 0.303431, "distractors": 1, "hops": 1, "id": "q0388", "is_repeat": false, "is_trap": false, "topic": "orbital mechanics"}
+{"difficulty": 0.751413, "distractors": 3, "hops": 2, "id": "q0389", "is_repeat": false, "is_trap": true, "topic": "orbital mechanics"}
+{"difficulty": 0.428042, "distractors": 0, "hops": 2, "id": "q0390", "is_repeat": false, "is_trap": false, "topic": "copyright"}
+{"difficulty": 0.656429, "distractors": 2, "hops": 1, "id": "q0391", "is_repeat": false, "is_trap": false, "topic": "photosynthesis"}
+{"difficulty": 0.422205, "distractors": 1, "hops": 2, "id": "q0392", "is_repeat": false, "is_trap": false, "topic": "antibiotic resistance"}
+{"difficulty": 0.843489, "distractors": 1, "hops": 2, "id": "q0393", "is_repeat": false, "is_trap": false, "topic": "copyright"}
+{"difficulty": 0.495289, "distractors": 1, "hops": 1, "id": "q0394", "is_repeat": false, "is_trap": false, "topic": "opera"}
+{"difficulty": 0.955193, "distractors": 0, "hops": 1, "id": "q0395", "is_repeat": false, "is_trap": false, "topic": "roman law"}
+{"difficulty": 0.798205, "distractors": 5, "hops": 2, "id": "q0396", "is_repeat": false, "is_trap": false, "topic": "tectonic drift"}
+{"difficulty": 0.031886, "distractors": 4, "hops": 1, "id": "q0397", "is_repeat": false, "is_trap": false, "topic": "graph colouring"}
+{"difficulty": 0.198629, "distractors": 0, "hops": 2, "id": "q0398", "is_repeat": false, "is_trap": false, "topic": "roman law"}
+{"difficulty": 0.973985, "distractors": 0, "hops": 1, "id": "q0399", "is_repeat": false, "is_trap": true, "topic": "immunology"}

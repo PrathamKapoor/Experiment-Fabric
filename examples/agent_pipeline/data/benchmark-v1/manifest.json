@@ -1,0 +1,8 @@
+{
+  "generator": "examples/agent_pipeline/make_data.py",
+  "mean_distractors": 1.3025,
+  "multi_hop_fraction": 0.3175,
+  "n_questions": 400,
+  "trap_fraction": 0.105,
+  "version": "v1"
+}

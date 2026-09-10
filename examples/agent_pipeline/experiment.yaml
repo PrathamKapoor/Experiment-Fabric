@@ -1,0 +1,126 @@
+# The worked example: does agent scaffolding actually earn its latency?
+#
+# Run it with:
+#   fabric run examples/agent_pipeline/experiment.yaml
+#   fabric analyze <EXP>
+#   fabric report <EXP> --format html
+
+experiment:
+  name: agent-scaffolding-ablation
+  research_question: >
+    Does each component of a retrieval agent (retrieval, reranking, memory,
+    planning, verification) contribute to accuracy and robustness, and is the
+    accuracy it buys worth the latency it costs?
+  hypothesis: >
+    Retrieval and planning carry most of the accuracy; verification improves
+    robustness at a latency cost that is not justified by its accuracy gain.
+  tags: [agents, retrieval, ablation]
+
+dataset:
+  name: agent-benchmark
+  version: v1
+  path: examples/agent_pipeline/data/benchmark-v1
+  source: examples/agent_pipeline/make_data.py
+  preprocessing: none; questions are used exactly as generated
+  n_examples: 400
+  splits:
+    test:
+      n: 400
+      role: evaluation
+
+model:
+  name: sim-reasoner
+  version: v1
+  architecture: simulated log-odds responder
+  precision: float64
+  config:
+    capability: 0.0
+
+algorithm:
+  name: full-agent
+  entrypoint: python:examples.agent_pipeline.pipeline:run
+  commit: auto
+  description: All five components active unless a condition ablates them.
+
+components: [retrieval, reranking, memory, planning, verification]
+
+configuration:
+  top_k: [3, 8]
+  rerank_depth: 10
+  memory_size: 32
+  temperature: 0.2
+  verification_threshold: 0.45
+
+seeds:
+  strategy: fixed
+  values: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+baselines:
+  - name: zero-shot
+    description: The model alone, no scaffolding.
+    algorithm:
+      name: zero-shot
+      entrypoint: python:examples.agent_pipeline.pipeline:zero_shot
+      commit: auto
+  - name: retrieval-only
+    description: Retrieval with no reranking - the simplest RAG setup.
+    algorithm:
+      name: retrieval-only
+      entrypoint: python:examples.agent_pipeline.pipeline:retrieval_only
+      commit: auto
+  - name: rag-classic
+    description: Retrieval plus reranking, the usual published comparison.
+    algorithm:
+      name: rag-classic
+      entrypoint: python:examples.agent_pipeline.pipeline:rag_classic
+      commit: auto
+
+ablations:
+  - remove_retrieval
+  - remove_reranking
+  - remove_memory
+  - remove_planning
+  - remove_verification
+  - name: remove_retrieval+reranking
+    remove: [retrieval, reranking]
+    description: Is reranking useful without retrieval? (It should not be.)
+  - name: remove_planning+verification
+    remove: [planning, verification]
+    description: The two most expensive components together.
+
+metrics:
+  - name: accuracy
+    direction: maximize
+    primary: true
+    tolerance: 0.01
+    description: Fraction of the 400 questions answered correctly.
+  - name: f1
+    direction: maximize
+    tolerance: 0.01
+  - name: latency_ms
+    direction: minimize
+    unit: ms
+    tolerance: 5.0
+  - name: robustness
+    direction: maximize
+    tolerance: 0.015
+    description: Accuracy under a distribution shift toward harder questions.
+  - name: abstention_rate
+    direction: minimize
+
+analysis:
+  primary_metric: accuracy
+  alpha: 0.05
+  correction: holm
+  paired: auto
+  bootstrap_resamples: 5000
+
+execution:
+  max_workers: 4
+  isolation: inline
+  cache: true
+  timeout_seconds: 120
+
+integrity:
+  require_dataset_digest: true
+  freeze_baselines: true

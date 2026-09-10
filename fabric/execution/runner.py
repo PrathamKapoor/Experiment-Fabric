@@ -16,13 +16,15 @@ from __future__ import annotations
 
 import concurrent.futures
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
 import time
 import traceback
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
-from typing import Any, Callable, Iterable, Mapping, Sequence
+from typing import Any
 
 from fabric.core.entities import (
     Artifact,
@@ -313,7 +315,7 @@ class Runner:
         except EntrypointError as exc:
             failure = Failure(FailureClass.INVALID_OUTPUT, str(exc),
                               traceback.format_exc()[-4000:])
-        except BaseException as exc:  # noqa: BLE001 - every failure becomes a record
+        except BaseException as exc:
             failure = failure_module.from_exception(exc, traceback_text=traceback.format_exc())
 
         finished = time.time()
@@ -529,6 +531,7 @@ class Runner:
     def _record_cache_hit(self, run: Run, key: str, hit: Mapping[str, Any]) -> Run:
         source = self.workspace.load_run(str(hit["experiment_id"]), str(hit["run_id"]))
         metrics = dict(hit.get("metrics") or {})
+        artifacts = self._copy_cached_artifacts(run, source, hit) if source else []
         cached = Run(
             id=run.id,
             experiment_id=run.experiment_id,
@@ -545,7 +548,7 @@ class Runner:
             hardware_id=source.hardware_id if source else self.hardware.id,
             ablated=run.ablated,
             metrics=metrics or (source.metrics if source else {}),
-            artifacts=list(source.artifacts) if source else [],
+            artifacts=artifacts,
             resources=source.resources if source else Resources(),
             cache_key=key,
             cached_from=f"{hit['experiment_id']}/{hit['run_id']}",
@@ -556,6 +559,37 @@ class Runner:
         )
         self.workspace.save_run(self.plan.experiment.id, cached)
         return cached
+
+    def _copy_cached_artifacts(self, run: Run, source: Run,
+                               hit: Mapping[str, Any]) -> list[Artifact]:
+        """Materialise a cached run's artifacts in its own directory.
+
+        A cache hit reuses a *computation*, but the run it produces still has
+        to stand on its own: its artifacts must be present and hashable where
+        the run says they are, or verification reports them missing and a
+        bundle exports a dangling reference. Compute is what the cache saves;
+        a few kilobytes of output is not worth the broken evidence chain.
+        """
+        source_dir = self.workspace.artifacts_dir(str(hit["experiment_id"]), source.id)
+        target_dir = self.workspace.artifacts_dir(self.plan.experiment.id, run.id)
+        copied: list[Artifact] = []
+        for artifact in source.artifacts:
+            source_path = os.path.join(source_dir, artifact.path.replace("/", os.sep))
+            if not os.path.isfile(source_path):
+                continue
+            target_path = os.path.join(target_dir, artifact.path.replace("/", os.sep))
+            if os.path.abspath(source_path) == os.path.abspath(target_path):
+                # The cache hit is this run's own earlier output; the file is
+                # already exactly where the record says it is.
+                copied.append(artifact)
+                continue
+            os.makedirs(os.path.dirname(target_path), exist_ok=True)
+            try:
+                shutil.copyfile(source_path, target_path)
+            except (OSError, shutil.Error):
+                continue
+            copied.append(artifact)
+        return copied
 
 
 class WorkerCrash(Exception):

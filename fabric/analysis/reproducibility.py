@@ -78,8 +78,9 @@ from __future__ import annotations
 
 import math
 import random
+from collections.abc import Sequence
 from dataclasses import dataclass, field
-from typing import Any, Sequence
+from typing import Any
 
 from fabric.analysis.determinism import DeterminismReport
 from fabric.analysis.results import ConditionResults, ResultSet
@@ -341,12 +342,20 @@ class SeedReference:
             )
             if self.decision_detail.get("floor_limited"):
                 floor = self.decision_detail.get("minimum_attainable_p")
-                text += (
-                    f", but that is a limit of the test rather than of the effect: with "
-                    f"{k} runs the smallest attainable p-value is {floor:.4f}, which is "
-                    f"above alpha, so no {k}-seed replication could reach significance "
-                    "whatever it measured"
-                )
+                if self.decision_detail.get("full_verdict") in ("better", "worse"):
+                    text += (
+                        f", but that is a limit of the test rather than of the effect: "
+                        f"with {k} runs the smallest attainable p-value is {floor:.4f}, "
+                        f"which is above alpha, so no {k}-seed replication could reach "
+                        "significance whatever it measured"
+                    )
+                else:
+                    text += (
+                        f". Read that with care: with {k} runs the smallest attainable "
+                        f"p-value is {floor:.4f}, above alpha, so the agreement reflects "
+                        "a shared inability to detect anything rather than a shared "
+                        "detection"
+                    )
         return text + "."
 
     def to_dict(self) -> dict[str, Any]:
@@ -414,11 +423,11 @@ class ReproducibilityProfile:
         return product ** (1.0 / len(measured))
 
     @property
-    def beyond_tolerance(self) -> list["AxisStability"]:
+    def beyond_tolerance(self) -> list[AxisStability]:
         return [a for a in self.measured if a.tolerance_verdict == "beyond"]
 
     @property
-    def inconclusive(self) -> list["AxisStability"]:
+    def inconclusive(self) -> list[AxisStability]:
         return [a for a in self.measured if a.tolerance_verdict == "inconclusive"]
 
     @property

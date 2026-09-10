@@ -12,7 +12,6 @@ support "better", it does not say better.
 
 from __future__ import annotations
 
-import math
 import time
 from dataclasses import dataclass, field
 from typing import Any
@@ -288,6 +287,29 @@ def _limitations(analysis: ExperimentAnalysis) -> list[str]:
 
     if analysis.baselines.treatment_selection_note:
         limitations.append(analysis.baselines.treatment_selection_note)
+
+    # Every design has a resolution limit, significant result or not. Report
+    # the weakest comparison's, since that is the one that bounds the claim.
+    detectables = [c.detectable for c in analysis.baselines.for_metric(metric)
+                   if c.detectable and c.detectable.value == c.detectable.value]
+    if detectables:
+        worst = max(detectables, key=lambda d: d.value)
+        limitations.append(worst.describe())
+    elif results is not None and results.treatments:
+        treatment = results.primary_treatment(metric)
+        if treatment and len(treatment.values(metric)) > 1:
+            from fabric.statistics.power import minimum_detectable_effect
+
+            values = treatment.values(metric)
+            estimate = minimum_detectable_effect(
+                values, values, paired=True, alpha=analysis.alpha, metric=metric)
+            if estimate.value == estimate.value:
+                limitations.append(
+                    f"With {len(values)} replications and a standard deviation of "
+                    f"{treatment.summary(metric).std:.4f}, differences smaller than "
+                    f"roughly {2 * estimate.standard_error * 2.3:.4f} in {metric} "
+                    "would not be reliably detectable by this design."
+                )
 
     if analysis.failures.failed_runs:
         limitations.append(

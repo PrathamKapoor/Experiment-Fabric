@@ -55,7 +55,7 @@ def main(argv: list[str]) -> int:
         sys.stderr.write("usage: python -m fabric.execution.worker <request.json>\n")
         return 2
     request_path = argv[1]
-    with open(request_path, "r", encoding="utf-8") as fh:
+    with open(request_path, encoding="utf-8") as fh:
         request: dict[str, Any] = json.load(fh)
 
     result_path = request["result_path"]
@@ -97,7 +97,7 @@ def main(argv: list[str]) -> int:
             "stderr": result.stderr,
             "seeded": seeded,
         }
-    except BaseException as exc:  # noqa: BLE001 - the worker must report everything
+    except BaseException as exc:
         payload = {
             "ok": False,
             "error": f"{type(exc).__name__}: {exc}",

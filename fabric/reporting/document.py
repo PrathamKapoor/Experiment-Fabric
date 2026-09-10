@@ -8,8 +8,9 @@ can claim something the LaTeX one does not.
 
 from __future__ import annotations
 
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
-from typing import Any, Iterable, Sequence
+from typing import Any
 
 
 @dataclass
@@ -111,18 +112,18 @@ class Section:
 
     title: str
     blocks: list[Block] = field(default_factory=list)
-    subsections: list["Section"] = field(default_factory=list)
+    subsections: list[Section] = field(default_factory=list)
     anchor: str = ""
     summary: str = ""
 
-    def add(self, block: Block) -> "Section":
+    def add(self, block: Block) -> Section:
         self.blocks.append(block)
         return self
 
-    def paragraph(self, text: str) -> "Section":
+    def paragraph(self, text: str) -> Section:
         return self.add(Paragraph(text))
 
-    def bullets(self, items: Iterable[str], ordered: bool = False) -> "Section":
+    def bullets(self, items: Iterable[str], ordered: bool = False) -> Section:
         items = [i for i in items if i]
         if items:
             self.add(Bullets(list(items), ordered))
@@ -130,7 +131,7 @@ class Section:
 
     def table(self, headers: Sequence[str], rows: Sequence[Sequence[Any]], *,
               caption: str = "", aligns: Sequence[str] = (), note: str = "",
-              emphasise: Sequence[int] = ()) -> "Section":
+              emphasise: Sequence[int] = ()) -> Section:
         self.add(Table(
             headers=[str(h) for h in headers],
             rows=[[str(c) for c in row] for row in rows],
@@ -141,7 +142,7 @@ class Section:
         ))
         return self
 
-    def subsection(self, title: str, anchor: str = "") -> "Section":
+    def subsection(self, title: str, anchor: str = "") -> Section:
         section = Section(title, anchor=anchor or _slug(title))
         self.subsections.append(section)
         return section

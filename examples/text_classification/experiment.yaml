@@ -1,0 +1,106 @@
+# Real algorithms, real data, no Fabric import in the method under study.
+#
+#   python examples/text_classification/make_data.py
+#   fabric run examples/text_classification/experiment.yaml
+
+experiment:
+  name: sentiment-classifier-comparison
+  research_question: >
+    Does logistic regression beat naive Bayes on this sentiment corpus by
+    enough to justify its longer training time, and do lowercasing and bigram
+    features contribute anything measurable?
+  hypothesis: >
+    Logistic regression edges out naive Bayes on accuracy; bigrams help because
+    the corpus contains negation, and lowercasing does almost nothing.
+  treatment_name: logistic-regression
+  tags: [text-classification, baselines, ablation]
+
+dataset:
+  name: sentiment
+  version: v1
+  path: examples/text_classification/data/sentiment-v1
+  source: examples/text_classification/make_data.py
+  preprocessing: whitespace tokenisation, punctuation stripped
+  n_examples: 1600
+  splits:
+    train:
+      n: 1200
+      path: train.jsonl
+    test:
+      n: 400
+      path: test.jsonl
+      role: evaluation
+
+model:
+  name: bag-of-words
+  version: v1
+  architecture: sparse linear model over token counts
+  precision: float64
+
+algorithm:
+  name: logistic-regression
+  entrypoint: python:examples.text_classification.model:logistic_regression
+  commit: auto
+  description: Minibatch gradient descent on bag-of-words features.
+
+# Preprocessing steps are components, so they can be ablated like any other.
+components: [lowercasing, bigrams, subsampling]
+
+configuration:
+  learning_rate: [0.05, 0.2]
+  epochs: 8
+  batch_size: 16
+  l2: 0.0
+  alpha: 1.0
+
+seeds:
+  strategy: fixed
+  values: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+baselines:
+  - name: naive-bayes
+    description: Multinomial naive Bayes with Laplace smoothing.
+    algorithm:
+      name: naive-bayes
+      entrypoint: python:examples.text_classification.model:naive_bayes
+      commit: auto
+  - name: majority-class
+    description: Always predict the most common training label.
+    algorithm:
+      name: majority-class
+      entrypoint: python:examples.text_classification.model:majority
+      commit: auto
+
+ablations:
+  - name: remove_bigrams
+    remove: [bigrams]
+    description: Do bigram features earn their vocabulary cost on negated text?
+  - name: remove_lowercasing
+    remove: [lowercasing]
+    description: Does case folding matter at all here?
+
+metrics:
+  - name: accuracy
+    direction: maximize
+    primary: true
+    tolerance: 0.01
+  - name: f1
+    direction: maximize
+    tolerance: 0.01
+  - name: train_seconds
+    direction: minimize
+    unit: s
+    tolerance: 0.5
+  - name: vocabulary_size
+    direction: minimize
+    description: Feature count, as a proxy for model size.
+
+analysis:
+  primary_metric: accuracy
+  alpha: 0.05
+  correction: holm
+
+execution:
+  max_workers: 4
+  isolation: inline
+  timeout_seconds: 300

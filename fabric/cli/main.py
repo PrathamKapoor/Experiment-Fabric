@@ -14,7 +14,8 @@ import json
 import os
 import sys
 import time
-from typing import Any, Sequence
+from collections.abc import Sequence
+from typing import Any
 
 from fabric import __version__
 from fabric.analysis.engine import ExperimentAnalysis, analyse
@@ -31,7 +32,7 @@ from fabric.execution.cache import CachePolicy
 from fabric.execution.planner import ExperimentPlan, PlanError, plan_experiment
 from fabric.execution.runner import ExecutionOptions, Runner
 from fabric.util.hashing import tree_digest
-from fabric.util.jsonio import atomic_write_text, read_json, write_json
+from fabric.util.jsonio import CorruptRecordError, atomic_write_text, read_json, write_json
 
 
 class CommandError(RuntimeError):
@@ -192,8 +193,8 @@ def cmd_register(args: argparse.Namespace) -> int:
             local_path=os.path.abspath(args.path) if args.path else "",
         )
     else:
-        from fabric.execution.adapters import entrypoint_digest
         from fabric.environments.capture import git_state
+        from fabric.execution.adapters import entrypoint_digest
 
         commit = args.commit or ""
         if commit in ("", "auto"):
@@ -229,7 +230,7 @@ def cmd_registry(args: argparse.Namespace) -> int:
         console.heading("registry verification")
         console.field("entities", str(len(results)))
         console.field("failures", str(len(failures)))
-        for kind, entity_id, ok, message in failures:
+        for kind, entity_id, _ok, message in failures:
             console.error(f"{kind} {entity_id}: {message}")
         if not failures:
             console.success("every stored entity hashes to its own identifier")
@@ -382,7 +383,6 @@ def cmd_run(args: argparse.Namespace) -> int:
             failures.append(event.run)
         progress.advance(event.label, failed=failed)
 
-    started = time.time()
     report = runner.execute(pending, on_progress=on_progress)
     progress.finish()
 
@@ -411,7 +411,7 @@ def cmd_run(args: argparse.Namespace) -> int:
 
 
 def _spec_text(path: str) -> str:
-    with open(path, "r", encoding="utf-8") as handle:
+    with open(path, encoding="utf-8") as handle:
         return handle.read()
 
 
@@ -498,7 +498,7 @@ def cmd_status(args: argparse.Namespace) -> int:
 def cmd_analyze(args: argparse.Namespace) -> int:
     workspace = _workspace(args)
     experiment_id = _resolve(workspace, args.experiment)
-    plan, runs, analysis = _cached_analysis(workspace, experiment_id)
+    _plan, _runs, analysis = _cached_analysis(workspace, experiment_id)
 
     if args.json:
         print(json.dumps(analysis.to_dict(), indent=2, default=str))
@@ -529,16 +529,16 @@ def cmd_analyze(args: argparse.Namespace) -> int:
     comparisons = analysis.baselines.for_metric(metric)
     if comparisons:
         console.heading("baseline comparisons")
+        adjusted = any(c.adjusted_p is not None for c in comparisons)
         console.table(
-            ["baseline", "difference", "95% CI", "test", "p", "adjusted p", "effect", "verdict"],
+            ["baseline", "difference", f"{round((1 - analysis.alpha) * 100)}% CI",
+             "test", "adj. p" if adjusted else "p", "g", "verdict"],
             [[c.baseline, f"{c.difference:+.4f}", c.difference_interval.format(),
-              c.test.test, _p(c.p_value), _p(c.adjusted_p),
-              f"{(c.effect('hedges_g').value if c.effect('hedges_g') else float('nan')):.2f}",
-              console.status_mark("pass" if c.verdict == "improvement" else
-                                  "fail" if c.verdict == "regression" else "warn")
-              + " " + c.verdict]
+              c.test.test, _p(c.effective_p),
+              f"{(c.effect('hedges_g').value if c.effect('hedges_g') else float('nan')):.1f}",
+              c.verdict]
              for c in comparisons],
-            aligns=["left", "right", "left", "left", "right", "right", "right", "left"],
+            aligns=["left", "right", "left", "left", "right", "right", "left"],
         )
 
     ranking = analysis.ablations.ranking(metric)
@@ -572,12 +572,12 @@ def cmd_analyze(args: argparse.Namespace) -> int:
     if analysis.reproducibility.measured:
         console.echo("")
         console.table(
-            ["axis", "", "stability", "x seed noise", "delta", "tolerance"],
-            [[f"{a.axis}: {a.label}"[:38], console.bar(a.stability),
-              f"{a.stability:.2f}", f"{a.noise_multiples:.2f}",
+            ["axis", "perturbation", "", "stability", "noise", "delta", "tolerance"],
+            [[a.axis, a.label[:26], console.bar(a.stability, size=12),
+              f"{a.stability:.2f}", f"{a.noise_multiples:.1f}x",
               f"{a.delta_mean:+.4f}", a.tolerance_verdict]
              for a in sorted(analysis.reproducibility.axes, key=lambda x: x.stability)],
-            aligns=["left", "left", "right", "right", "right", "left"],
+            aligns=["left", "left", "left", "right", "right", "right", "left"],
         )
         console.echo("")
         console.bullet(analysis.reproducibility.describe())
@@ -609,7 +609,9 @@ def _p(value: float | None) -> str:
 
 
 def cmd_report(args: argparse.Namespace) -> int:
-    from fabric.reporting import builder, html as html_renderer, latex as latex_renderer
+    from fabric.reporting import builder
+    from fabric.reporting import html as html_renderer
+    from fabric.reporting import latex as latex_renderer
     from fabric.reporting import markdown as markdown_renderer
 
     workspace = _workspace(args)
@@ -981,7 +983,8 @@ def cmd_certify(args: argparse.Namespace) -> int:
 
 def cmd_export(args: argparse.Namespace) -> int:
     from fabric import bundle as bundle_module
-    from fabric.reporting import builder, markdown as markdown_renderer
+    from fabric.reporting import builder
+    from fabric.reporting import markdown as markdown_renderer
     from fabric.reporting.certificate import issue
 
     workspace = _workspace(args)
@@ -1248,6 +1251,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         console.warn("interrupted; completed runs are already saved and will be skipped "
                      "on the next 'fabric run'")
         return 130
+    except CorruptRecordError as exc:
+        console.error(str(exc))
+        return 3
     except (SpecError, PlanError, WorkspaceError, RegistryError) as exc:
         console.error(str(exc))
         return 2

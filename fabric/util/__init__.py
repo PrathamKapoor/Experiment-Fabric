@@ -8,22 +8,23 @@ from fabric.util.hashing import (
     canonical_json,
     content_id,
     file_digest,
-    tree_digest,
     short_id,
+    tree_digest,
 )
-from fabric.util.jsonio import read_json, write_json, atomic_write_text
-from fabric.util.yamlio import load_yaml, dump_yaml, YamlError
+from fabric.util.jsonio import CorruptRecordError, atomic_write_text, read_json, write_json
+from fabric.util.yamlio import YamlError, dump_yaml, load_yaml
 
 __all__ = [
+    "CorruptRecordError",
+    "YamlError",
+    "atomic_write_text",
     "canonical_json",
     "content_id",
-    "file_digest",
-    "tree_digest",
-    "short_id",
-    "read_json",
-    "write_json",
-    "atomic_write_text",
-    "load_yaml",
     "dump_yaml",
-    "YamlError",
+    "file_digest",
+    "load_yaml",
+    "read_json",
+    "short_id",
+    "tree_digest",
+    "write_json",
 ]

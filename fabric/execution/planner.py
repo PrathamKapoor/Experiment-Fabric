@@ -16,8 +16,9 @@ from __future__ import annotations
 
 import os
 import time
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
-from typing import Any, Iterable, Mapping, Sequence
+from typing import Any
 
 from fabric.core import graph as g
 from fabric.core.entities import (
@@ -34,8 +35,8 @@ from fabric.core.graph import ExperimentGraph
 from fabric.core.registry import Registry, RegistryError
 from fabric.core.spec import EntityRef, ExperimentSpec, SpecError
 from fabric.core.store import Workspace
-from fabric.execution.adapters import EntrypointError, entrypoint_digest, resolve
 from fabric.environments.capture import git_state
+from fabric.execution.adapters import EntrypointError, entrypoint_digest, resolve
 from fabric.util.hashing import content_id
 
 
@@ -262,9 +263,9 @@ def _resolve_algorithm(ref: EntityRef | None, registry: Registry, *, root: str,
     elif ref.inline:
         inline = dict(ref.inline)
         commit = str(inline.pop("commit", ""))
+        dirty = False
         if commit in ("auto", "git", ""):
-            detected, dirty, _ = git_state(root)
-            commit = detected + ("-dirty" if dirty and detected else "")
+            commit, dirty, _ = git_state(root)
         entrypoint = str(inline.pop("entrypoint", ""))
         algorithm = Algorithm(
             name=ref.name,
@@ -274,6 +275,7 @@ def _resolve_algorithm(ref: EntityRef | None, registry: Registry, *, root: str,
             version=ref.version or str(inline.pop("version", "v1")),
             description=str(inline.pop("description", "")),
             params=dict(inline.pop("params", {}) or {}),
+            dirty=dirty,
         )
         algorithm = registry.register_algorithm(algorithm)
     else:
@@ -314,6 +316,19 @@ def plan_experiment(
     algorithm = _resolve_algorithm(spec.algorithm, registry, root=root, strict=strict)
     if algorithm is None:
         raise PlanError("the experiment has no algorithm to run")
+
+    if algorithm.dirty:
+        advisories.append(
+            f"the working tree has uncommitted changes, so commit "
+            f"{algorithm.commit[:7]} does not fully describe the code that will run. "
+            "The entrypoint file itself is hashed, but changes in modules it imports "
+            "are not. Commit before the runs you intend to publish."
+        )
+    if not algorithm.commit:
+        advisories.append(
+            "this is not a git repository, so the code that ran cannot be pinned to a "
+            "commit. Only the entrypoint file's own hash is recorded."
+        )
 
     if spec.integrity.require_dataset_digest and dataset is not None and not dataset.digest:
         advisories.append(
@@ -506,9 +521,12 @@ def _build_perturbations(
     for perturbation in spec.reproducibility.perturbations:
         axis = perturbation.axis
         for index, value in enumerate(perturbation.values):
-            label = f"{axis}:{_perturbation_label(value, index)}"
-            name = f"{reference.name}~{label}"
-            marker = {"axis": axis, "value": value, "label": label,
+            # The condition name carries the axis so arm names stay unique;
+            # the label does not, so tables can print "axis | label" without
+            # repeating the axis twice.
+            short = _perturbation_label(value, index)
+            name = f"{reference.name}~{axis}:{short}"
+            marker = {"axis": axis, "value": value, "label": short,
                       "reference": reference.name}
             if axis == "seed":
                 extra_seeds.append(int(value))

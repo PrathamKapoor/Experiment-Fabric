@@ -15,8 +15,9 @@ from __future__ import annotations
 
 import os
 import time
+from collections.abc import Mapping
 from dataclasses import replace
-from typing import Any, Iterable, Mapping, TypeVar
+from typing import Any, TypeVar
 
 from fabric.core.entities import Algorithm, Dataset, Entity, Environment, Hardware, Model
 from fabric.core.store import Workspace
@@ -68,7 +69,7 @@ class Registry:
     def register(self, kind: str, entity: E, *, force: bool = False) -> E:
         """Store an entity, refusing silent version conflicts."""
         stamped = entity
-        if hasattr(entity, "registered_at") and not getattr(entity, "registered_at"):
+        if hasattr(entity, "registered_at") and not entity.registered_at:
             stamped = replace(entity, registered_at=time.time())  # type: ignore[arg-type]
 
         entity_id = stamped.id
@@ -87,11 +88,11 @@ class Registry:
         existing = index.get(key)
         if existing and existing.get("id") != entity_id and not force:
             raise RegistryError(
-                f"{ref} is already registered as {existing['id']} with different contents.\n"
-                f"  registered: {existing.get('summary', '')}\n"
-                f"  incoming:   {_summarise(stamped)}\n"
-                "A version must mean one thing forever. Bump the version, or pass "
-                "force if you are certain the earlier registration was wrong."
+                f"{ref} is already registered as {existing['id']}, but the incoming "
+                f"{kind} has different contents ({entity_id}).\n"
+                + self._describe_conflict(kind, existing["id"], stamped)
+                + "\nA version must mean one thing forever. Bump the version, or pass "
+                "--force if the earlier registration was wrong."
             )
 
         path = self._entity_path(kind, entity_id)
@@ -108,6 +109,33 @@ class Registry:
         index[f"{kind}:id:{entity_id}"] = index[key]
         write_json(self._index_path, index)
         return stamped  # type: ignore[return-value]
+
+    def _describe_conflict(self, kind: str, existing_id: str, incoming: Any) -> str:
+        """Field-level diff between a stored entity and an incoming one.
+
+        Without this the error says only "different contents", which sends
+        people hunting. With it, the offending field is on screen.
+        """
+        stored = read_json(self._entity_path(kind, existing_id))
+        if stored is None:
+            return "  (the stored record is missing, so no comparison is possible)\n"
+        try:
+            payload = incoming.identity_payload()
+        except Exception:  # pragma: no cover - defensive
+            return ""
+        lines = []
+        for field_name in sorted(payload):
+            if field_name.startswith("__"):
+                continue
+            before = stored.get(field_name)
+            after = payload[field_name]
+            if before != after:
+                lines.append(f"  {field_name}:\n"
+                             f"    registered  {before!r}\n"
+                             f"    incoming    {after!r}")
+        if not lines:
+            return "  (identity fields match; the difference is in how they were hashed)\n"
+        return "differing fields:\n" + "\n".join(lines) + "\n"
 
     def register_dataset(self, dataset: Dataset, *, force: bool = False) -> Dataset:
         return self.register("dataset", dataset, force=force)
@@ -212,7 +240,7 @@ class Registry:
 
 def _rebuild(kind: str, data: Mapping[str, Any]) -> Any:
     cls = KINDS[kind]
-    fields = {f for f in cls.__dataclass_fields__}  # type: ignore[attr-defined]
+    fields = set(cls.__dataclass_fields__)  # type: ignore[attr-defined]
     payload = {k: v for k, v in data.items() if k in fields}
     for key in ("splits", "schema", "config", "params", "packages", "lockfiles",
                 "env_vars", "accelerator_runtime", "distributed"):

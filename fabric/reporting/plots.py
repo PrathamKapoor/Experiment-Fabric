@@ -30,7 +30,8 @@ from __future__ import annotations
 
 import html
 import math
-from typing import Any, Iterable, Sequence
+from collections.abc import Iterable, Sequence
+from typing import Any
 
 # Role -> light-mode fallback. The dark values live in the report stylesheet.
 INK = "var(--viz-ink, #0b0b0b)"
@@ -78,7 +79,7 @@ def _num(value: float, digits: int = 4) -> str:
 
 
 def _label_width(labels: Iterable[str], minimum: int = 90, maximum: int = 260) -> int:
-    longest = max((len(l) for l in labels), default=0)
+    longest = max((len(label) for label in labels), default=0)
     return max(minimum, min(maximum, int(longest * 6.6) + 14))
 
 

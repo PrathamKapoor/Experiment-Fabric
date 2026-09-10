@@ -210,6 +210,25 @@ def _read_block_scalar(reader: _Reader, parent_indent: int, style: str) -> str:
 _KEY_RE = re.compile(r"^(?P<key>(?:\"[^\"]*\"|'[^']*'|[^:#]+?))\s*:(?:\s+(?P<value>.*))?$")
 
 
+def _match_key(content: str) -> re.Match[str] | None:
+    """Match ``key: value``, without mistaking a quoted scalar for a key.
+
+    ``- "quoted: colon"`` is a string, not a mapping. The plain-scalar
+    branch of the key pattern would happily match ``"quoted`` as a key, so
+    a line that opens with a quote is only a key when the *quoted* branch
+    matches all the way to the colon.
+    """
+    if content[:1] in ("\"", "'"):
+        quote = content[0]
+        closing = content.find(quote, 1)
+        if closing == -1:
+            return None
+        remainder = content[closing + 1:].lstrip()
+        if not remainder.startswith(":"):
+            return None
+    return _KEY_RE.match(content)
+
+
 def _parse_node(reader: _Reader, indent: int) -> Any:
     head = reader.peek()
     if head is None:
@@ -243,7 +262,7 @@ def _parse_sequence(reader: _Reader, indent: int) -> list[Any]:
                 items.append(None)
             continue
         starts_collection = body.startswith("[") or body.startswith("{")
-        if _KEY_RE.match(body) and not starts_collection:
+        if _match_key(body) and not starts_collection:
             # "- key: value" starts a mapping whose columns line up two
             # characters right of the dash; rewrite and re-read as a mapping.
             reader.replace_current(" " * (indent + 2) + body)
@@ -267,7 +286,7 @@ def _parse_mapping(reader: _Reader, indent: int) -> dict[str, Any]:
             raise YamlError("unexpected indentation in mapping", line_no)
         if content.startswith("- "):
             break
-        match = _KEY_RE.match(content)
+        match = _match_key(content)
         if not match:
             raise YamlError("expected a 'key: value' pair, got " + repr(content), line_no)
         key = str(_scalar(match.group("key")))
@@ -306,7 +325,7 @@ def loads_yaml(text: str) -> Any:
 
 def load_yaml(path: str | os.PathLike[str]) -> Any:
     """Parse a YAML document from a file path."""
-    with open(path, "r", encoding="utf-8") as fh:
+    with open(path, encoding="utf-8") as fh:
         text = fh.read()
     try:
         return loads_yaml(text)

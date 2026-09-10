@@ -19,10 +19,11 @@ import os
 import threading
 import time
 from types import TracebackType
-from typing import Any
 
 _THREAD_LOCKS: dict[str, threading.RLock] = {}
 _REGISTRY_GUARD = threading.Lock()
+_DEPTH: dict[str, int] = {}
+"""Re-entrancy depth per lock file, guarded by the matching thread lock."""
 
 STALE_SECONDS = 120.0
 """A lock older than this is assumed to belong to a dead process."""
@@ -51,6 +52,13 @@ class FileLock:
 
     def acquire(self) -> None:
         self._thread_lock.acquire()
+        # The thread lock is reentrant; the *file* lock is not, because
+        # O_EXCL fails against a lock file this thread already owns. Count
+        # the depth so a nested acquire is a no-op rather than a deadlock.
+        key = os.path.normcase(self.lock_path)
+        if _DEPTH.get(key, 0) > 0:
+            _DEPTH[key] += 1
+            return
         deadline = time.monotonic() + self.timeout
         os.makedirs(os.path.dirname(self.lock_path), exist_ok=True)
         while True:
@@ -59,13 +67,14 @@ class FileLock:
                 with os.fdopen(fd, "w", encoding="utf-8") as fh:
                     fh.write(f"{os.getpid()} {time.time()}")
                 self._held = True
+                _DEPTH[key] = 1
                 return
             except FileExistsError:
                 if self._break_if_stale():
                     continue
                 if time.monotonic() > deadline:
                     self._thread_lock.release()
-                    raise TimeoutError(
+                    raise TimeoutError(  # noqa: B904 - the FileExistsError is not the cause  # noqa: B904 - the FileExistsError is not the cause
                         f"could not acquire the lock on {self.target} within "
                         f"{self.timeout:g}s. If no other Fabric process is running, "
                         f"delete {self.lock_path}."
@@ -91,6 +100,13 @@ class FileLock:
             return False
 
     def release(self) -> None:
+        key = os.path.normcase(self.lock_path)
+        depth = _DEPTH.get(key, 0)
+        if depth > 1:
+            _DEPTH[key] = depth - 1
+            self._thread_lock.release()
+            return
+        _DEPTH.pop(key, None)
         if self._held:
             try:
                 os.unlink(self.lock_path)
@@ -99,7 +115,7 @@ class FileLock:
             self._held = False
         self._thread_lock.release()
 
-    def __enter__(self) -> "FileLock":
+    def __enter__(self) -> FileLock:
         self.acquire()
         return self
 

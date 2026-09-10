@@ -9,10 +9,11 @@ from __future__ import annotations
 
 import math
 import random
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
-from typing import Any, Callable, Sequence
+from typing import Any
 
-from fabric.statistics.descriptive import mean, sem, stdev, variance
+from fabric.statistics.descriptive import mean, sem, variance
 from fabric.statistics.distributions import norm_cdf, norm_ppf, t_ppf
 
 
@@ -39,7 +40,7 @@ class Interval:
         """Whether the interval rules out "no difference"."""
         return not self.contains(0.0)
 
-    def overlaps(self, other: "Interval") -> bool:
+    def overlaps(self, other: Interval) -> bool:
         """Whether two intervals overlap at all."""
         return not (self.high < other.low or other.high < self.low)
 
@@ -91,7 +92,7 @@ def paired_interval(a: Sequence[float], b: Sequence[float], level: float = 0.95)
     """Interval for the mean of paired differences."""
     if len(a) != len(b):
         raise ValueError("paired samples must have equal length")
-    diffs = [x - y for x, y in zip(a, b)]
+    diffs = [x - y for x, y in zip(a, b, strict=True)]
     interval = t_interval(diffs, level)
     return Interval(interval.low, interval.high, level, "paired-t", interval.point, interval.note)
 
@@ -225,7 +226,7 @@ def bootstrap_difference_interval(
     if paired:
         if len(a) != len(b):
             raise ValueError("paired samples must have equal length")
-        diffs = [x - y for x, y in zip(a, b)]
+        diffs = [x - y for x, y in zip(a, b, strict=True)]
         interval = bootstrap_interval(diffs, level=level, n_resamples=n_resamples, seed=seed)
         return Interval(interval.low, interval.high, level, "bootstrap-bca-paired",
                         interval.point, interval.note)
@@ -262,11 +263,11 @@ def proportion_interval(successes: int, trials: int, level: float = 0.95) -> Int
 
 __all__ = [
     "Interval",
-    "t_interval",
-    "welch_interval",
-    "paired_interval",
-    "bootstrap_interval",
     "bootstrap_difference_interval",
     "bootstrap_distribution",
+    "bootstrap_interval",
+    "paired_interval",
     "proportion_interval",
+    "t_interval",
+    "welch_interval",
 ]

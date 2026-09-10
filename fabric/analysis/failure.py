@@ -11,8 +11,9 @@ configuration values that failures cluster around.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass, field
-from typing import Any, Sequence
+from typing import Any
 
 from fabric.analysis.results import ResultSet
 from fabric.core.entities import FailureClass, Run

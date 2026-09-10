@@ -14,10 +14,10 @@ from __future__ import annotations
 
 import math
 import time
-from typing import Any, Sequence
+from collections.abc import Sequence
+from typing import Any
 
 from fabric.analysis.engine import ExperimentAnalysis
-from fabric.analysis.results import ConditionResults
 from fabric.core.entities import MetricSpec, Role, Run
 from fabric.core.graph import ExperimentGraph
 from fabric.environments.capture import describe as describe_environment
@@ -80,7 +80,6 @@ def build_report(
     hardware: Any = None,
 ) -> Document:
     """Assemble the full report document."""
-    results = analysis.results
     metrics = list(plan.spec.metrics)
     primary = analysis.primary_metric
 
@@ -122,7 +121,9 @@ def build_report(
 def _summary_section(document: Document, analysis: ExperimentAnalysis,
                      plan: ExperimentPlan, runs: Sequence[Run]) -> None:
     section = document.section("Summary")
-    section.summary = analysis.headline
+    # The headline itself is a paragraph below, so every renderer shows it
+    # (LaTeX does not render section summaries).
+    section.summary = "The claim this experiment supports, and what it rests on."
     section.add(Callout("info", "Research question", analysis.research_question))
     if analysis.hypothesis:
         section.add(Callout("info", "Hypothesis, stated before the runs",
@@ -424,6 +425,22 @@ def _statistics_section(document: Document, analysis: ExperimentAnalysis,
                 alt=f"Forest plot of {len(forest_rows)} comparisons on {spec.name}.",
             ))
 
+        detectables = [c for c in comparisons
+                       if c.detectable and c.detectable.value == c.detectable.value]
+        if detectables:
+            subsection.table(
+                ["Baseline", "Smallest detectable difference", "Measured difference",
+                 "Below the floor"],
+                [[c.baseline, _num(c.detectable.value), _num(c.difference),
+                  "yes" if c.detectable.observed_is_below_floor else "no"]
+                 for c in detectables],
+                caption=f"What this design could resolve on {spec.name}",
+                note="The smallest difference the design would detect 80% of the time "
+                     "at this alpha, given the spread actually observed. A measured "
+                     "difference below that floor cannot be separated from noise by "
+                     "this experiment however the test comes out.",
+            )
+
         if spec.name == primary:
             _test_rationale(subsection, comparisons)
 
@@ -506,8 +523,10 @@ def _ablation_section(document: Document, analysis: ExperimentAnalysis,
     section.table(headers, rows,
                   caption="Ablation matrix",
                   aligns=["left", "left"] + ["right"] * (len(metrics) * 2),
-                  note="Δ is the change relative to the full system; 'ns' marks a "
-                       "change not distinguishable from noise after correction.")
+                  note="Δ is the change the removal caused, signed so that positive "
+                       "always means better: a negative Δ means removing the component "
+                       "made the metric worse. 'ns' marks a change that is not "
+                       "distinguishable from noise after correction.")
 
     ranking = ablations.ranking(primary)
     if ranking:
@@ -527,6 +546,9 @@ def _ablation_section(document: Document, analysis: ExperimentAnalysis,
             [[name, f"{delta:+.4f}", "yes" if significant else "no"]
              for name, delta, significant in ranking],
             caption="Components ranked by how much removing them costs",
+            note="This column is the negation of the matrix above: a positive drop "
+                 "means the component was contributing, which is the natural way to "
+                 "read a component's value.",
         )
 
     section.bullets(ablations.notes)

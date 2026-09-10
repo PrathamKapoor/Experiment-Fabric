@@ -27,8 +27,9 @@ from __future__ import annotations
 import json
 import math
 import os
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
-from typing import Any, Iterable, Sequence
+from typing import Any
 
 from fabric.execution.adapters import RunContext
 
@@ -57,7 +58,7 @@ class Question:
     difficulty: float
 
     @staticmethod
-    def from_dict(data: dict[str, Any]) -> "Question":
+    def from_dict(data: dict[str, Any]) -> Question:
         return Question(
             id=str(data["id"]),
             topic=str(data.get("topic", "")),
@@ -84,7 +85,7 @@ def load_questions(dataset: dict[str, Any]) -> list[Question]:
             "'python examples/agent_pipeline/make_data.py' to generate it."
         )
     questions = []
-    with open(questions_path, "r", encoding="utf-8") as fh:
+    with open(questions_path, encoding="utf-8") as fh:
         for line in fh:
             line = line.strip()
             if line:

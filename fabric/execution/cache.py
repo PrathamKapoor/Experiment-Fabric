@@ -13,8 +13,9 @@ recording in every cached run which original run it came from.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any, Mapping
+from typing import Any
 
 from fabric.core.entities import Environment, Run
 from fabric.environments.fingerprint import NUMERICALLY_RELEVANT
@@ -102,6 +103,4 @@ def is_cacheable(run: Run, policy: CachePolicy) -> bool:
     """Whether this run may be served from, or written to, the cache."""
     if not policy.enabled:
         return False
-    if run.replicate:
-        return False
-    return True
+    return not run.replicate

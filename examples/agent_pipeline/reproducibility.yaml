@@ -18,6 +18,7 @@ experiment:
     version and the model version move the result by more than one seed
     standard deviation, which means a reproduction that differs on those axes
     should not be expected to match.
+  treatment_name: full-agent
   tags: [reproducibility, perturbation, agents]
 
 dataset:

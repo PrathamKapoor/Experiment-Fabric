@@ -16,12 +16,12 @@ from __future__ import annotations
 import json
 import os
 from dataclasses import dataclass, field
-from typing import Any, Iterable, Sequence
+from typing import Any
 
 from fabric.analysis.results import ResultSet
-from fabric.core.entities import Dataset, Role
+from fabric.core.entities import Dataset
 from fabric.execution.planner import ExperimentPlan
-from fabric.util.hashing import file_digest, tree_digest
+from fabric.util.hashing import tree_digest
 
 FAIL = "fail"
 WARN = "warn"
@@ -76,7 +76,8 @@ class IntegrityReport:
 
     @property
     def worst_level(self) -> str:
-        return max((f.level for f in self.findings), key=lambda l: _SEVERITY[l], default=PASS)
+        return max((f.level for f in self.findings),
+                   key=lambda level: _SEVERITY[level], default=PASS)
 
     def summary_line(self) -> str:
         if not self.findings:
@@ -179,7 +180,7 @@ def check_split_overlap(dataset: Dataset | None, report: IntegrityReport,
     fingerprints: dict[str, set[str]] = {}
     for name, path in paths.items():
         seen: set[str] = set()
-        with open(path, "r", encoding="utf-8", errors="ignore") as fh:
+        with open(path, encoding="utf-8", errors="ignore") as fh:
             for line in fh:
                 line = line.strip()
                 if line:

@@ -12,15 +12,15 @@ been edited no longer hashes to its own identifier.
 from __future__ import annotations
 
 import time
+from collections.abc import Sequence
 from dataclasses import dataclass, field
-from typing import Any, Sequence
+from typing import Any
 
 from fabric.analysis.engine import ExperimentAnalysis
 from fabric.core.entities import Role, Run, RunStatus
 from fabric.core.registry import Registry
 from fabric.execution.planner import ExperimentPlan
 from fabric.util.hashing import content_id, file_digest
-from fabric.util.jsonio import read_json
 
 CERTIFICATE_VERSION = "1.0"
 
@@ -161,13 +161,23 @@ def issue(
     # -- code --------------------------------------------------------------
     algorithm = plan.algorithm
     if algorithm and algorithm.source_digest:
-        certificate.checks.append(Check(
-            "code", VERIFIED,
-            f"{algorithm.name} at {algorithm.source_digest[:23]}"
-            + (f", commit {algorithm.commit[:12]}" if algorithm.commit else
-               ", not under version control"),
-            {"source_digest": algorithm.source_digest, "commit": algorithm.commit},
-        ))
+        if algorithm.dirty:
+            certificate.checks.append(Check(
+                "code", INCOMPLETE,
+                f"{algorithm.name} at {algorithm.source_digest[:23]}, commit "
+                f"{algorithm.commit[:12]} with uncommitted changes: the entrypoint "
+                "file is pinned but the modules it imports are not",
+                {"source_digest": algorithm.source_digest, "commit": algorithm.commit,
+                 "dirty": True},
+            ))
+        else:
+            certificate.checks.append(Check(
+                "code", VERIFIED,
+                f"{algorithm.name} at {algorithm.source_digest[:23]}"
+                + (f", commit {algorithm.commit[:12]}" if algorithm.commit else
+                   ", not under version control"),
+                {"source_digest": algorithm.source_digest, "commit": algorithm.commit},
+            ))
     else:
         certificate.checks.append(Check(
             "code", UNVERIFIED,
@@ -223,8 +233,7 @@ def issue(
 
     # -- coverage ----------------------------------------------------------
     planned_seeds = len(spec.seeds.values)
-    treatment = [c for c in plan.conditions if c.role == Role.TREATMENT]
-    completed_by_condition = {}
+    completed_by_condition: dict[str, set[int]] = {}
     for run in runs:
         if run.succeeded and not run.replicate:
             completed_by_condition.setdefault(run.condition_name, set()).add(run.seed)

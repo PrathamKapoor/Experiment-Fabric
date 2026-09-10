@@ -12,7 +12,6 @@ presents an estimate as a measurement.
 
 from __future__ import annotations
 
-import os
 import platform
 import time
 from dataclasses import dataclass, field
@@ -107,7 +106,7 @@ class ResourceMonitor:
     measured: dict[str, bool] = field(default_factory=dict, init=False)
     result: Resources = field(default_factory=Resources, init=False)
 
-    def __enter__(self) -> "ResourceMonitor":
+    def __enter__(self) -> ResourceMonitor:
         self.started_wall = time.perf_counter()
         self.started_cpu = time.process_time()
         self.baseline_gpu = gpu_memory_bytes() if self.track_gpu else 0

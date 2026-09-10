@@ -16,7 +16,7 @@ from typing import Any
 
 
 class _FabricEncoder(json.JSONEncoder):
-    def default(self, o: Any) -> Any:  # noqa: D102 - json protocol
+    def default(self, o: Any) -> Any:
         if hasattr(o, "to_dict"):
             return o.to_dict()
         if isinstance(o, (set, frozenset)):
@@ -68,10 +68,26 @@ def write_json(path: str | os.PathLike[str], value: Any, *, indent: int = 2) -> 
     atomic_write_text(path, json.dumps(value, indent=indent, cls=_FabricEncoder, ensure_ascii=False) + "\n")
 
 
+class CorruptRecordError(ValueError):
+    """Raised when a stored record exists but cannot be parsed.
+
+    A missing file is a normal condition and returns the default. A file
+    that is present but unreadable is a damaged scientific record, and
+    Fabric says so by name rather than letting a JSONDecodeError surface
+    from four frames down.
+    """
+
+
 def read_json(path: str | os.PathLike[str], default: Any = None) -> Any:
     """Read JSON from ``path``, returning ``default`` when absent."""
     try:
-        with open(path, "r", encoding="utf-8") as fh:
+        with open(path, encoding="utf-8") as fh:
             return json.load(fh)
     except FileNotFoundError:
         return default
+    except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+        raise CorruptRecordError(
+            f"{os.fspath(path)} is not readable JSON: {exc}. "
+            "The file has been truncated or edited since Fabric wrote it; "
+            "run 'fabric verify' to see what else changed."
+        ) from exc

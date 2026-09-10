@@ -10,7 +10,6 @@ portable artifact.
 from __future__ import annotations
 
 import time
-from typing import Any, Sequence
 
 from fabric.reporting import plots
 from fabric.reporting.document import (
@@ -22,7 +21,6 @@ from fabric.reporting.document import (
     Document,
     KeyValues,
     Paragraph,
-    Section,
     Table,
 )
 

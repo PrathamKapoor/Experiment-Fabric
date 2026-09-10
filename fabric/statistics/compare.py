@@ -9,8 +9,9 @@ plain-English reading that refuses to call a coin-flip an improvement.
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass, field, replace
-from typing import Any, Sequence
+from collections.abc import Sequence
+from dataclasses import dataclass, replace
+from typing import Any
 
 from fabric.statistics.confidence import (
     Interval,
@@ -21,6 +22,7 @@ from fabric.statistics.confidence import (
 from fabric.statistics.descriptive import Summary, summarize
 from fabric.statistics.effect_size import EffectSize, all_effect_sizes
 from fabric.statistics.hypothesis import TestResult, tost_equivalence
+from fabric.statistics.power import DetectableEffect, minimum_detectable_effect
 from fabric.statistics.selection import Decision, run_selected, select_test
 
 
@@ -41,6 +43,7 @@ class Comparison:
     difference_interval: Interval
     bootstrap_interval: Interval | None = None
     equivalence: TestResult | None = None
+    detectable: DetectableEffect | None = None
     adjusted_p: float | None = None
     correction_method: str = ""
     alpha: float = 0.05
@@ -83,7 +86,7 @@ class Comparison:
     def equivalent(self) -> bool:
         return bool(self.equivalence and self.equivalence.extra.get("equivalent"))
 
-    def with_adjustment(self, adjusted_p: float, method: str) -> "Comparison":
+    def with_adjustment(self, adjusted_p: float, method: str) -> Comparison:
         """Return a copy carrying a multiple-comparison-adjusted p-value."""
         return replace(self, adjusted_p=adjusted_p, correction_method=method)
 
@@ -134,11 +137,17 @@ class Comparison:
                 f"margin of {margin:g} (TOST p={self.equivalence.p_value:.4f}); "
                 f"the difference test was not significant ({p_label}={p_text})."
             )
-        return (
+        tail = (
             head + f". This difference is not distinguishable from noise "
             f"({self.test.test}, {p_label}={p_text}). With n={n} per condition this is "
             "an absence of evidence, not evidence of absence."
         )
+        if self.detectable and self.detectable.value == self.detectable.value:
+            tail += (
+                f" This design could only have detected a difference of "
+                f"{self.detectable.value:.4f} or larger."
+            )
+        return tail
 
     def to_dict(self, *, include_values: bool = True) -> dict[str, Any]:
         return {
@@ -157,6 +166,7 @@ class Comparison:
             "difference_interval": self.difference_interval.to_dict(),
             "bootstrap_interval": self.bootstrap_interval.to_dict() if self.bootstrap_interval else None,
             "equivalence": self.equivalence.to_dict() if self.equivalence else None,
+            "detectable": self.detectable.to_dict() if self.detectable else None,
             "adjusted_p": self.adjusted_p,
             "correction_method": self.correction_method,
             "verdict": self.verdict,
@@ -215,6 +225,10 @@ def compare(
         higher_is_better=higher_is_better, level=1 - alpha,
     ))
 
+    detectable = minimum_detectable_effect(
+        treatment_values, baseline_values, paired=paired, alpha=alpha, metric=metric,
+    )
+
     if not higher_is_better:
         # Interval endpoints are in raw metric units; flip so that
         # "positive is better" holds everywhere a reader looks.
@@ -243,6 +257,7 @@ def compare(
         difference_interval=difference_interval,
         bootstrap_interval=boot,
         equivalence=equivalence,
+        detectable=detectable,
         alpha=alpha,
         group=group,
     )

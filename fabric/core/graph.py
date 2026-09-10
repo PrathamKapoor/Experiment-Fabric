@@ -16,8 +16,9 @@ normally archaeology:
 from __future__ import annotations
 
 from collections import deque
+from collections.abc import Iterable, Iterator, Mapping
 from dataclasses import dataclass, field
-from typing import Any, Iterable, Iterator, Mapping
+from typing import Any, ClassVar
 
 # Relations are typed so a traversal can ask for meaningful paths rather
 # than "anything connected to anything".
@@ -242,7 +243,7 @@ class ExperimentGraph:
             raise GraphError(f"the provenance graph contains a cycle involving {remaining[:5]}")
         return order
 
-    def subgraph(self, node_ids: Iterable[str]) -> "ExperimentGraph":
+    def subgraph(self, node_ids: Iterable[str]) -> ExperimentGraph:
         """Induced subgraph over the given nodes."""
         keep = set(node_ids)
         result = ExperimentGraph(self.name)
@@ -255,7 +256,7 @@ class ExperimentGraph:
                 result.add_edge(edge.source, edge.target, edge.relation, **edge.attributes)
         return result
 
-    def lineage(self, node_id: str) -> "ExperimentGraph":
+    def lineage(self, node_id: str) -> ExperimentGraph:
         """The node plus everything it descends from."""
         ids = {node_id} | {n.id for n in self.ancestors(node_id)}
         return self.subgraph(ids)
@@ -289,7 +290,7 @@ class ExperimentGraph:
         }
 
     @staticmethod
-    def from_dict(data: Mapping[str, Any]) -> "ExperimentGraph":
+    def from_dict(data: Mapping[str, Any]) -> ExperimentGraph:
         graph = ExperimentGraph(str(data.get("name", "")))
         for node in data.get("nodes", []):
             graph.add_node(node["id"], node.get("kind", "unknown"),
@@ -301,7 +302,7 @@ class ExperimentGraph:
 
     # -- rendering ---------------------------------------------------------
 
-    _DOT_STYLE = {
+    _DOT_STYLE: ClassVar[dict[str, tuple[str, str]]] = {
         "dataset": ("box", "#0e7490"),
         "model": ("box", "#7c3aed"),
         "algorithm": ("box", "#b45309"),

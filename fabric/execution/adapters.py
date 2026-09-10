@@ -33,8 +33,9 @@ import shlex
 import subprocess
 import sys
 import time
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
-from typing import Any, Callable, Mapping
+from typing import Any
 
 from fabric.util.hashing import file_digest
 from fabric.util.jsonio import write_json
@@ -171,7 +172,7 @@ class RunContext:
         }
 
     @staticmethod
-    def from_dict(data: Mapping[str, Any]) -> "RunContext":
+    def from_dict(data: Mapping[str, Any]) -> RunContext:
         return RunContext(
             run_id=str(data.get("run_id", "")),
             experiment_id=str(data.get("experiment_id", "")),
@@ -380,7 +381,7 @@ def call_command(command: str, context: RunContext, *, root: str = "",
     metrics: dict[str, float] = {}
     if os.path.exists(metrics_path):
         try:
-            with open(metrics_path, "r", encoding="utf-8") as fh:
+            with open(metrics_path, encoding="utf-8") as fh:
                 raw = json.load(fh)
             for key, value in (raw.get("metrics", raw) or {}).items():
                 try:

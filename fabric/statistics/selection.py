@@ -24,8 +24,9 @@ The procedure, in order:
 from __future__ import annotations
 
 import math
+from collections.abc import Sequence
 from dataclasses import dataclass, field
-from typing import Any, Sequence
+from typing import Any
 
 from fabric.statistics.hypothesis import (
     Assumption,
@@ -123,7 +124,7 @@ def select_test(
 
     checks: list[Assumption] = []
     if paired:
-        diffs = [x - y for x, y in zip(treatment, baseline)]
+        diffs = [x - y for x, y in zip(treatment, baseline, strict=True)]
         normal, check = _normality("paired differences", diffs, alpha)
         checks.append(check)
         sample_size = len(diffs)

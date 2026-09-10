@@ -14,6 +14,7 @@ experiment:
   hypothesis: >
     Retrieval and planning carry most of the accuracy; verification improves
     robustness at a latency cost that is not justified by its accuracy gain.
+  treatment_name: full-agent
   tags: [agents, retrieval, ablation]
 
 dataset:

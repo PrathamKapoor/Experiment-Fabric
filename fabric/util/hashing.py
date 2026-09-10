@@ -13,7 +13,8 @@ import hashlib
 import json
 import math
 import os
-from typing import Any, Iterable
+from collections.abc import Iterable
+from typing import Any
 
 _FLOAT_PRECISION = 12
 """Floats are rounded to this many significant digits before hashing.

@@ -27,7 +27,6 @@ from fabric.reporting.document import (
     Document,
     KeyValues,
     Paragraph,
-    Section,
     Table,
 )
 
@@ -124,7 +123,8 @@ p { margin: 0 0 12px; max-width: 74ch; }
 ul, ol { max-width: 74ch; padding-left: 22px; margin: 0 0 14px; }
 li { margin-bottom: 5px; }
 code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
-code { background: var(--code-bg); padding: 1px 5px; border-radius: 4px; font-size: 12.5px; }
+code { background: var(--code-bg); padding: 1px 5px; border-radius: 4px; font-size: 12.5px;
+       overflow-wrap: anywhere; }
 pre { background: var(--code-bg); padding: 12px 14px; border-radius: 8px; overflow-x: auto;
       font-size: 12.5px; line-height: 1.55; margin: 0 0 14px; }
 pre code { background: none; padding: 0; }

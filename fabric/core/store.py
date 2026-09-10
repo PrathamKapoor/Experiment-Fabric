@@ -29,8 +29,9 @@ from __future__ import annotations
 import os
 import shutil
 import time
+from collections.abc import Iterator
 from dataclasses import dataclass
-from typing import Any, Iterator
+from typing import Any
 
 from fabric.core.entities import Run
 from fabric.util.jsonio import atomic_write_text, read_json, write_json
@@ -78,7 +79,7 @@ class Workspace:
         return os.path.isdir(self.path)
 
     @staticmethod
-    def initialise(root: str, *, name: str = "", force: bool = False) -> "Workspace":
+    def initialise(root: str, *, name: str = "", force: bool = False) -> Workspace:
         """Create a workspace at ``root``."""
         workspace = Workspace(os.path.abspath(root))
         if workspace.exists and not force:
@@ -102,7 +103,7 @@ class Workspace:
         return workspace
 
     @staticmethod
-    def discover(start: str | None = None) -> "Workspace":
+    def discover(start: str | None = None) -> Workspace:
         """Find the nearest workspace at or above ``start``."""
         current = os.path.abspath(start or os.getcwd())
         while True:

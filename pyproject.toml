@@ -1,0 +1,98 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "experiment-fabric"
+version = "0.3.0"
+description = "Reproducible, provenance-aware scientific experimentation: turn computational experiments into versioned, statistically auditable evidence graphs."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "Apache-2.0" }
+keywords = [
+    "reproducibility",
+    "experiment tracking",
+    "provenance",
+    "statistics",
+    "machine learning",
+    "ablation",
+    "research infrastructure",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Typing :: Typed",
+]
+
+# Deliberately empty. The core -- specifications, execution, statistics,
+# provenance, reporting -- runs on the standard library alone, so Fabric can
+# be installed into a locked scientific environment without perturbing it.
+# That constraint is a feature: the tool that measures reproducibility should
+# not itself be a source of dependency drift.
+dependencies = []
+
+[project.optional-dependencies]
+yaml = ["PyYAML>=6.0"]
+dev = [
+    "pytest>=7.4",
+    "pytest-cov>=4.1",
+    "ruff>=0.5",
+    "mypy>=1.8",
+]
+
+[project.scripts]
+fabric = "fabric.cli.main:main"
+
+[project.urls]
+Homepage = "https://github.com/pratham/experiment-fabric"
+Documentation = "https://github.com/pratham/experiment-fabric/tree/main/docs"
+Issues = "https://github.com/pratham/experiment-fabric/issues"
+
+[tool.setuptools.packages.find]
+include = ["fabric*"]
+
+[tool.setuptools.package-data]
+fabric = ["py.typed"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q --strict-markers"
+filterwarnings = ["error::DeprecationWarning"]
+
+[tool.ruff]
+line-length = 96
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "C4", "SIM", "RUF"]
+ignore = [
+    "E501",    # line length is handled by the formatter, not the linter
+    "B008",    # dataclass field(default_factory=...) reads as a call in defaults
+    "SIM108",  # a ternary is not always clearer than an if
+    "SIM105",  # try/except/pass is clearer here than contextlib.suppress
+    "RUF001",  # box-drawing and typographic characters in docstrings are intentional
+    "RUF005",  # explicit concatenation reads better than unpacking in these spots
+    "RUF046",  # the redundant int() casts document intent at call sites
+    "C401",    # a generator inside set() is fine
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests unpack fixtures they do not always use, and read better for it.
+"tests/*" = ["E402", "RUF059", "RUF015", "B905", "C405"]
+# The examples are written to be read as ordinary research code.
+"examples/*" = ["RUF007", "B905"]
+
+[tool.mypy]
+python_version = "3.10"
+warn_unused_configs = true
+disallow_untyped_defs = false
+ignore_missing_imports = true
+files = ["fabric"]

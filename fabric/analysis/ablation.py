@@ -13,10 +13,11 @@ things a plain table hides:
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass, field
-from typing import Any, Sequence
+from typing import Any
 
-from fabric.analysis.results import ConditionResults, ResultSet
+from fabric.analysis.results import ResultSet
 from fabric.core.entities import MetricSpec
 from fabric.statistics.compare import Comparison, compare
 from fabric.statistics.multiple import Correction, adjust

@@ -28,13 +28,14 @@ from __future__ import annotations
 import os
 import shutil
 import time
+from collections.abc import Sequence
 from dataclasses import dataclass, field
-from typing import Any, Sequence
+from typing import Any
 
 from fabric.core.entities import Run
 from fabric.core.store import Workspace
 from fabric.execution.planner import ExperimentPlan
-from fabric.util.hashing import file_digest, tree_digest
+from fabric.util.hashing import file_digest
 from fabric.util.jsonio import atomic_write_text, read_json, write_json
 from fabric.util.yamlio import dump_yaml
 
@@ -275,7 +276,7 @@ def _write_readme(destination: str, plan: ExperimentPlan, analysis: Any,
         research_question=plan.spec.research_question.strip(),
         headline=headline or "_No analysis was attached to this bundle._",
         summary="\n".join(summary_lines) or "_Not analysed._",
-        limitations="\n".join(f"- {l}" for l in limitations) or "_None recorded._",
+        limitations="\n".join(f"- {item}" for item in limitations) or "_None recorded._",
         generated=time.strftime("%Y-%m-%d", time.gmtime()),
         version=BUNDLE_VERSION,
     ))

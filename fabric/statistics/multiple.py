@@ -8,8 +8,9 @@ left to the author's conscience.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Any, Sequence
+from typing import Any
 
 METHODS = ("none", "bonferroni", "holm", "benjamini-hochberg", "sidak")
 

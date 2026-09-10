@@ -8,8 +8,9 @@ the convention it came from so nobody has to guess whether 0.3 is big.
 from __future__ import annotations
 
 import math
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Any, Sequence
+from typing import Any
 
 from fabric.statistics.confidence import Interval
 from fabric.statistics.descriptive import mean, stdev, variance
@@ -60,7 +61,7 @@ def cohens_d(a: Sequence[float], b: Sequence[float], *, paired: bool = False) ->
     if paired:
         if len(a) != len(b):
             raise ValueError("paired samples must have equal length")
-        diffs = [x - y for x, y in zip(a, b)]
+        diffs = [x - y for x, y in zip(a, b, strict=True)]
         sd = stdev(diffs)
         centre = mean(diffs)
         if sd == 0:

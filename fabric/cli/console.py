@@ -10,7 +10,8 @@ from __future__ import annotations
 import os
 import shutil
 import sys
-from typing import Any, Iterable, Sequence
+from collections.abc import Sequence
+from typing import Any
 
 
 def _supports_colour(stream: Any) -> bool:
@@ -122,22 +123,36 @@ def table(headers: Sequence[str], rows: Sequence[Sequence[Any]], *,
     limit = max_width or (width() - indent - 2)
     total = sum(widths) + 2 * (columns - 1)
     if total > limit and columns:
-        # Squeeze the widest column first; never below eight characters.
+        # Squeeze every column in proportion to how much slack it has, rather
+        # than emptying the widest one first: a table where one column has
+        # been reduced to "[0.20..." is worse than one that is uniformly snug.
+        floor = 6
         excess = total - limit
-        order = sorted(range(columns), key=lambda i: -widths[i])
-        for index in order:
-            if excess <= 0:
-                break
-            reducible = max(0, widths[index] - 8)
-            take = min(reducible, excess)
-            widths[index] -= take
-            excess -= take
+        slack = [max(0, w - floor) for w in widths]
+        available = sum(slack)
+        if available:
+            for index in range(columns):
+                if excess <= 0:
+                    break
+                take = min(slack[index], int(round(excess * slack[index] / available)))
+                widths[index] -= take
+            # Rounding can leave a remainder; take it from whatever slack is left.
+            shortfall = sum(widths) + 2 * (columns - 1) - limit
+            for index in sorted(range(columns), key=lambda i: -widths[i]):
+                if shortfall <= 0:
+                    break
+                take = min(max(0, widths[index] - floor), shortfall)
+                widths[index] -= take
+                shortfall -= take
 
     def render(row: Sequence[str], style: str = "") -> str:
         parts = []
         for index, value in enumerate(row):
             align = aligns[index] if index < len(aligns) else "left"
-            text = value if len(value) <= widths[index] else value[: widths[index] - 1] + "…"
+            # ASCII ellipsis: a Windows console in a legacy codepage renders
+            # U+2026 as a replacement character.
+            text = (value if len(value) <= widths[index]
+                    else value[: max(1, widths[index] - 3)] + "...")
             parts.append(text.rjust(widths[index]) if align == "right"
                          else text.ljust(widths[index]))
         line = "  ".join(parts).rstrip()

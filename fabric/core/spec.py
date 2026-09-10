@@ -16,11 +16,12 @@ from __future__ import annotations
 import math
 import os
 import random
+from collections.abc import Mapping, Sequence
 from dataclasses import asdict, dataclass, field
-from typing import Any, Iterable, Mapping, Sequence
+from typing import Any
 
-from fabric.core.entities import Direction, MetricSpec, metric_specs
-from fabric.util.hashing import canonical_json, full_digest
+from fabric.core.entities import MetricSpec, metric_specs
+from fabric.util.hashing import full_digest
 from fabric.util.yamlio import load_yaml, loads_yaml
 
 
@@ -53,7 +54,7 @@ def _as_mapping(value: Any, path: str) -> dict[str, Any]:
 def _as_sequence(value: Any, path: str) -> list[Any]:
     if value is None:
         return []
-    if isinstance(value, (str, bytes)) or isinstance(value, Mapping):
+    if isinstance(value, (str, bytes, Mapping)):
         return [value]
     if isinstance(value, Sequence):
         return list(value)
@@ -88,7 +89,7 @@ class EntityRef:
         return {"name": self.name, "version": self.version, "id": self.id, "inline": self.inline}
 
     @staticmethod
-    def parse(value: Any, path: str) -> "EntityRef":
+    def parse(value: Any, path: str) -> EntityRef:
         if value is None:
             raise SpecError("reference is empty", path)
         if isinstance(value, str):
@@ -209,7 +210,7 @@ class SweepPlan:
         return asdict(self)
 
     @staticmethod
-    def parse(value: Any, path: str = "sweep") -> "SweepPlan":
+    def parse(value: Any, path: str = "sweep") -> SweepPlan:
         data = _as_mapping(value, path)
         strategy = str(data.get("strategy", "grid")).lower()
         if strategy not in ("grid", "random"):
@@ -285,7 +286,7 @@ class SeedPlan:
         }
 
     @staticmethod
-    def parse(value: Any, path: str = "seeds") -> "SeedPlan":
+    def parse(value: Any, path: str = "seeds") -> SeedPlan:
         if value is None:
             return SeedPlan("fixed", (0,), 1)
         if isinstance(value, int):
@@ -361,7 +362,7 @@ class BaselineSpec:
         }
 
     @staticmethod
-    def parse(value: Any, index: int) -> "BaselineSpec":
+    def parse(value: Any, index: int) -> BaselineSpec:
         path = f"baselines[{index}]"
         if isinstance(value, str):
             return BaselineSpec(name=value)
@@ -404,7 +405,7 @@ class AblationSpec:
         }
 
     @staticmethod
-    def parse(value: Any, index: int, components: Sequence[str]) -> "AblationSpec":
+    def parse(value: Any, index: int, components: Sequence[str]) -> AblationSpec:
         path = f"ablations[{index}]"
         if isinstance(value, str):
             name = value
@@ -476,7 +477,7 @@ class AnalysisSpec:
         return asdict(self)
 
     @staticmethod
-    def parse(value: Any, metrics: Sequence[MetricSpec], path: str = "analysis") -> "AnalysisSpec":
+    def parse(value: Any, metrics: Sequence[MetricSpec], path: str = "analysis") -> AnalysisSpec:
         data = _as_mapping(value, path)
         alpha = float(data.get("alpha", 0.05))
         if not 0 < alpha < 1:
@@ -527,7 +528,7 @@ class ExecutionSpec:
         return asdict(self)
 
     @staticmethod
-    def parse(value: Any, path: str = "execution") -> "ExecutionSpec":
+    def parse(value: Any, path: str = "execution") -> ExecutionSpec:
         data = _as_mapping(value, path)
         isolation = str(data.get("isolation", "process")).lower()
         if isolation not in ("process", "inline"):
@@ -587,7 +588,7 @@ class ReproducibilitySpec:
         }
 
     @staticmethod
-    def parse(value: Any, path: str = "reproducibility") -> "ReproducibilitySpec":
+    def parse(value: Any, path: str = "reproducibility") -> ReproducibilitySpec:
         data = _as_mapping(value, path)
         if not data:
             return ReproducibilitySpec()
@@ -633,7 +634,7 @@ class IntegritySpec:
         return asdict(self)
 
     @staticmethod
-    def parse(value: Any, path: str = "integrity") -> "IntegritySpec":
+    def parse(value: Any, path: str = "integrity") -> IntegritySpec:
         data = _as_mapping(value, path)
         return IntegritySpec(
             forbid_test_in_train=bool(data.get("forbid_test_in_train", True)),
@@ -754,7 +755,7 @@ class ExperimentSpec:
     # -- construction ------------------------------------------------------
 
     @staticmethod
-    def from_dict(data: Mapping[str, Any], *, source_path: str = "") -> "ExperimentSpec":
+    def from_dict(data: Mapping[str, Any], *, source_path: str = "") -> ExperimentSpec:
         """Parse and validate a specification mapping."""
         if not isinstance(data, Mapping):
             raise SpecError("the specification must be a mapping at the top level")
@@ -842,11 +843,11 @@ class ExperimentSpec:
         return spec
 
     @staticmethod
-    def from_yaml(text: str, *, source_path: str = "") -> "ExperimentSpec":
+    def from_yaml(text: str, *, source_path: str = "") -> ExperimentSpec:
         return ExperimentSpec.from_dict(loads_yaml(text) or {}, source_path=source_path)
 
     @staticmethod
-    def from_file(path: str | os.PathLike[str]) -> "ExperimentSpec":
+    def from_file(path: str | os.PathLike[str]) -> ExperimentSpec:
         data = load_yaml(path)
         if data is None:
             raise SpecError(f"{os.fspath(path)} is empty")
@@ -863,13 +864,12 @@ class ExperimentSpec:
         """
         if self.algorithm is None:
             raise SpecError("an experiment needs an algorithm to run", "algorithm")
-        if not self.algorithm.inline.get("entrypoint") and not self.algorithm.id:
-            if "entrypoint" not in self.algorithm.inline:
-                raise SpecError(
-                    "the algorithm needs an 'entrypoint' (for example "
-                    "'python:mypkg.train:run') unless it is already registered",
-                    "algorithm.entrypoint",
-                )
+        if not self.algorithm.id and "entrypoint" not in self.algorithm.inline:
+            raise SpecError(
+                "the algorithm needs an 'entrypoint' (for example "
+                "'python:mypkg.train:run') unless it is already registered",
+                "algorithm.entrypoint",
+            )
         if not self.seeds.values:
             raise SpecError("no seeds were produced", "seeds")
         if len(set(self.seeds.values)) != len(self.seeds.values):

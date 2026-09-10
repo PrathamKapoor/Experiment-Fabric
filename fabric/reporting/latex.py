@@ -13,7 +13,8 @@ that compiles everywhere beats a picture that needs three packages.
 from __future__ import annotations
 
 import time
-from typing import Any, Sequence
+from collections.abc import Sequence
+from typing import Any
 
 from fabric.reporting.document import (
     Block,
@@ -24,7 +25,6 @@ from fabric.reporting.document import (
     Document,
     KeyValues,
     Paragraph,
-    Section,
     Table,
 )
 

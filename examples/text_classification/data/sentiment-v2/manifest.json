@@ -1,0 +1,10 @@
+{
+  "generator": "examples/text_classification/make_data.py",
+  "id_overlap": 0,
+  "positive_fraction": 0.5042,
+  "splits": {
+    "test": 400,
+    "train": 1200
+  },
+  "version": "v2"
+}

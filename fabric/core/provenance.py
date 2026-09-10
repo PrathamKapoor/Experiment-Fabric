@@ -13,11 +13,12 @@ a forwards one.
 
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
-from typing import Any, Iterable, Mapping, Sequence
+from typing import Any
 
 from fabric.core import graph as g
-from fabric.core.entities import Run, RunStatus
+from fabric.core.entities import Run
 from fabric.core.graph import ExperimentGraph, Node
 from fabric.execution.planner import ExperimentPlan
 

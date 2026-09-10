@@ -12,9 +12,10 @@ pointer*.  A run stores ``dataset_id``, not "the current dataset".
 from __future__ import annotations
 
 import time
+from collections.abc import Iterable, Mapping
 from dataclasses import asdict, dataclass, field, replace
 from enum import Enum
-from typing import Any, ClassVar, Iterable, Mapping
+from typing import Any, ClassVar
 
 from fabric.util.hashing import content_id
 
@@ -114,7 +115,7 @@ class Entity:
         safety feature into an obstacle.
         """
         return frozenset({
-            "registered_at", "local_path", "id",
+            "registered_at", "local_path", "id", "dirty",
             "description", "notes", "source", "preprocessing", "license",
         })
 
@@ -130,7 +131,7 @@ class Entity:
         data["kind"] = type(self).__name__
         return _plain(data)
 
-    def with_(self, **changes: Any) -> "Entity":
+    def with_(self, **changes: Any) -> Entity:
         """Return a copy with fields replaced (identity changes with it)."""
         return replace(self, **changes)
 
@@ -256,6 +257,20 @@ class Algorithm(Entity):
     version: str = "v1"
     description: str = ""
     params: dict[str, Any] = field(default_factory=dict)
+    dirty: bool = False
+    """The working tree had uncommitted changes when this was captured.
+
+    Recorded but *excluded from identity*. What pins the method is
+    ``source_digest``, the hash of the entrypoint's own source file; the
+    commit is provenance around it. If dirtiness were part of identity,
+    editing any unrelated file in the repository would mint a new
+    algorithm version and invalidate every cached run.
+
+    The honest caveat, which the certificate states rather than hides: a
+    dirty tree means the commit does not fully describe the code, and a
+    change in a *helper* module the entrypoint imports is not covered by
+    ``source_digest``. Commit before the runs that matter.
+    """
     registered_at: float = 0.0
     id_prefix: ClassVar[str] = "alg-"
 
@@ -355,7 +370,7 @@ class MetricSpec:
         }
 
     @staticmethod
-    def from_any(value: Any) -> "MetricSpec":
+    def from_any(value: Any) -> MetricSpec:
         """Accept ``"accuracy"``, ``{"accuracy": "maximize"}`` or a full mapping."""
         if isinstance(value, str):
             return MetricSpec(name=value, direction=_infer_direction(value))
@@ -534,7 +549,7 @@ class Run:
         return data
 
     @staticmethod
-    def from_dict(data: Mapping[str, Any]) -> "Run":
+    def from_dict(data: Mapping[str, Any]) -> Run:
         failure = data.get("failure")
         resources = data.get("resources") or {}
         return Run(

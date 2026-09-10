@@ -9,10 +9,11 @@ analysis uses it.
 
 from __future__ import annotations
 
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
-from typing import Any, Iterable, Mapping, Sequence
+from typing import Any
 
-from fabric.core.entities import Condition, MetricSpec, Resources, Role, Run, RunStatus
+from fabric.core.entities import Condition, MetricSpec, Role, Run, RunStatus
 from fabric.execution.resources import aggregate
 from fabric.statistics.descriptive import Summary, summarize
 
@@ -99,7 +100,7 @@ class ResultSet:
 
     @staticmethod
     def build(runs: Iterable[Run], conditions: Iterable[Condition],
-              metrics: Sequence[MetricSpec]) -> "ResultSet":
+              metrics: Sequence[MetricSpec]) -> ResultSet:
         by_condition: dict[str, list[Run]] = {}
         for run in runs:
             by_condition.setdefault(run.condition_id, []).append(run)

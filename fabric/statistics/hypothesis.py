@@ -10,11 +10,12 @@ from __future__ import annotations
 
 import math
 import random
+from collections.abc import Sequence
 from dataclasses import asdict, dataclass, field
 from itertools import combinations
-from typing import Any, Sequence
+from typing import Any
 
-from fabric.statistics.descriptive import mean, median, quantile, stdev, variance
+from fabric.statistics.descriptive import mean, median, stdev, variance
 from fabric.statistics.distributions import (
     chi2_sf,
     f_sf,
@@ -145,7 +146,8 @@ def brown_forsythe(*groups: Sequence[float]) -> TestResult:
     n_total = sum(len(g) for g in valid)
     z_groups = [[abs(v - median(g)) for v in g] for g in valid]
     grand = mean([v for g in z_groups for v in g])
-    numerator = sum(len(g) * (mean(zg) - grand) ** 2 for g, zg in zip(valid, z_groups))
+    numerator = sum(len(g) * (mean(zg) - grand) ** 2
+                    for g, zg in zip(valid, z_groups, strict=True))
     denominator = sum((v - mean(zg)) ** 2 for zg in z_groups for v in zg)
     if denominator == 0:
         return TestResult("brown-forsythe", math.nan, 1.0,
@@ -289,7 +291,7 @@ def paired_t_test(a: Sequence[float], b: Sequence[float], *,
     if n < 2:
         return TestResult("paired-t", math.nan, math.nan, n=(n,),
                           reason="needs at least two pairs")
-    diffs = [x - y for x, y in zip(a, b)]
+    diffs = [x - y for x, y in zip(a, b, strict=True)]
     sd = stdev(diffs)
     if sd == 0:
         return TestResult("paired-t", math.nan, 1.0 if mean(diffs) == 0 else 0.0, n=(n,),
@@ -487,7 +489,7 @@ def wilcoxon_signed_rank(a: Sequence[float], b: Sequence[float], *,
     """Wilcoxon signed-rank test for paired samples."""
     if len(a) != len(b):
         raise ValueError("paired samples must have equal length")
-    diffs = [x - y for x, y in zip(a, b)]
+    diffs = [x - y for x, y in zip(a, b, strict=True)]
     nonzero = [d for d in diffs if d != 0]
     dropped = len(diffs) - len(nonzero)
     n = len(nonzero)
@@ -495,8 +497,8 @@ def wilcoxon_signed_rank(a: Sequence[float], b: Sequence[float], *,
         return TestResult("wilcoxon-signed-rank", math.nan, 1.0, n=(len(diffs),),
                           reason="every pair is identical")
     ranks = _ranks([abs(d) for d in nonzero])
-    w_plus = sum(r for d, r in zip(nonzero, ranks) if d > 0)
-    w_minus = sum(r for d, r in zip(nonzero, ranks) if d < 0)
+    w_plus = sum(r for d, r in zip(nonzero, ranks, strict=True) if d > 0)
+    w_minus = sum(r for d, r in zip(nonzero, ranks, strict=True) if d < 0)
     w = min(w_plus, w_minus)
     has_ties = len(set(abs(d) for d in nonzero)) != n
 
@@ -583,7 +585,7 @@ def permutation_test(a: Sequence[float], b: Sequence[float], *, paired: bool = F
         return value <= observed + 1e-15
 
     if paired:
-        diffs = [x - y for x, y in zip(a, b)]
+        diffs = [x - y for x, y in zip(a, b, strict=True)]
         n = len(diffs)
         exact = n <= 22 and 2 ** n <= max(n_resamples, 4096)
         count = 0
@@ -667,7 +669,7 @@ def tost_equivalence(a: Sequence[float], b: Sequence[float], margin: float, *,
     if paired:
         if len(a) != len(b):
             raise ValueError("paired samples must have equal length")
-        diffs = [x - y for x, y in zip(a, b)]
+        diffs = [x - y for x, y in zip(a, b, strict=True)]
         n = len(diffs)
         if n < 2:
             return TestResult("tost", math.nan, math.nan, reason="needs at least two pairs")
@@ -706,8 +708,9 @@ def tost_equivalence(a: Sequence[float], b: Sequence[float], margin: float, *,
         assumptions=(
             Assumption("the equivalence margin was declared in advance", None,
                        "taken from the metric's `tolerance` field in the specification"),
-            _normality_assumption("differences" if paired else "group 1",
-                                  [x - y for x, y in zip(a, b)] if paired else a, alpha),
+            _normality_assumption(
+                "differences" if paired else "group 1",
+                [x - y for x, y in zip(a, b, strict=True)] if paired else a, alpha),
         ),
         extra={"equivalent": p < alpha, "margin": margin, "difference": difference,
                "p_lower": p_lower, "p_upper": p_upper},

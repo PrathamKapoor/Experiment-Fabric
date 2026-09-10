@@ -25,17 +25,17 @@ is the one that matters:
 from __future__ import annotations
 
 import time
+from collections.abc import Sequence
 from dataclasses import dataclass, field
-from typing import Any, Sequence
+from typing import Any
 
 from fabric.analysis.results import ResultSet
-from fabric.core.entities import Environment, Hardware, MetricSpec, Run
+from fabric.core.entities import Environment, Hardware, Run
 from fabric.environments.fingerprint import (
     Difference,
     environment_diff,
     hardware_diff,
     likely_causes,
-    summarise_differences,
 )
 from fabric.execution.planner import ExperimentPlan
 from fabric.statistics.compare import Comparison, compare

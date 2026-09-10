@@ -23,7 +23,6 @@ import subprocess
 import sys
 import time
 from functools import lru_cache
-from typing import Any
 
 from fabric.core.entities import Environment
 from fabric.util.hashing import file_digest
@@ -116,7 +115,7 @@ def detect_container() -> str:
     if os.path.exists("/.dockerenv"):
         return "docker (unidentified image)"
     try:
-        with open("/proc/1/cgroup", "r", encoding="utf-8", errors="ignore") as fh:
+        with open("/proc/1/cgroup", encoding="utf-8", errors="ignore") as fh:
             content = fh.read()
         for marker in ("docker", "kubepods", "containerd", "lxc"):
             if marker in content:

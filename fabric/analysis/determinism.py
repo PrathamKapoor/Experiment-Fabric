@@ -16,10 +16,11 @@ non-determinism cannot be measured by that pipeline at all.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass, field
-from typing import Any, Sequence
+from typing import Any
 
-from fabric.analysis.results import ConditionResults, ResultSet
+from fabric.analysis.results import ResultSet
 from fabric.core.entities import MetricSpec
 
 
@@ -138,10 +139,8 @@ def analyse_determinism(results: ResultSet, *,
     """Compare determinism replicates against their original runs."""
     report = DeterminismReport()
     for condition in results.conditions.values():
-        replicates = condition.replicates
-        if not replicates:
+        if not condition.replicates:
             continue
-        by_seed: dict[int, list[float]] = {}
         for spec in metrics:
             grouped: dict[int, list[float]] = {}
             for run in condition.runs:

@@ -12,7 +12,7 @@ preserved, because a wrong label is worse than no label.
 from __future__ import annotations
 
 import re
-from typing import Iterable
+from collections.abc import Iterable
 
 from fabric.core.entities import Failure, FailureClass
 

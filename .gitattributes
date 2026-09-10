@@ -1,0 +1,16 @@
+# Line endings are part of the content hash.
+#
+# Fabric identifies a dataset by the SHA-256 of its bytes. If Git rewrote
+# LF to CRLF on a Windows checkout, the same dataset would hash differently
+# on different machines and every cross-platform reproduction would report a
+# spurious mismatch. So: normalise everything to LF, and never touch the
+# generated data at all.
+
+* text=auto eol=lf
+
+# Content-addressed data: byte-for-byte, on every platform.
+examples/**/data/** -text
+*.jsonl -text
+
+# Shell scripts must keep LF to remain executable.
+*.sh text eol=lf

@@ -1,0 +1,143 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: ${{ matrix.os }} · Python ${{ matrix.python }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python: ["3.10", "3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      # The core has no dependencies. Installing the package bare is itself
+      # the test that it stayed that way.
+      - name: Install without extras
+        run: python -m pip install --upgrade pip && python -m pip install .
+
+      - name: Confirm the core imports with nothing else installed
+        run: |
+          python -c "import fabric; print(fabric.__version__)"
+          fabric --version
+          fabric doctor
+
+      - name: Install test dependencies
+        run: python -m pip install pytest pytest-cov
+
+      - name: Run the test suite
+        run: python -m pytest tests/ -q --cov=fabric --cov-report=term --cov-fail-under=80
+
+      # PyYAML changes which parser handles specifications, so the suite has
+      # to pass both with and without it.
+      - name: Run the test suite with PyYAML installed
+        run: |
+          python -m pip install PyYAML
+          python -m pytest tests/ -q
+
+  no-dependency-guard:
+    name: Dependency guard
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Assert nothing third-party leaked into the core
+        run: python scripts/check_no_dependencies.py
+
+  lint:
+    name: Lint and types
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install ruff mypy
+      - run: python -m ruff check fabric tests examples
+      - run: python -m mypy fabric || true   # advisory until annotations are complete
+
+  demo:
+    name: End-to-end demo
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install .
+      - name: Run every command the README claims
+        shell: bash
+        run: bash scripts/smoke.sh
+
+  reproduce-across-versions:
+    name: Cross-version reproduction
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Produce a bundle on one interpreter, reproduce it on another, and
+      # require the numbers to match. This is the project's own thesis
+      # applied to itself.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - run: python -m pip install .
+      - name: Produce a bundle on 3.10
+        run: |
+          python examples/agent_pipeline/make_data.py
+          fabric init --quiet
+          fabric run examples/agent_pipeline/reproducibility.yaml
+          EXP=$(fabric ls | awk '/agent-reproducibility-profile/ {print $1}')
+          fabric export "$EXP" --out /tmp/bundle-310
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: python -m pip install .
+      - name: Reproduce it on 3.13
+        run: |
+          fabric verify /tmp/bundle-310
+          fabric reproduce /tmp/bundle-310 | tee /tmp/reproduction.txt
+          grep -qE "PASS" /tmp/reproduction.txt
+
+  build:
+    name: Build and install the wheel
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install build
+      - run: python -m build
+      - name: Install the built wheel into a clean environment
+        run: |
+          python -m venv /tmp/clean
+          /tmp/clean/bin/python -m pip install dist/*.whl
+          /tmp/clean/bin/fabric --version
+          /tmp/clean/bin/python -c "import fabric, sys; assert 'yaml' not in sys.modules"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: distributions
+          path: dist/

@@ -503,3 +503,50 @@ execution: {isolation: inline}
     assert "proposed" in analysis.headline
     assert "0.5" in analysis.headline
     assert "no baseline to compare against" in analysis.headline
+
+
+def test_exact_reproduction_passes_without_a_declared_tolerance(executed):
+    """Bit-identical values are conclusive on their own.
+
+    A metric with no tolerance used to be reported INCONCLUSIVE even when
+    every seed reproduced its value exactly -- the strongest possible
+    evidence recorded as the most uncertain verdict.
+    """
+    from dataclasses import replace
+
+    from fabric.reproduce import compare_runs
+
+    _workspace, plan, runs, _analysis = executed
+    # Strip the tolerance from every metric, then reproduce identical runs.
+    bare = replace(plan.spec, metrics=tuple(
+        replace(m, tolerance=None) for m in plan.spec.metrics))
+    bare_plan = replace(plan, spec=bare)
+
+    report = compare_runs(bare_plan, runs, runs, alpha=0.05)
+    assert report.verdict == "PASS"
+    assert all(m.exact for m in report.metrics)
+    assert "exact" in report.render()
+    assert not any("tolerance was declared" in note for note in report.notes)
+
+
+def test_a_non_exact_reproduction_without_tolerance_stays_honest(executed):
+    from dataclasses import replace
+
+    from fabric.reproduce import compare_runs
+
+    _workspace, plan, runs, _analysis = executed
+    bare = replace(plan.spec, metrics=tuple(
+        replace(m, tolerance=None) for m in plan.spec.metrics))
+    bare_plan = replace(plan, spec=bare)
+    nudged = [
+        replace(r, metrics={k: v + 1e-6 for k, v in r.metrics.items()}) if r.metrics else r
+        for r in runs
+    ]
+    report = compare_runs(bare_plan, runs, nudged, alpha=0.05)
+    assert not any(m.exact for m in report.metrics)
+    # The numbers genuinely differ, so this is not a reproduction; with no
+    # declared tolerance nobody ever said how much drift was acceptable, and
+    # the note has to say so rather than the verdict implying a threshold
+    # that was never set.
+    assert report.verdict == "FAIL"
+    assert any("tolerance was declared" in note for note in report.notes)

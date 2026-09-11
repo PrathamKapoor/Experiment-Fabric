@@ -18,8 +18,10 @@ is the one that matters:
     sample-size problem, and reported as one rather than rounded to
     "pass".
 ``FAIL``
-    The result moved beyond the declared tolerance and the environment
-    does not explain it.
+    The numbers differ and the environment does not explain it -- either
+    beyond the declared tolerance, or with no tolerance declared to judge
+    them against, in which case the report says so rather than implying a
+    threshold nobody set.
 """
 
 from __future__ import annotations
@@ -58,6 +60,14 @@ class MetricReproduction:
     tolerance: float | None = None
     n_original: int = 0
     n_reproduced: int = 0
+    exact: bool = False
+    """Every seed reproduced its original value bit for bit.
+
+    This is stronger evidence than any tolerance test, and it needs no
+    declared margin to be conclusive: there is no difference to bound.
+    Treating it as INCONCLUSIVE because nobody wrote down a tolerance
+    would report the best possible outcome as the most uncertain one.
+    """
 
     @property
     def difference(self) -> float:
@@ -71,6 +81,8 @@ class MetricReproduction:
 
     @property
     def verdict(self) -> str:
+        if self.exact:
+            return PASS
         if self.comparison is None:
             return INCONCLUSIVE
         if self.comparison.equivalent:
@@ -93,6 +105,7 @@ class MetricReproduction:
             "tolerance": self.tolerance,
             "n_original": self.n_original,
             "n_reproduced": self.n_reproduced,
+            "exact": self.exact,
             "verdict": self.verdict,
             "comparison": self.comparison.to_dict(include_values=False)
             if self.comparison else None,
@@ -158,11 +171,12 @@ class ReproductionReport:
         lines = ["REPRODUCTION COMPLETE", ""]
         headline = self.headline
         if headline:
+            exactness = "  (exact: every seed reproduced its value)" if headline.exact else ""
             lines.extend([
                 f"  original result       {headline.original_mean:.4f}",
                 f"  reproduced result     {headline.reproduced_mean:.4f}",
                 f"  difference            {headline.difference:+.4f} "
-                f"({headline.relative:+.2f}%)",
+                f"({headline.relative:+.2f}%){exactness}",
             ])
             if headline.comparison:
                 lines.append(
@@ -181,10 +195,11 @@ class ReproductionReport:
             lines.append("  per metric")
             width = max(len(m.metric) for m in self.metrics)
             for item in self.metrics:
+                marker = " (exact)" if item.exact else ""
                 lines.append(
                     f"    {item.metric:<{width}}  {item.original_mean:>10.4f} -> "
                     f"{item.reproduced_mean:>10.4f}  {item.difference:+.4f}  "
-                    f"{item.verdict}"
+                    f"{item.verdict}{marker}"
                 )
             lines.append("")
 
@@ -252,6 +267,8 @@ def compare_runs(
                 continue
             paired = _paired_by_seed(original_set, reproduced_set, condition_name,
                                      spec_metric.name)
+            exact = paired and _identical_by_seed(
+                original_set, reproduced_set, condition_name, spec_metric.name)
             comparison = compare(
                 reproduced_values, original_values,
                 metric=spec_metric.name,
@@ -272,6 +289,7 @@ def compare_runs(
                 tolerance=spec_metric.tolerance,
                 n_original=len(original_values),
                 n_reproduced=len(reproduced_values),
+                exact=exact,
             ))
 
     report.metrics.sort(key=lambda m: (m.metric != primary, m.metric))
@@ -284,7 +302,8 @@ def compare_runs(
     report.causes = likely_causes(
         report.environment_differences + report.hardware_differences)
 
-    missing_tolerance = [m.metric for m in report.metrics if m.tolerance is None]
+    missing_tolerance = [m.metric for m in report.metrics
+                         if m.tolerance is None and not m.exact]
     if missing_tolerance:
         report.notes.append(
             f"No tolerance was declared for {', '.join(sorted(set(missing_tolerance)))}, "
@@ -305,6 +324,16 @@ def compare_runs(
         )
     report.finished_at = time.time()
     return report
+
+
+def _identical_by_seed(original: ResultSet, reproduced: ResultSet,
+                       condition: str, metric: str) -> bool:
+    """Whether every seed reproduced its value exactly."""
+    left = original[condition].series(metric)
+    right = reproduced[condition].series(metric)
+    if not left or set(left) != set(right):
+        return False
+    return all(left[seed] == right[seed] for seed in left)
 
 
 def _paired_by_seed(original: ResultSet, reproduced: ResultSet,

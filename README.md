@@ -300,7 +300,7 @@ The verdict has four levels, and the middle two are the point: `PASS`,
 `PASS WITH DEVIATION` (with the environment differences named and ranked
 by how likely each is to explain it), `INCONCLUSIVE` (neither equivalence
 nor difference established — usually a sample-size limit, reported as
-one), and `FAIL`.
+one), and `FAIL` (the numbers differ, and either they exceed the declared tolerance or none was declared to judge them against).
 
 Tampering is detectable: edit a bundled file and `fabric verify` names it;
 edit a certificate and it no longer hashes to its own identifier.

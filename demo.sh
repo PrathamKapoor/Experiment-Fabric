@@ -40,6 +40,7 @@ $FABRIC run examples/agent_pipeline/reproducibility.yaml
 REPRO=$($FABRIC ls | awk '/agent-reproducibility-profile/ {print $1}')
 
 step "6. Run the second example: real algorithms, no fabric import"
+note "hand-written naive Bayes and logistic regression; model.py never imports fabric"
 $FABRIC run examples/text_classification/experiment.yaml
 TEXT=$($FABRIC ls | awk '/sentiment-classifier-comparison/ {print $1}')
 
@@ -59,31 +60,41 @@ $FABRIC why "$AGENT" --metric accuracy --seed 3
 step "11. What depends on the dataset?"
 $FABRIC impact "$AGENT"
 
-step "12. Generate the scientific report in every format"
+step "12. The provenance graph, as something you can click"
+note "click a node and its lineage lights up; that is fabric why, with a mouse"
+$FABRIC graph "$AGENT" --format html
+
+step "13. Generate the scientific report in every format"
 $FABRIC report "$AGENT" --format all
 $FABRIC report "$REPRO" --format html
 
-step "13. Issue a reproduction certificate"
+step "14. Issue a reproduction certificate"
 $FABRIC certify "$REPRO"
 
-step "14. Export a portable bundle"
+step "15. Export a portable bundle"
 rm -rf demo-bundle
 $FABRIC export "$REPRO" --out demo-bundle
 
-step "15. Verify the bundle"
+step "16. Verify the bundle"
 $FABRIC verify demo-bundle
 
-step "16. Tamper with it, and verify again"
+step "17. Tamper with it, and verify again"
 note "one appended byte is enough"
 printf '\n' >> demo-bundle/results.json
 $FABRIC verify demo-bundle || true
 
-step "17. Restore and reproduce it"
+step "18. Restore and reproduce it"
 rm -rf demo-bundle
 $FABRIC export "$REPRO" --out demo-bundle >/dev/null
 $FABRIC reproduce demo-bundle
 
 step "Done"
-note "HTML report: .fabric/experiments/$AGENT/reports/report.html"
+note "HTML report:  .fabric/experiments/$AGENT/reports/report.html"
+note "Graph:        .fabric/experiments/$AGENT/reports/graph.html"
 note "Bundle:      demo-bundle/"
 note "Everything above is regenerable: fabric reproduce demo-bundle"
+note ""
+note "Not shown, because it needs PyTorch and three minutes:"
+note "  pip install torch --index-url https://download.pytorch.org/whl/cpu"
+note "  fabric run examples/torch_mlp/reproducibility.yaml   # real training"
+note "  python paper/run_study.py                            # the pilot study"

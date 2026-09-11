@@ -18,7 +18,9 @@ fabric report EXP-07fd093d8e --format html         # a paper-shaped scientific r
 fabric export EXP-07fd093d8e --out bundle/         # a portable, verifiable artifact
 ```
 
-No dependencies. Python 3.10+. `pip install experiment-fabric`.
+No dependencies. Python 3.10-3.14. `pip install experiment-fabric`.
+
+251 tests, verified on Python 3.10, 3.11, 3.12, 3.13 and 3.14; CI runs them on Linux, macOS and Windows, with and without PyYAML installed.
 
 ---
 
@@ -139,10 +141,10 @@ fabric analyze <EXP>
 
 ---
 
-## The worked example
+## The worked examples
 
-Two examples ship with the project and both run in seconds on a laptop
-with no GPU.
+Three ship with the project. Two run in seconds on a laptop with no GPU;
+the third needs PyTorch.
 
 ```bash
 python examples/agent_pipeline/make_data.py
@@ -151,13 +153,22 @@ fabric run examples/agent_pipeline/reproducibility.yaml     # 93 runs, ~2s
 fabric report <EXP> --format html --open
 ```
 
-The first is a five-component retrieval agent (retrieval, reranking,
-memory, planning, verification) evaluated against three baselines with
-seven ablations over ten seeds. The second perturbs six axes to measure
-how far the result travels.
+| Example | What it is | Why it is here |
+|---|---|---|
+| `agent_pipeline/` | A five-component retrieval agent, **simulated** | Exercises ablation, interaction analysis and all six perturbation axes in seconds |
+| `text_classification/` | Naive Bayes and logistic regression, hand-written, **no `import fabric`** | Real algorithms; proves the core is framework-agnostic |
+| `torch_mlp/` | An MLP trained with **real PyTorch autograd** | The pipeline that is not a simulation |
 
-The second example, `examples/text_classification/`, is the more
-interesting one, because **the result does not go the author's way**:
+### The interesting part: the hypotheses lose
+
+Each specification states a hypothesis *before* the runs. In two of the
+three, the data contradicts it, and the report says so — because the
+analysis was declared in the specification and could not be adjusted
+afterwards.
+
+**`text_classification`** predicted logistic regression would edge out
+naive Bayes, that bigrams would help, and that lowercasing would not
+matter:
 
 ```
 logistic-regression scored 0.6490 +/- 0.0134 on accuracy over 10 seeds,
@@ -173,15 +184,15 @@ distinguishable from noise.
   bigrams      ####................           +0.0028  no
 ```
 
-The specification's stated hypothesis was that logistic regression would
-edge out naive Bayes, that bigrams would help, and that lowercasing would
-not matter. All three are contradicted, and the report says so — because
-the analysis was declared before the runs and could not be adjusted
-afterwards.
+All three predictions wrong: the proposed method is *behind* the
+baseline, lowercasing matters and bigrams do not.
+
+**`torch_mlp`** predicted batch normalisation would carry the gain. Over
+ten seeds of real training, none of the four components — batchnorm,
+dropout, weight decay, cosine schedule — is detectable at all, while the
+MLP beats a linear model by 0.51 accuracy.
 
 That is the whole point of the tool.
-
----
 
 ## The core abstraction: experiment graphs
 
@@ -201,6 +212,7 @@ Because the graph is explicit, two questions become mechanical:
 ```bash
 fabric why    <EXP> --metric accuracy --seed 3   # why does this number exist?
 fabric impact <EXP> --node <dataset-id>          # what breaks if this changes?
+fabric graph  <EXP> --format html --open         # ...or click through it
 ```
 
 ```
@@ -220,6 +232,17 @@ accuracy = 0.7175
   raw artifacts
     predictions.json  sha256:fa8ff681633a  113931 bytes
 ```
+
+### And the same query, with a mouse
+
+The HTML report embeds an interactive version: **click any node and its
+lineage lights up**, everything else recedes. Drag to pan, scroll to
+zoom, hover for digests and configuration.
+
+It is inline SVG plus about eighty lines of vanilla JavaScript — no
+library, no network, no build step. A 913-node graph folds to 45 by
+grouping each condition's replications into one node, and the caption
+says exactly how much it folded and where the full graph lives.
 
 ---
 
@@ -336,7 +359,7 @@ edit a certificate and it no longer hashes to its own identifier.
 | `fabric analyze <exp>` | Full analysis; `--json` for the machine-readable form. |
 | `fabric report <exp>` | Markdown, HTML, LaTeX, JSON, or `--format all`. |
 | `fabric why <exp>` | Trace a number to everything that produced it. |
-| `fabric graph <exp>` | Export provenance as mermaid, DOT, JSON or ASCII. |
+| `fabric graph <exp>` | Export provenance as an interactive HTML page, mermaid, DOT, JSON or ASCII. |
 | `fabric impact <exp>` | What depends on a node, and what claims it supports. |
 | `fabric reproduce <exp\|bundle>` | Re-execute and compare against the original. |
 | `fabric verify <exp\|bundle>` | Re-hash artifacts, entities and certificates. |
@@ -383,36 +406,53 @@ fabric/
   statistics/    distributions, tests, effect sizes, intervals, power, selection
   analysis/      baselines, ablations, sweeps, failures, determinism, reproducibility
   integrity/     contamination, drift and effort checks
-  reporting/     document model, markdown/html/latex renderers, SVG charts, certificates
+  reporting/     document model, renderers, SVG charts, interactive graph, certificates
   cli/           the fabric command
-examples/        two runnable experiments with real data
-docs/            specification, statistics, reproducibility, writing experiments
-paper/           the reproducibility study this instrument was built for
-tests/           180 tests, including reference-value checks for every distribution
+examples/        three runnable experiments; one trains with real PyTorch
+docs/            specification, statistics, reproducibility, related work, architecture
+paper/           the pre-registered study, and a pilot that actually ran
+scripts/         dependency guard, smoke test, container check
+tests/           251 tests, including reference-value checks for every distribution
+.github/         CI: 3 platforms x 4 Python versions, plus container and cross-version reproduction
 ```
 
 ```bash
-python -m pytest        # 180 tests, ~18s
+python -m pytest              # 251 tests, ~25s
+bash scripts/smoke.sh         # every documented command, output asserted
+python paper/run_study.py     # the pilot study, regenerated
 ```
 
 ---
 
 ## Status and scope
 
-Version 0.3. The MVP and the research-grade layer are complete: expansion,
-execution, caching, statistics, ablations, sweeps, failure analysis,
-determinism, perturbation studies, provenance, integrity checks,
-reporting, certificates, bundles and reproduction.
+Version 0.3. The MVP and the research-grade layer are complete:
+expansion, execution, caching, statistics, ablations, sweeps, failure
+analysis, determinism, perturbation studies, provenance, integrity
+checks, reporting, certificates, bundles and reproduction.
+
+**What has actually been verified**, as opposed to claimed:
+
+| | Evidence |
+|---|---|
+| 251 tests pass | Python 3.10, 3.11, 3.12, 3.13, 3.14 locally; CI matrix adds Linux and macOS |
+| The core has no dependencies | `scripts/check_no_dependencies.py`, enforced in CI |
+| Both YAML parsers agree | every shipped specification parsed by each and compared |
+| Every documented command works | `scripts/smoke.sh` asserts the output of each one |
+| It runs real ML | `examples/torch_mlp/` trains with PyTorch autograd |
+| The wheel installs clean | built and run in an empty virtualenv |
+| Bundles reproduce | `fabric reproduce` on an exported bundle, and across Python versions in CI |
+| The container reproduces | CI builds the image and runs `scripts/container_check.sh` inside it |
 
 Deliberately **not** built: distributed orchestration, a cloud GPU
 marketplace, a web UI, Bayesian optimisation, autonomous experiment
 generation, dataset or model hosting. Each would bury the contribution
-under infrastructure that already exists elsewhere.
+under infrastructure that already exists elsewhere — and
+[`docs/related-work.md`](docs/related-work.md) names the tools that do
+those things better.
 
 Known limitations are documented rather than hidden — see the end of
 [`docs/reproducibility.md`](docs/reproducibility.md).
-
----
 
 ## The research question behind it
 
@@ -422,7 +462,25 @@ Known limitations are documented rather than hidden — see the end of
 > that sensitivity compare to the seed variance that papers already
 > report?
 
-Fabric is the instrument. [`paper/`](paper) is the study design.
+This is **not a new question**, and the project does not pretend it is.
+Prior work already shows that non-seed axes can dominate the seed axis
+(arXiv:2206.12353) and that fixed seeds do not guarantee determinism on
+GPU. What is missing is comparability: no existing study puts all six
+axes on one scale for the same experiment.
+
+A **pilot** has been run — two real pipelines, one simulated and
+excluded. Genuine results, in [`paper/results/findings.md`](paper/results/findings.md):
+
+- the dataset version moved results by **7.5× and 80.5×** the seed noise
+- the environment axis measured **exactly 0.00** across four perturbations
+- **0 of 2** real pipelines were non-deterministic, once timing metrics
+  were correctly excluded from the verdict
+- **all three** were floor-limited at half the seeds: an exact test on
+  five paired runs cannot reach p < 0.05 whatever it measures
+
+Two pipelines cannot support a claim about the field, and the findings
+say so on every page. [`paper/`](paper) holds the pre-registration and
+the design the pilot is a pilot for.
 
 ## License
 

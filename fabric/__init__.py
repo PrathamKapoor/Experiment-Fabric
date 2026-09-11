@@ -19,7 +19,7 @@ The short version::
 Most people will use the command line instead: ``fabric run experiment.yaml``.
 """
 
-__version__ = "0.3.0"
+__version__ = "0.3.1"
 
 from fabric.analysis.engine import ExperimentAnalysis, analyse
 from fabric.core.entities import (

@@ -5,6 +5,80 @@ All notable changes to Experiment Fabric. This project follows
 change the on-disk layout, and the layout version in `.fabric/config.json`
 records which one a workspace was written by.
 
+## [0.3.1]
+
+Closing the gaps between what the project claimed and what it had
+verified. Every item below was found by building the verification, not by
+reading the code.
+
+### Added
+
+- **CI** across 3 platforms x 4 Python versions, with a bare install that
+  proves the core still needs nothing, the suite run with and without
+  PyYAML, a wheel built into a clean virtualenv, a container build, and a
+  cross-version job that exports a bundle on 3.10 and reproduces it on
+  3.13. Verified locally on 3.10 through 3.14.
+- `scripts/check_no_dependencies.py`, which fails if anything third-party
+  enters the core, and `scripts/smoke.sh`, which executes every command
+  the README claims and asserts its output.
+- **A real PyTorch example** (`examples/torch_mlp/`): an MLP trained with
+  autograd on a spiral task, with its own perturbation study. The first
+  thing in the project that is not a simulation.
+- **An interactive provenance graph** in the HTML report and via
+  `fabric graph --format html`: click a node and its lineage lights up,
+  which is the `fabric why` query performed with a mouse. Inline SVG and
+  vanilla JavaScript, no dependencies.
+- `ExperimentGraph.collapsed()`, which folds a 913-node graph to 45 while
+  keeping every structural relationship, and drops nodes orphaned by the
+  fold rather than drawing relationships it cannot show.
+- **An evidence-based related-work survey** (`docs/related-work.md`)
+  checked against primary sources, including corrections to this
+  project's own earlier claims.
+- **A pilot study that ran** (`paper/run_study.py`, `paper/results/`):
+  two real pipelines, one simulated and excluded, with certified bundles.
+- A **Dockerfile** whose purpose is a pinned environment for reproduction,
+  plus `scripts/container_check.sh` and a CI job that reproduces a bundle
+  inside the image.
+
+### Fixed
+
+- **Experiment identity depended on whether PyYAML was installed.**
+  PyYAML implements YAML 1.1, where `1e-4` is a string rather than a
+  float; the bundled parser read it as a float. Since the specification
+  digest is computed from the parsed document, the same file had two
+  different experiment ids in different environments, silently breaking
+  caching, resumption and cross-machine comparison. The README's own
+  example used `1e-4`. Fabric now defines the canonical reading and
+  applies it to both parsers, mapping keys are always strings, and the
+  emitter writes floats both parsers read back as floats.
+- **Cross-site scripting in the generated report.** Node labels come from
+  dataset and condition names; a label containing a closing script tag
+  terminated the embedded JSON block and let the rest execute as HTML in
+  anyone who opened the report.
+- **A stopwatch made pipelines look non-deterministic.** The determinism
+  check judged `train_seconds`, which varies between identical runs by
+  construction. Metrics now carry a `deterministic` expectation, inferred
+  from the name and overridable, and timing metrics are reported but
+  excluded from the verdict.
+- `MetricSpec` inferred direction and determinism only through
+  `from_any()`, so the direct constructor disagreed with it. Both are
+  resolved in `__post_init__`.
+- An experiment with no baselines reported "No treatment condition
+  produced results" above a table of its own successful runs.
+- A metric that reproduced bit-identically was reported INCONCLUSIVE
+  because it had no declared tolerance. Exact equality needs no margin
+  and now reports PASS.
+
+### Corrected
+
+- The comparison table claimed established trackers do not version
+  datasets. **MLflow does**: `mlflow.data` computes a digest
+  automatically. The real difference is narrower and is now stated as
+  such. DVC is stronger at data versioning than Fabric, not weaker.
+- The paper's research question is not novel, and `paper/` now says so:
+  prior work already demonstrates a non-seed axis exceeding the seed
+  axis. H1 is framed as a replication at greater breadth.
+
 ## [0.3.0]
 
 The research-grade layer. Everything the MVP promised, plus the

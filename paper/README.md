@@ -17,16 +17,48 @@ result: nothing here reports findings that have not been produced.
 > that sensitivity compare to the seed variance that papers already
 > report?
 
-The second clause is the one that matters. Seed variance is the only axis
-the field routinely reports. If other axes move results by *more* than the
-seed does, then the error bars in a typical paper are understating the
-uncertainty of its own conclusions, and by a measurable amount.
+## What is already known, and what is not
+
+This question does not arrive on empty ground, and the paper must not
+pretend it does. See [`../docs/related-work.md`](../docs/related-work.md)
+for the survey; the short version:
+
+- That random seeds move ML results is **established**, across NLP, deep
+  RL, computer vision and LLM fine-tuning.
+- That a *non-seed* axis can exceed the seed axis is **already
+  demonstrated**: Quantifying Inherent Randomness in Machine Learning
+  Algorithms (arXiv:2206.12353) finds random train/test splitting
+  produces larger variation than training randomness.
+- That fixed seeds do not guarantee determinism on GPU is **documented**,
+  including the CUDA mechanisms behind it.
+
+So H1 below is, in part, a **replication at greater breadth** rather than
+a discovery, and it is reported as one.
+
+What is not established, and is what this study is for:
+
+1. **Comparability.** Every existing study fixes one axis, one domain and
+   one model family. There is no profile that places seed, environment,
+   hardware, dataset version, model version and implementation on a
+   single scale, for the same experiment, so that they can be ranked.
+2. **Decision stability.** The literature reports variance in point
+   estimates. Whether the *conclusion* flips — which is what a reader of
+   a paper actually relies on — is reported far less often.
+3. **Re-runnable evidence.** Reproducibility measurements are published
+   as tables. Here each one is a bundle that re-executes and re-compares
+   on someone else's machine.
+
+The contribution is therefore **an instrument and a comparable
+methodology**, plus whatever the breadth turns up. That is a narrower
+claim than "we discovered that ML is irreproducible", and it is the one
+the evidence can carry.
 
 ## Hypotheses, stated in advance
 
 **H1.** For a substantial fraction of published-style experiments, at
 least one non-seed axis moves the primary metric by more than one seed
-standard deviation.
+standard deviation. *(Partially anticipated by prior work; treated as a
+replication at breadth.)*
 
 **H2.** Dataset version and model version dominate; environment and
 hardware are usually — but not always — below the seed noise floor.
@@ -35,13 +67,13 @@ hardware are usually — but not always — below the seed noise floor.
 fixed seed, and where they are not, the non-determinism floor exceeds
 effect sizes that are reported as findings.
 
-**H4.** Conclusions (the significance verdict, not the point estimate) are
-substantially less stable than point estimates under seed resampling: many
-experiments that report a significant result would not have reported one
-with half the seeds.
+**H4.** Conclusions are substantially less stable than point estimates
+under seed resampling: many experiments that report a significant result
+would not have reported one with half the seeds.
 
-H4 is the most consequential and the cheapest to test, because it needs no
-extra runs — only the seeds already collected.
+H4 is the most consequential and the least anticipated by prior work, and
+it is the cheapest to test, because it needs no extra runs — only the
+seeds already collected.
 
 ## Design
 

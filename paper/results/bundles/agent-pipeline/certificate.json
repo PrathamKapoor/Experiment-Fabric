@@ -1,0 +1,134 @@
+{
+  "version": "1.0",
+  "experiment_id": "EXP-832b6cabc2",
+  "name": "agent-reproducibility-profile",
+  "research_question": "How far does the accuracy of the retrieval agent move under controlled perturbations of the software environment, the accelerator, the benchmark version, the model version, the implementation, and the temperature - relative to how far it moves when only the random seed changes?",
+  "spec_digest": "sha256:c3033e55b7f4364c319f80b212e03c2947b6987bb7961b864af9a3c7e1c90e9f",
+  "checks": [
+    {
+      "name": "code",
+      "status": "incomplete",
+      "detail": "full-agent at sha256:def10dd51a0902c7, commit 2078734d7f4b with uncommitted changes: the entrypoint file is pinned but the modules it imports are not",
+      "evidence": {
+        "source_digest": "sha256:def10dd51a0902c76cc38f86d150f9076a2d341ee02118b6e1ff20992e74f794",
+        "commit": "2078734d7f4bad150b08e975ec7094fcc444139f",
+        "dirty": true
+      }
+    },
+    {
+      "name": "dataset",
+      "status": "verified",
+      "detail": "agent-benchmark@v1 sha256:4cb166de973fceda: content identifier verified",
+      "evidence": {
+        "digest": "sha256:4cb166de973fceda83a082f989f603e0cdd7b47f9ffc6be559842d92acf9f45a",
+        "id": "ds-79847b591f21d45d"
+      }
+    },
+    {
+      "name": "model",
+      "status": "recorded",
+      "detail": "sim-reasoner@v1 (no weights digest declared)",
+      "evidence": {
+        "id": "mdl-b8d5d6ce0e3e86c2"
+      }
+    },
+    {
+      "name": "environment",
+      "status": "verified",
+      "detail": "1 environment(s) captured: env-feb8e3976204",
+      "evidence": {
+        "environment_ids": [
+          "env-feb8e39762048b4b"
+        ]
+      }
+    },
+    {
+      "name": "hardware",
+      "status": "recorded",
+      "detail": "1 machine(s): hw-8223ca8010a1c",
+      "evidence": {
+        "hardware_ids": [
+          "hw-8223ca8010a1cc99"
+        ]
+      }
+    },
+    {
+      "name": "seeds",
+      "status": "complete",
+      "detail": "10/10 seeds completed in the thinnest arm",
+      "evidence": {
+        "planned": 10,
+        "minimum_completed": 10
+      }
+    },
+    {
+      "name": "baselines",
+      "status": "complete",
+      "detail": "1/1 executed",
+      "evidence": {
+        "expected": 1,
+        "executed": 1
+      }
+    },
+    {
+      "name": "ablations",
+      "status": "unverified",
+      "detail": "no ablations were declared",
+      "evidence": {}
+    },
+    {
+      "name": "statistics",
+      "status": "verified",
+      "detail": "3/3 comparisons tested, holm-corrected at alpha=0.05, analysis version 1.0",
+      "evidence": {
+        "comparisons": 3,
+        "untested": 0
+      }
+    },
+    {
+      "name": "artifacts",
+      "status": "complete",
+      "detail": "93 artifacts, all present and matching their digests",
+      "evidence": {
+        "count": 93
+      }
+    },
+    {
+      "name": "provenance",
+      "status": "complete",
+      "detail": "93 runs recorded (0 failed); every successful run carries its environment, hardware and code identity",
+      "evidence": {
+        "runs": 93,
+        "failed": 0
+      }
+    },
+    {
+      "name": "determinism",
+      "status": "verified",
+      "detail": "Deterministic: 4 executions of an identical run produced identical values on every result metric (accuracy, robustness). latency_ms varied, as expected: those measure the machine rather than the method.",
+      "evidence": {}
+    },
+    {
+      "name": "reproducibility",
+      "status": "incomplete",
+      "detail": "Across 7 perturbation axes, the most fragile is 'configuration' (stability 0.05); the geometric mean is 0.51. Changing configuration, dataset, model moves accuracy beyond the tolerance declared for it, so a reproduction differing on those axes should not be expected to match. On implementation the data cannot decide whether the shift stays within tolerance; more runs would be needed to say.",
+      "evidence": {
+        "worst_case": 0.05083722555841519,
+        "axes": 7
+      }
+    },
+    {
+      "name": "integrity",
+      "status": "verified",
+      "detail": "5 passed, 0 informational, 0 warnings, 0 failures",
+      "evidence": {}
+    }
+  ],
+  "reproduction": null,
+  "verdict": "PASS WITH GAPS",
+  "certificate_id": "EXP-CERT-32f23f47e24f",
+  "issued_at": 1789100537.8940957,
+  "notes": [
+    "A verdict of PASS WITH GAPS means every check that could be run passed, and some could not be run. The gaps are listed above; they are not failures, but they are not verification either."
+  ]
+}

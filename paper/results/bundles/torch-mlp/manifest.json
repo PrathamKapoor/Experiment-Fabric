@@ -1,0 +1,88 @@
+{
+  "bundle_version": "1.0",
+  "experiment_id": "EXP-24d9c76f72",
+  "name": "torch-mlp-reproducibility",
+  "research_question": "How far does a real PyTorch training run move under controlled perturbations of the thread count, the loss implementation, the model width, the dataset version and the batch size - relative to how far it moves when only the random seed changes?",
+  "spec_digest": "sha256:b7aee5d9804ec49f4f388e80e2e7cc9b3629d12a319edeb0415642dfc5ae5114",
+  "created_at": 1789100537.2796931,
+  "files": {
+    "README.md": "sha256:29893eea0e05b48aa30a7e6f2b07b2a816aadd67bfbfe2d2839fb861859f4e9f",
+    "analysis.json": "sha256:aefe6deb7265d8938a484e9b5f09007598782768223d9fe3309f02d8607690a2",
+    "certificate.json": "sha256:843fd2d41778621d2093fa97c23a3247aab78eb7665bfa903eed043d0a05f576",
+    "experiment.yaml": "sha256:428b159ef340d564c7f70d1e3ce11066820a4bc9379582cab49014b1257b9907",
+    "report.md": "sha256:3ce7a9e100d819477ac5cf99006051092fc496d655435da606856be968e0eb44",
+    "reproduce.sh": "sha256:8fb18181d302da59ab15dca02a7d6f737e087ebd07bb02fd1426cfba1c58bc54",
+    "results.json": "sha256:4df0ee97e87e58a3548bc5a6ed2733157d257a8e3dd303a33e8ef07843f03ede"
+  },
+  "entities": {
+    "dataset": {
+      "name": "spiral",
+      "version": "v1",
+      "digest": "sha256:879697e9da556f271c2672c48ac804606acb69b0ffaf314253c010a1d56c6241",
+      "source": "",
+      "preprocessing": "",
+      "schema": {},
+      "splits": {
+        "train": {
+          "n": 1050,
+          "path": "train.jsonl"
+        },
+        "test": {
+          "n": 350,
+          "path": "test.jsonl",
+          "role": "evaluation"
+        }
+      },
+      "n_examples": 1400,
+      "license": "",
+      "notes": "",
+      "local_path": "C:\\Pratham\\Projects\\experiment-fabric\\examples/torch_mlp/data/spiral-v1",
+      "registered_at": 1789100536.6175256,
+      "id": "ds-37348658f32407cd",
+      "kind": "Dataset"
+    },
+    "model": {
+      "name": "mlp-2x64",
+      "version": "v1",
+      "weights_digest": "",
+      "architecture": "2-64-64-2 multi-layer perceptron",
+      "commit": "",
+      "precision": "float32",
+      "quantization": "none",
+      "tokenizer": "",
+      "parameters": null,
+      "provider": "",
+      "config": {
+        "framework": "pytorch",
+        "width": 64
+      },
+      "local_path": "",
+      "registered_at": 1789100536.628078,
+      "id": "mdl-5b618fcec10cb0af",
+      "kind": "Model"
+    },
+    "algorithm": {
+      "name": "torch-mlp",
+      "entrypoint": "python:examples.torch_mlp.model:mlp",
+      "commit": "2078734d7f4bad150b08e975ec7094fcc444139f",
+      "source_digest": "sha256:302b9adb0a86d51754650cd8ce35dc90ed8837a3162458f5f346c940493eb689",
+      "version": "v1",
+      "description": "",
+      "params": {},
+      "dirty": true,
+      "registered_at": 1789100536.7069414,
+      "id": "alg-162d73e9e42e776f",
+      "kind": "Algorithm"
+    }
+  },
+  "environment": {},
+  "hardware": {},
+  "counts": {
+    "conditions": 8,
+    "runs": 83,
+    "successful": 83,
+    "failed": 0,
+    "seeds": 10
+  },
+  "certificate_id": "EXP-CERT-4ec933c5c20e"
+}

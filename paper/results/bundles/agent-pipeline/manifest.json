@@ -1,0 +1,77 @@
+{
+  "bundle_version": "1.0",
+  "experiment_id": "EXP-832b6cabc2",
+  "name": "agent-reproducibility-profile",
+  "research_question": "How far does the accuracy of the retrieval agent move under controlled perturbations of the software environment, the accelerator, the benchmark version, the model version, the implementation, and the temperature - relative to how far it moves when only the random seed changes?",
+  "spec_digest": "sha256:c3033e55b7f4364c319f80b212e03c2947b6987bb7961b864af9a3c7e1c90e9f",
+  "created_at": 1789100537.9978359,
+  "files": {
+    "README.md": "sha256:c7fc4ed5994e2d43b186c2558020b79a96281f35fc99ed2c83a29f23ae44f597",
+    "analysis.json": "sha256:f47ce1bd40d1f535f9116caf6b0e6f3df73d5f8ed10b339b6e9d9d5a27d9c640",
+    "certificate.json": "sha256:3e9d67ff2aae3e1c0d0545fa16cf1bd3853ee7ffd13dbd52597ea697fd864a14",
+    "experiment.yaml": "sha256:4c44bf686b09bdf5ac3e4ff185e0327c561f52512ad4afae0b96d9cc5e432273",
+    "report.md": "sha256:c5beed6d2eb8a87577bda4427a2ce4d11d2f702756f0a0af42bff6b9828e805f",
+    "reproduce.sh": "sha256:24b847871a5091c08d8a553c4008f0b0782e13a92c036595fe56e10a4cdcb92d",
+    "results.json": "sha256:b828029225eb9944b463e3a1d120e2f489b7b93076650c9679be2c2c9a6933a9"
+  },
+  "entities": {
+    "dataset": {
+      "name": "agent-benchmark",
+      "version": "v1",
+      "digest": "sha256:4cb166de973fceda83a082f989f603e0cdd7b47f9ffc6be559842d92acf9f45a",
+      "source": "",
+      "preprocessing": "",
+      "schema": {},
+      "splits": {},
+      "n_examples": 400,
+      "license": "",
+      "notes": "",
+      "local_path": "C:\\Pratham\\Projects\\experiment-fabric\\examples/agent_pipeline/data/benchmark-v1",
+      "registered_at": 1789100537.3468869,
+      "id": "ds-79847b591f21d45d",
+      "kind": "Dataset"
+    },
+    "model": {
+      "name": "sim-reasoner",
+      "version": "v1",
+      "weights_digest": "",
+      "architecture": "simulated log-odds responder",
+      "commit": "",
+      "precision": "float64",
+      "quantization": "none",
+      "tokenizer": "",
+      "parameters": null,
+      "provider": "",
+      "config": {
+        "capability": 0.0
+      },
+      "local_path": "",
+      "registered_at": 1789100537.3585289,
+      "id": "mdl-b8d5d6ce0e3e86c2",
+      "kind": "Model"
+    },
+    "algorithm": {
+      "name": "full-agent",
+      "entrypoint": "python:examples.agent_pipeline.pipeline:run",
+      "commit": "2078734d7f4bad150b08e975ec7094fcc444139f",
+      "source_digest": "sha256:def10dd51a0902c76cc38f86d150f9076a2d341ee02118b6e1ff20992e74f794",
+      "version": "v1",
+      "description": "",
+      "params": {},
+      "dirty": true,
+      "registered_at": 1789100537.4353423,
+      "id": "alg-98bac261fa29a0a8",
+      "kind": "Algorithm"
+    }
+  },
+  "environment": {},
+  "hardware": {},
+  "counts": {
+    "conditions": 9,
+    "runs": 93,
+    "successful": 93,
+    "failed": 0,
+    "seeds": 10
+  },
+  "certificate_id": "EXP-CERT-32f23f47e24f"
+}

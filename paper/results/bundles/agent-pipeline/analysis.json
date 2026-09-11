@@ -1,0 +1,3275 @@
+{
+  "experiment_id": "EXP-832b6cabc2",
+  "name": "agent-reproducibility-profile",
+  "research_question": "How far does the accuracy of the retrieval agent move under controlled perturbations of the software environment, the accelerator, the benchmark version, the model version, the implementation, and the temperature - relative to how far it moves when only the random seed changes?",
+  "hypothesis": "Seed variance dominates the environment and hardware axes, but the dataset version and the model version move the result by more than one seed standard deviation, which means a reproduction that differs on those axes should not be expected to match.\n",
+  "primary_metric": "accuracy",
+  "alpha": 0.05,
+  "correction": "holm",
+  "spec_digest": "sha256:c3033e55b7f4364c319f80b212e03c2947b6987bb7961b864af9a3c7e1c90e9f",
+  "analysis_version": "1.0",
+  "created_at": 1789100537.6806066,
+  "headline": "full-agent scored 0.7478 +/- 0.0214 on accuracy over 10 seeds, beating every baseline; the narrowest margin is +0.2200 over rag-classic [0.2032, 0.2368] (paired-t, adjusted p=0.0000).",
+  "claims": [
+    {
+      "kind": "comparison",
+      "statement": "full-agent scored 0.7478 against rag-classic's 0.5277 on accuracy (10 replications each, +0.2200 [0.2032, 0.2368] at 95% confidence). The difference is statistically detectable (paired-t, adjusted p=0.0000) with a large effect size (Hedges' g=8.59).",
+      "verdict": "improvement",
+      "metric": "accuracy",
+      "treatment": "full-agent",
+      "baseline": "rag-classic",
+      "difference": 0.22000000000000008,
+      "interval": {
+        "low": 0.20324458944543838,
+        "high": 0.23675541055456167,
+        "level": 0.95,
+        "method": "paired-t",
+        "point": 0.22000000000000003,
+        "width": 0.03351082110912329,
+        "note": ""
+      },
+      "p_value": 2.714710678475285e-10,
+      "adjusted_p": 2.714710678475285e-10,
+      "test": "paired-t",
+      "supported": true
+    },
+    {
+      "kind": "reproducibility",
+      "statement": "implementation (full-agent-reordered): moved accuracy by +0.0027 [-0.0071, 0.0126], 0.1x the seed noise; stability 1.00 [0.91, 1.00] (not distinguishable from relabelling noise, permutation p=0.716), and whether it stays within the declared tolerance of 0.01 is undecided: the interval straddles that boundary.",
+      "verdict": "tolerance_inconclusive",
+      "axis": "implementation",
+      "stability": 1.0,
+      "supported": true
+    },
+    {
+      "kind": "reproducibility",
+      "statement": "environment (hash-randomised): moved accuracy by +0.0000 [0.0000, 0.0000], 0.0x the seed noise; stability 1.00 [1.00, 1.00] (not distinguishable from relabelling noise, permutation p=1.000), within the declared tolerance of 0.01.",
+      "verdict": "reproducible",
+      "axis": "environment",
+      "stability": 1.0,
+      "supported": true
+    },
+    {
+      "kind": "reproducibility",
+      "statement": "environment (single-threaded): moved accuracy by +0.0000 [0.0000, 0.0000], 0.0x the seed noise; stability 1.00 [1.00, 1.00] (not distinguishable from relabelling noise, permutation p=1.000), within the declared tolerance of 0.01.",
+      "verdict": "reproducible",
+      "axis": "environment",
+      "stability": 1.0,
+      "supported": true
+    },
+    {
+      "kind": "reproducibility",
+      "statement": "hardware (no-accelerator): moved accuracy by +0.0000 [0.0000, 0.0000], 0.0x the seed noise; stability 1.00 [1.00, 1.00] (not distinguishable from relabelling noise, permutation p=1.000), within the declared tolerance of 0.01.",
+      "verdict": "reproducible",
+      "axis": "hardware",
+      "stability": 1.0,
+      "supported": true
+    },
+    {
+      "kind": "reproducibility",
+      "statement": "configuration (temperature-0.8): moved accuracy by -0.0632 [-0.0754, -0.0511], 3.0x the seed noise; stability 0.05 [0.01, 0.09], beyond the declared tolerance of 0.01.",
+      "verdict": "deviates_beyond_tolerance",
+      "axis": "configuration",
+      "stability": 0.05083722555841519,
+      "supported": false
+    },
+    {
+      "kind": "reproducibility",
+      "statement": "dataset (agent-benchmark@v2): moved accuracy by +0.0302 [0.0223, 0.0382], 1.4x the seed noise; stability 0.38 [0.24, 0.52], beyond the declared tolerance of 0.01.",
+      "verdict": "deviates_beyond_tolerance",
+      "axis": "dataset",
+      "stability": 0.3827507017096198,
+      "supported": false
+    },
+    {
+      "kind": "reproducibility",
+      "statement": "model (sim-reasoner@v2): moved accuracy by +0.0252 [0.0194, 0.0311], 1.2x the seed noise; stability 0.48 [0.33, 0.64], beyond the declared tolerance of 0.01.",
+      "verdict": "deviates_beyond_tolerance",
+      "axis": "model",
+      "stability": 0.48313785321509173,
+      "supported": false
+    },
+    {
+      "kind": "determinism",
+      "statement": "Deterministic: 4 executions of an identical run produced identical values on every result metric (accuracy, robustness). latency_ms varied, as expected: those measure the machine rather than the method.",
+      "verdict": "deterministic",
+      "supported": true
+    }
+  ],
+  "limitations": [
+    "With 10 replications and the observed spread, this design could detect a difference of 0.0233 in accuracy or larger 80% of the time at alpha=0.05.",
+    "Changing the configuration moves accuracy by -0.0632, beyond the declared tolerance of 0.01. Results should not be expected to reproduce across configuration changes.",
+    "Changing the dataset moves accuracy by +0.0302, beyond the declared tolerance of 0.01. Results should not be expected to reproduce across dataset changes.",
+    "Changing the model moves accuracy by +0.0252, beyond the declared tolerance of 0.01. Results should not be expected to reproduce across model changes.",
+    "Whether a change of implementation keeps accuracy within its declared tolerance of 0.01 is undecided: the interval [-0.0071, 0.0126] straddles that boundary. More runs on that axis would resolve it."
+  ],
+  "conditions": [
+    {
+      "name": "full-agent",
+      "role": "treatment",
+      "condition_id": "cond-5a3de9346746ed02",
+      "group": "main",
+      "config": {
+        "top_k": 8,
+        "rerank_depth": 10,
+        "memory_size": 32,
+        "temperature": 0.2,
+        "verification_threshold": 0.45
+      },
+      "ablated": [],
+      "perturbation": {},
+      "n_runs": 13,
+      "n_successful": 10,
+      "n_failed": 0,
+      "failure_rate": 0.0,
+      "seeds": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10
+      ],
+      "metrics": {
+        "accuracy": {
+          "n": 10,
+          "mean": 0.74775,
+          "median": 0.74875,
+          "std": 0.021423312846834245,
+          "variance": 0.00045895833333333314,
+          "sem": 0.006774646362234217,
+          "minimum": 0.7175,
+          "maximum": 0.785,
+          "q1": 0.73625,
+          "q3": 0.7575,
+          "iqr": 0.02124999999999999,
+          "cv": 0.028650368233813766,
+          "mad": 0.016679250000000055,
+          "skewness": 0.07942173506759657,
+          "kurtosis": -0.7181957339978537,
+          "values": [
+            0.75,
+            0.7575,
+            0.7175,
+            0.7175,
+            0.7475,
+            0.7575,
+            0.77,
+            0.74,
+            0.785,
+            0.735
+          ]
+        },
+        "latency_ms": {
+          "n": 10,
+          "mean": 145.7518552262414,
+          "median": 145.71384294493575,
+          "std": 0.4401291272358491,
+          "variance": 0.19371364864139026,
+          "sem": 0.13918105066473319,
+          "minimum": 145.0766299894813,
+          "maximum": 146.52369238299275,
+          "q1": 145.6076358187242,
+          "q3": 145.93533669698436,
+          "iqr": 0.327700878260174,
+          "cv": 0.0030197154372592,
+          "mad": 0.3166531824672503,
+          "skewness": 0.11074668029485084,
+          "kurtosis": -0.5654815633934382,
+          "values": [
+            146.2462212870716,
+            145.0766299894813,
+            145.60552840148677,
+            146.52369238299275,
+            145.6139580704365,
+            145.16999106013594,
+            145.91159437743758,
+            145.75465663916583,
+            145.67302925070567,
+            145.94325080349995
+          ]
+        },
+        "robustness": {
+          "n": 10,
+          "mean": 0.71225,
+          "median": 0.71375,
+          "std": 0.022250156054384077,
+          "variance": 0.0004950694444444445,
+          "sem": 0.007036117142603897,
+          "minimum": 0.685,
+          "maximum": 0.755,
+          "q1": 0.693125,
+          "q3": 0.7212500000000001,
+          "iqr": 0.028125000000000067,
+          "cv": 0.031239250339605583,
+          "mad": 0.02409224999999998,
+          "skewness": 0.46698118550278817,
+          "kurtosis": -0.5815783166404174,
+          "values": [
+            0.685,
+            0.69,
+            0.7175,
+            0.755,
+            0.6875,
+            0.7225,
+            0.7025,
+            0.7175,
+            0.735,
+            0.71
+          ]
+        }
+      },
+      "resources": {
+        "runs": 10,
+        "wall_seconds": 0.29104630000074394,
+        "wall_hours": 8.08461944446511e-05,
+        "cpu_seconds": 0.296875,
+        "gpu_seconds": 0.0,
+        "gpu_hours": 0.0,
+        "peak_rss_bytes": 0,
+        "cost_usd": null,
+        "energy_joules": null,
+        "mean_wall_seconds": 0.029104630000074395
+      }
+    },
+    {
+      "name": "rag-classic",
+      "role": "baseline",
+      "condition_id": "cond-c05d4a3a07d5cdbd",
+      "group": "main",
+      "config": {
+        "top_k": 8,
+        "rerank_depth": 10,
+        "memory_size": 32,
+        "temperature": 0.2,
+        "verification_threshold": 0.45
+      },
+      "ablated": [],
+      "perturbation": {},
+      "n_runs": 10,
+      "n_successful": 10,
+      "n_failed": 0,
+      "failure_rate": 0.0,
+      "seeds": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10
+      ],
+      "metrics": {
+        "accuracy": {
+          "n": 10,
+          "mean": 0.5277499999999999,
+          "median": 0.53375,
+          "std": 0.02490119363493334,
+          "variance": 0.0006200694444444447,
+          "sem": 0.007874448834327674,
+          "minimum": 0.475,
+          "maximum": 0.5625,
+          "q1": 0.516875,
+          "q3": 0.5431250000000001,
+          "iqr": 0.026250000000000107,
+          "cv": 0.04718369234473395,
+          "mad": 0.018532500000000098,
+          "skewness": -0.789692034088129,
+          "kurtosis": 0.132194220026296,
+          "values": [
+            0.505,
+            0.5475,
+            0.53,
+            0.475,
+            0.5225,
+            0.515,
+            0.5625,
+            0.5375,
+            0.5375,
+            0.545
+          ]
+        },
+        "latency_ms": {
+          "n": 10,
+          "mean": 90.27406074194197,
+          "median": 90.23741694954899,
+          "std": 0.2726835699470223,
+          "variance": 0.0743563293190526,
+          "sem": 0.08623011615384303,
+          "minimum": 89.86002941722472,
+          "maximum": 90.75356571809287,
+          "q1": 90.19406664209399,
+          "q3": 90.39854313052729,
+          "iqr": 0.20447648843330057,
+          "cv": 0.0030206192975689595,
+          "mad": 0.21987288471005176,
+          "skewness": 0.12835097886603247,
+          "kurtosis": -0.5671425887265373,
+          "values": [
+            90.58046635283688,
+            89.86002941722472,
+            90.19589163426222,
+            90.75356571809287,
+            90.19345831137123,
+            89.91092372944306,
+            90.36007127458156,
+            90.25420349922737,
+            90.2206303998706,
+            90.4113670825092
+          ]
+        },
+        "robustness": {
+          "n": 10,
+          "mean": 0.47275,
+          "median": 0.46625000000000005,
+          "std": 0.029449816071864796,
+          "variance": 0.0008672916666666661,
+          "sem": 0.009312849546012573,
+          "minimum": 0.435,
+          "maximum": 0.5275,
+          "q1": 0.455625,
+          "q3": 0.48812500000000003,
+          "iqr": 0.03250000000000003,
+          "cv": 0.06229469290717038,
+          "mad": 0.027798750000000063,
+          "skewness": 0.6227936956622405,
+          "kurtosis": -0.6692363841795004,
+          "values": [
+            0.4675,
+            0.435,
+            0.495,
+            0.5275,
+            0.4425,
+            0.4675,
+            0.465,
+            0.465,
+            0.51,
+            0.4525
+          ]
+        }
+      },
+      "resources": {
+        "runs": 10,
+        "wall_seconds": 0.2187613000132842,
+        "wall_hours": 6.076702778146783e-05,
+        "cpu_seconds": 0.234375,
+        "gpu_seconds": 0.0,
+        "gpu_hours": 0.0,
+        "peak_rss_bytes": 0,
+        "cost_usd": null,
+        "energy_joules": null,
+        "mean_wall_seconds": 0.02187613000132842
+      }
+    },
+    {
+      "name": "full-agent~environment:single-threaded",
+      "role": "reference",
+      "condition_id": "cond-4b27cb7913a2dadf",
+      "group": "perturbation:environment",
+      "config": {
+        "top_k": 8,
+        "rerank_depth": 10,
+        "memory_size": 32,
+        "temperature": 0.2,
+        "verification_threshold": 0.45
+      },
+      "ablated": [],
+      "perturbation": {
+        "axis": "environment",
+        "value": {
+          "label": "single-threaded",
+          "OMP_NUM_THREADS": "1",
+          "MKL_NUM_THREADS": "1",
+          "OPENBLAS_NUM_THREADS": "1"
+        },
+        "label": "single-threaded",
+        "reference": "full-agent",
+        "env": {
+          "label": "single-threaded",
+          "OMP_NUM_THREADS": "1",
+          "MKL_NUM_THREADS": "1",
+          "OPENBLAS_NUM_THREADS": "1"
+        }
+      },
+      "n_runs": 10,
+      "n_successful": 10,
+      "n_failed": 0,
+      "failure_rate": 0.0,
+      "seeds": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10
+      ],
+      "metrics": {
+        "accuracy": {
+          "n": 10,
+          "mean": 0.74775,
+          "median": 0.74875,
+          "std": 0.021423312846834245,
+          "variance": 0.00045895833333333314,
+          "sem": 0.006774646362234217,
+          "minimum": 0.7175,
+          "maximum": 0.785,
+          "q1": 0.73625,
+          "q3": 0.7575,
+          "iqr": 0.02124999999999999,
+          "cv": 0.028650368233813766,
+          "mad": 0.016679250000000055,
+          "skewness": 0.07942173506759657,
+          "kurtosis": -0.7181957339978537,
+          "values": [
+            0.75,
+            0.7575,
+            0.7175,
+            0.7175,
+            0.7475,
+            0.7575,
+            0.77,
+            0.74,
+            0.785,
+            0.735
+          ]
+        },
+        "latency_ms": {
+          "n": 10,
+          "mean": 145.7518552262414,
+          "median": 145.71384294493575,
+          "std": 0.4401291272358491,
+          "variance": 0.19371364864139026,
+          "sem": 0.13918105066473319,
+          "minimum": 145.0766299894813,
+          "maximum": 146.52369238299275,
+          "q1": 145.6076358187242,
+          "q3": 145.93533669698436,
+          "iqr": 0.327700878260174,
+          "cv": 0.0030197154372592,
+          "mad": 0.3166531824672503,
+          "skewness": 0.11074668029485084,
+          "kurtosis": -0.5654815633934382,
+          "values": [
+            146.2462212870716,
+            145.0766299894813,
+            145.60552840148677,
+            146.52369238299275,
+            145.6139580704365,
+            145.16999106013594,
+            145.91159437743758,
+            145.75465663916583,
+            145.67302925070567,
+            145.94325080349995
+          ]
+        },
+        "robustness": {
+          "n": 10,
+          "mean": 0.71225,
+          "median": 0.71375,
+          "std": 0.022250156054384077,
+          "variance": 0.0004950694444444445,
+          "sem": 0.007036117142603897,
+          "minimum": 0.685,
+          "maximum": 0.755,
+          "q1": 0.693125,
+          "q3": 0.7212500000000001,
+          "iqr": 0.028125000000000067,
+          "cv": 0.031239250339605583,
+          "mad": 0.02409224999999998,
+          "skewness": 0.46698118550278817,
+          "kurtosis": -0.5815783166404174,
+          "values": [
+            0.685,
+            0.69,
+            0.7175,
+            0.755,
+            0.6875,
+            0.7225,
+            0.7025,
+            0.7175,
+            0.735,
+            0.71
+          ]
+        }
+      },
+      "resources": {
+        "runs": 10,
+        "wall_seconds": 0.1796382999891648,
+        "wall_hours": 4.9899527774768e-05,
+        "cpu_seconds": 0.1875,
+        "gpu_seconds": 0.0,
+        "gpu_hours": 0.0,
+        "peak_rss_bytes": 0,
+        "cost_usd": null,
+        "energy_joules": null,
+        "mean_wall_seconds": 0.01796382999891648
+      }
+    },
+    {
+      "name": "full-agent~environment:hash-randomised",
+      "role": "reference",
+      "condition_id": "cond-b0224ca1b5a26ad3",
+      "group": "perturbation:environment",
+      "config": {
+        "top_k": 8,
+        "rerank_depth": 10,
+        "memory_size": 32,
+        "temperature": 0.2,
+        "verification_threshold": 0.45
+      },
+      "ablated": [],
+      "perturbation": {
+        "axis": "environment",
+        "value": {
+          "label": "hash-randomised",
+          "PYTHONHASHSEED": "random"
+        },
+        "label": "hash-randomised",
+        "reference": "full-agent",
+        "env": {
+          "label": "hash-randomised",
+          "PYTHONHASHSEED": "random"
+        }
+      },
+      "n_runs": 10,
+      "n_successful": 10,
+      "n_failed": 0,
+      "failure_rate": 0.0,
+      "seeds": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10
+      ],
+      "metrics": {
+        "accuracy": {
+          "n": 10,
+          "mean": 0.74775,
+          "median": 0.74875,
+          "std": 0.021423312846834245,
+          "variance": 0.00045895833333333314,
+          "sem": 0.006774646362234217,
+          "minimum": 0.7175,
+          "maximum": 0.785,
+          "q1": 0.73625,
+          "q3": 0.7575,
+          "iqr": 0.02124999999999999,
+          "cv": 0.028650368233813766,
+          "mad": 0.016679250000000055,
+          "skewness": 0.07942173506759657,
+          "kurtosis": -0.7181957339978537,
+          "values": [
+            0.75,
+            0.7575,
+            0.7175,
+            0.7175,
+            0.7475,
+            0.7575,
+            0.77,
+            0.74,
+            0.785,
+            0.735
+          ]
+        },
+        "latency_ms": {
+          "n": 10,
+          "mean": 145.7518552262414,
+          "median": 145.71384294493575,
+          "std": 0.4401291272358491,
+          "variance": 0.19371364864139026,
+          "sem": 0.13918105066473319,
+          "minimum": 145.0766299894813,
+          "maximum": 146.52369238299275,
+          "q1": 145.6076358187242,
+          "q3": 145.93533669698436,
+          "iqr": 0.327700878260174,
+          "cv": 0.0030197154372592,
+          "mad": 0.3166531824672503,
+          "skewness": 0.11074668029485084,
+          "kurtosis": -0.5654815633934382,
+          "values": [
+            146.2462212870716,
+            145.0766299894813,
+            145.60552840148677,
+            146.52369238299275,
+            145.6139580704365,
+            145.16999106013594,
+            145.91159437743758,
+            145.75465663916583,
+            145.67302925070567,
+            145.94325080349995
+          ]
+        },
+        "robustness": {
+          "n": 10,
+          "mean": 0.71225,
+          "median": 0.71375,
+          "std": 0.022250156054384077,
+          "variance": 0.0004950694444444445,
+          "sem": 0.007036117142603897,
+          "minimum": 0.685,
+          "maximum": 0.755,
+          "q1": 0.693125,
+          "q3": 0.7212500000000001,
+          "iqr": 0.028125000000000067,
+          "cv": 0.031239250339605583,
+          "mad": 0.02409224999999998,
+          "skewness": 0.46698118550278817,
+          "kurtosis": -0.5815783166404174,
+          "values": [
+            0.685,
+            0.69,
+            0.7175,
+            0.755,
+            0.6875,
+            0.7225,
+            0.7025,
+            0.7175,
+            0.735,
+            0.71
+          ]
+        }
+      },
+      "resources": {
+        "runs": 10,
+        "wall_seconds": 0.2786902000079863,
+        "wall_hours": 7.741394444666286e-05,
+        "cpu_seconds": 0.296875,
+        "gpu_seconds": 0.0,
+        "gpu_hours": 0.0,
+        "peak_rss_bytes": 0,
+        "cost_usd": null,
+        "energy_joules": null,
+        "mean_wall_seconds": 0.027869020000798626
+      }
+    },
+    {
+      "name": "full-agent~hardware:no-accelerator",
+      "role": "reference",
+      "condition_id": "cond-b28072fa3b600df2",
+      "group": "perturbation:hardware",
+      "config": {
+        "top_k": 8,
+        "rerank_depth": 10,
+        "memory_size": 32,
+        "temperature": 0.2,
+        "verification_threshold": 0.45
+      },
+      "ablated": [],
+      "perturbation": {
+        "axis": "hardware",
+        "value": {
+          "label": "no-accelerator",
+          "CUDA_VISIBLE_DEVICES": ""
+        },
+        "label": "no-accelerator",
+        "reference": "full-agent",
+        "env": {
+          "label": "no-accelerator",
+          "CUDA_VISIBLE_DEVICES": ""
+        }
+      },
+      "n_runs": 10,
+      "n_successful": 10,
+      "n_failed": 0,
+      "failure_rate": 0.0,
+      "seeds": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10
+      ],
+      "metrics": {
+        "accuracy": {
+          "n": 10,
+          "mean": 0.74775,
+          "median": 0.74875,
+          "std": 0.021423312846834245,
+          "variance": 0.00045895833333333314,
+          "sem": 0.006774646362234217,
+          "minimum": 0.7175,
+          "maximum": 0.785,
+          "q1": 0.73625,
+          "q3": 0.7575,
+          "iqr": 0.02124999999999999,
+          "cv": 0.028650368233813766,
+          "mad": 0.016679250000000055,
+          "skewness": 0.07942173506759657,
+          "kurtosis": -0.7181957339978537,
+          "values": [
+            0.75,
+            0.7575,
+            0.7175,
+            0.7175,
+            0.7475,
+            0.7575,
+            0.77,
+            0.74,
+            0.785,
+            0.735
+          ]
+        },
+        "latency_ms": {
+          "n": 10,
+          "mean": 145.7518552262414,
+          "median": 145.71384294493575,
+          "std": 0.4401291272358491,
+          "variance": 0.19371364864139026,
+          "sem": 0.13918105066473319,
+          "minimum": 145.0766299894813,
+          "maximum": 146.52369238299275,
+          "q1": 145.6076358187242,
+          "q3": 145.93533669698436,
+          "iqr": 0.327700878260174,
+          "cv": 0.0030197154372592,
+          "mad": 0.3166531824672503,
+          "skewness": 0.11074668029485084,
+          "kurtosis": -0.5654815633934382,
+          "values": [
+            146.2462212870716,
+            145.0766299894813,
+            145.60552840148677,
+            146.52369238299275,
+            145.6139580704365,
+            145.16999106013594,
+            145.91159437743758,
+            145.75465663916583,
+            145.67302925070567,
+            145.94325080349995
+          ]
+        },
+        "robustness": {
+          "n": 10,
+          "mean": 0.71225,
+          "median": 0.71375,
+          "std": 0.022250156054384077,
+          "variance": 0.0004950694444444445,
+          "sem": 0.007036117142603897,
+          "minimum": 0.685,
+          "maximum": 0.755,
+          "q1": 0.693125,
+          "q3": 0.7212500000000001,
+          "iqr": 0.028125000000000067,
+          "cv": 0.031239250339605583,
+          "mad": 0.02409224999999998,
+          "skewness": 0.46698118550278817,
+          "kurtosis": -0.5815783166404174,
+          "values": [
+            0.685,
+            0.69,
+            0.7175,
+            0.755,
+            0.6875,
+            0.7225,
+            0.7025,
+            0.7175,
+            0.735,
+            0.71
+          ]
+        }
+      },
+      "resources": {
+        "runs": 10,
+        "wall_seconds": 0.17137359999469481,
+        "wall_hours": 4.7603777776304114e-05,
+        "cpu_seconds": 0.203125,
+        "gpu_seconds": 0.0,
+        "gpu_hours": 0.0,
+        "peak_rss_bytes": 0,
+        "cost_usd": null,
+        "energy_joules": null,
+        "mean_wall_seconds": 0.01713735999946948
+      }
+    },
+    {
+      "name": "full-agent~dataset:agent-benchmark@v2",
+      "role": "reference",
+      "condition_id": "cond-ad614e67e0dcf78c",
+      "group": "perturbation:dataset",
+      "config": {
+        "top_k": 8,
+        "rerank_depth": 10,
+        "memory_size": 32,
+        "temperature": 0.2,
+        "verification_threshold": 0.45
+      },
+      "ablated": [],
+      "perturbation": {
+        "axis": "dataset",
+        "value": {
+          "name": "agent-benchmark",
+          "version": "v2",
+          "path": "examples/agent_pipeline/data/benchmark-v2",
+          "n_examples": 400
+        },
+        "label": "agent-benchmark@v2",
+        "reference": "full-agent",
+        "dataset": "agent-benchmark@v2"
+      },
+      "n_runs": 10,
+      "n_successful": 10,
+      "n_failed": 0,
+      "failure_rate": 0.0,
+      "seeds": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10
+      ],
+      "metrics": {
+        "accuracy": {
+          "n": 10,
+          "mean": 0.778,
+          "median": 0.77625,
+          "std": 0.019285861257523452,
+          "variance": 0.00037194444444444406,
+          "sem": 0.006098724821177326,
+          "minimum": 0.7425,
+          "maximum": 0.7975,
+          "q1": 0.7693749999999999,
+          "q3": 0.796875,
+          "iqr": 0.02750000000000008,
+          "cv": 0.024789024752600836,
+          "mad": 0.029652000000000026,
+          "skewness": -0.5054987354297955,
+          "kurtosis": -0.8603145370041414,
+          "values": [
+            0.7975,
+            0.7975,
+            0.7425,
+            0.755,
+            0.775,
+            0.775,
+            0.7975,
+            0.7775,
+            0.795,
+            0.7675
+          ]
+        },
+        "latency_ms": {
+          "n": 10,
+          "mean": 147.41479570064598,
+          "median": 147.37622082267353,
+          "std": 0.4474357237634648,
+          "variance": 0.20019872689973556,
+          "sem": 0.14149159936184746,
+          "minimum": 146.72309585573237,
+          "maximum": 148.18642499679387,
+          "q1": 147.26348797139062,
+          "q3": 147.61056305663678,
+          "iqr": 0.3470750852461606,
+          "cv": 0.0030352158454438243,
+          "mad": 0.3260989606183335,
+          "skewness": 0.09435126607403577,
+          "kurtosis": -0.6085430482750902,
+          "values": [
+            147.9324243286286,
+            146.72309585573237,
+            147.27115971216867,
+            148.18642499679387,
+            147.2609307244646,
+            146.82913662675367,
+            147.56738856158302,
+            147.40982925064327,
+            147.34261239470376,
+            147.62495455498802
+          ]
+        },
+        "robustness": {
+          "n": 10,
+          "mean": 0.73,
+          "median": 0.725,
+          "std": 0.015545631755148033,
+          "variance": 0.00024166666666666694,
+          "sem": 0.004915960401250878,
+          "minimum": 0.71,
+          "maximum": 0.7525,
+          "q1": 0.72,
+          "q3": 0.7425,
+          "iqr": 0.022500000000000075,
+          "cv": 0.02129538596595621,
+          "mad": 0.020385749999999977,
+          "skewness": 0.23966037627977002,
+          "kurtosis": -1.4353943717796316,
+          "values": [
+            0.7125,
+            0.72,
+            0.71,
+            0.75,
+            0.725,
+            0.7425,
+            0.72,
+            0.725,
+            0.7525,
+            0.7425
+          ]
+        }
+      },
+      "resources": {
+        "runs": 10,
+        "wall_seconds": 0.1810309999709716,
+        "wall_hours": 5.028638888082545e-05,
+        "cpu_seconds": 0.171875,
+        "gpu_seconds": 0.0,
+        "gpu_hours": 0.0,
+        "peak_rss_bytes": 0,
+        "cost_usd": null,
+        "energy_joules": null,
+        "mean_wall_seconds": 0.01810309999709716
+      }
+    },
+    {
+      "name": "full-agent~model:sim-reasoner@v2",
+      "role": "reference",
+      "condition_id": "cond-48b81f6e94c295fa",
+      "group": "perturbation:model",
+      "config": {
+        "top_k": 8,
+        "rerank_depth": 10,
+        "memory_size": 32,
+        "temperature": 0.2,
+        "verification_threshold": 0.45
+      },
+      "ablated": [],
+      "perturbation": {
+        "axis": "model",
+        "value": {
+          "name": "sim-reasoner",
+          "version": "v2",
+          "architecture": "simulated log-odds responder",
+          "precision": "float64",
+          "config": {
+            "capability": 0.15
+          }
+        },
+        "label": "sim-reasoner@v2",
+        "reference": "full-agent",
+        "model": "sim-reasoner@v2"
+      },
+      "n_runs": 10,
+      "n_successful": 10,
+      "n_failed": 0,
+      "failure_rate": 0.0,
+      "seeds": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10
+      ],
+      "metrics": {
+        "accuracy": {
+          "n": 10,
+          "mean": 0.773,
+          "median": 0.7775000000000001,
+          "std": 0.019748417658131498,
+          "variance": 0.00038999999999999994,
+          "sem": 0.006244997998398397,
+          "minimum": 0.74,
+          "maximum": 0.7975,
+          "q1": 0.765625,
+          "q3": 0.786875,
+          "iqr": 0.02124999999999999,
+          "cv": 0.025547758936780723,
+          "mad": 0.016679250000000055,
+          "skewness": -0.5914134911369526,
+          "kurtosis": -0.9010915089974918,
+          "values": [
+            0.785,
+            0.79,
+            0.74,
+            0.7425,
+            0.765,
+            0.7875,
+            0.785,
+            0.7675,
+            0.7975,
+            0.77
+          ]
+        },
+        "latency_ms": {
+          "n": 10,
+          "mean": 145.7518552262414,
+          "median": 145.71384294493575,
+          "std": 0.4401291272358491,
+          "variance": 0.19371364864139026,
+          "sem": 0.13918105066473319,
+          "minimum": 145.0766299894813,
+          "maximum": 146.52369238299275,
+          "q1": 145.6076358187242,
+          "q3": 145.93533669698436,
+          "iqr": 0.327700878260174,
+          "cv": 0.0030197154372592,
+          "mad": 0.3166531824672503,
+          "skewness": 0.11074668029485084,
+          "kurtosis": -0.5654815633934382,
+          "values": [
+            146.2462212870716,
+            145.0766299894813,
+            145.60552840148677,
+            146.52369238299275,
+            145.6139580704365,
+            145.16999106013594,
+            145.91159437743758,
+            145.75465663916583,
+            145.67302925070567,
+            145.94325080349995
+          ]
+        },
+        "robustness": {
+          "n": 10,
+          "mean": 0.73925,
+          "median": 0.74375,
+          "std": 0.01829731309965119,
+          "variance": 0.00033479166666666705,
+          "sem": 0.0057861184456133195,
+          "minimum": 0.71,
+          "maximum": 0.775,
+          "q1": 0.7262500000000001,
+          "q3": 0.745,
+          "iqr": 0.018749999999999933,
+          "cv": 0.02475118444322109,
+          "mad": 0.009266249999999967,
+          "skewness": 0.20408765360866413,
+          "kurtosis": -0.13818691740539935,
+          "values": [
+            0.72,
+            0.7225,
+            0.7425,
+            0.775,
+            0.71,
+            0.745,
+            0.7375,
+            0.75,
+            0.745,
+            0.745
+          ]
+        }
+      },
+      "resources": {
+        "runs": 10,
+        "wall_seconds": 0.18076959998870734,
+        "wall_hours": 5.021377777464093e-05,
+        "cpu_seconds": 0.234375,
+        "gpu_seconds": 0.0,
+        "gpu_hours": 0.0,
+        "peak_rss_bytes": 0,
+        "cost_usd": null,
+        "energy_joules": null,
+        "mean_wall_seconds": 0.018076959998870733
+      }
+    },
+    {
+      "name": "full-agent~implementation:full-agent-reordered",
+      "role": "reference",
+      "condition_id": "cond-84833e5f16fdf6b8",
+      "group": "perturbation:implementation",
+      "config": {
+        "top_k": 8,
+        "rerank_depth": 10,
+        "memory_size": 32,
+        "temperature": 0.2,
+        "verification_threshold": 0.45
+      },
+      "ablated": [],
+      "perturbation": {
+        "axis": "implementation",
+        "value": {
+          "name": "full-agent-reordered",
+          "entrypoint": "python:examples.agent_pipeline.pipeline:run_reordered",
+          "commit": "auto"
+        },
+        "label": "full-agent-reordered",
+        "reference": "full-agent",
+        "implementation": "full-agent-reordered@2078734"
+      },
+      "n_runs": 10,
+      "n_successful": 10,
+      "n_failed": 0,
+      "failure_rate": 0.0,
+      "seeds": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10
+      ],
+      "metrics": {
+        "accuracy": {
+          "n": 10,
+          "mean": 0.7505,
+          "median": 0.7537499999999999,
+          "std": 0.023087995918995557,
+          "variance": 0.0005330555555555555,
+          "sem": 0.007301065371269836,
+          "minimum": 0.715,
+          "maximum": 0.7875,
+          "q1": 0.73625,
+          "q3": 0.764375,
+          "iqr": 0.028125000000000067,
+          "cv": 0.03076348556828189,
+          "mad": 0.024092249999999895,
+          "skewness": -0.11012976546574027,
+          "kurtosis": -0.9582776768667238,
+          "values": [
+            0.7575,
+            0.765,
+            0.715,
+            0.72,
+            0.735,
+            0.74,
+            0.7875,
+            0.7625,
+            0.7725,
+            0.75
+          ]
+        },
+        "latency_ms": {
+          "n": 10,
+          "mean": 145.73837522754974,
+          "median": 145.6924134206683,
+          "std": 0.44439097013042567,
+          "variance": 0.19748333433346085,
+          "sem": 0.14052876372239986,
+          "minimum": 145.0559007633697,
+          "maximum": 146.49671377310776,
+          "q1": 145.62047839837726,
+          "q3": 145.94286329658368,
+          "iqr": 0.3223848982064226,
+          "cv": 0.003049237851297384,
+          "mad": 0.3375028848403363,
+          "skewness": 0.02176800801152383,
+          "kurtosis": -0.5873745650626874,
+          "values": [
+            146.2394033972795,
+            145.0559007633697,
+            145.63220239781916,
+            146.49671377310776,
+            145.61657039856328,
+            145.11802270844208,
+            145.874441400202,
+            145.70027284625263,
+            145.68455399508392,
+            145.9656705953776
+          ]
+        },
+        "robustness": {
+          "n": 10,
+          "mean": 0.7035,
+          "median": 0.70375,
+          "std": 0.016923028360458683,
+          "variance": 0.00028638888888888887,
+          "sem": 0.0053515314526674405,
+          "minimum": 0.675,
+          "maximum": 0.7375,
+          "q1": 0.6956249999999999,
+          "q3": 0.71,
+          "iqr": 0.014375000000000027,
+          "cv": 0.024055477413587326,
+          "mad": 0.01111950000000001,
+          "skewness": 0.3218890579783723,
+          "kurtosis": 0.14533364817712346,
+          "values": [
+            0.675,
+            0.7075,
+            0.7,
+            0.7375,
+            0.695,
+            0.6975,
+            0.715,
+            0.71,
+            0.6875,
+            0.71
+          ]
+        }
+      },
+      "resources": {
+        "runs": 10,
+        "wall_seconds": 0.18288140003278386,
+        "wall_hours": 5.0800388897995514e-05,
+        "cpu_seconds": 0.1875,
+        "gpu_seconds": 0.0,
+        "gpu_hours": 0.0,
+        "peak_rss_bytes": 0,
+        "cost_usd": null,
+        "energy_joules": null,
+        "mean_wall_seconds": 0.018288140003278386
+      }
+    },
+    {
+      "name": "full-agent~configuration:temperature-0.8",
+      "role": "reference",
+      "condition_id": "cond-ab072dfc761dc868",
+      "group": "perturbation:configuration",
+      "config": {
+        "top_k": 8,
+        "rerank_depth": 10,
+        "memory_size": 32,
+        "temperature": 0.8,
+        "verification_threshold": 0.45,
+        "label": "temperature-0.8"
+      },
+      "ablated": [],
+      "perturbation": {
+        "axis": "configuration",
+        "value": {
+          "label": "temperature-0.8",
+          "temperature": 0.8
+        },
+        "label": "temperature-0.8",
+        "reference": "full-agent"
+      },
+      "n_runs": 10,
+      "n_successful": 10,
+      "n_failed": 0,
+      "failure_rate": 0.0,
+      "seeds": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10
+      ],
+      "metrics": {
+        "accuracy": {
+          "n": 10,
+          "mean": 0.6845000000000001,
+          "median": 0.68,
+          "std": 0.016490738141285374,
+          "variance": 0.00027194444444444423,
+          "sem": 0.0052148292823873356,
+          "minimum": 0.665,
+          "maximum": 0.7225,
+          "q1": 0.675,
+          "q3": 0.689375,
+          "iqr": 0.014374999999999916,
+          "cv": 0.024091655429197036,
+          "mad": 0.01111950000000001,
+          "skewness": 1.1895439535138475,
+          "kurtosis": 0.8470046669539193,
+          "values": [
+            0.6875,
+            0.685,
+            0.675,
+            0.675,
+            0.665,
+            0.6975,
+            0.7225,
+            0.6725,
+            0.69,
+            0.675
+          ]
+        },
+        "latency_ms": {
+          "n": 10,
+          "mean": 145.7518552262414,
+          "median": 145.71384294493575,
+          "std": 0.4401291272358491,
+          "variance": 0.19371364864139026,
+          "sem": 0.13918105066473319,
+          "minimum": 145.0766299894813,
+          "maximum": 146.52369238299275,
+          "q1": 145.6076358187242,
+          "q3": 145.93533669698436,
+          "iqr": 0.327700878260174,
+          "cv": 0.0030197154372592,
+          "mad": 0.3166531824672503,
+          "skewness": 0.11074668029485084,
+          "kurtosis": -0.5654815633934382,
+          "values": [
+            146.2462212870716,
+            145.0766299894813,
+            145.60552840148677,
+            146.52369238299275,
+            145.6139580704365,
+            145.16999106013594,
+            145.91159437743758,
+            145.75465663916583,
+            145.67302925070567,
+            145.94325080349995
+          ]
+        },
+        "robustness": {
+          "n": 10,
+          "mean": 0.63175,
+          "median": 0.63125,
+          "std": 0.016957872639114982,
+          "variance": 0.00028756944444444457,
+          "sem": 0.00536255018106539,
+          "minimum": 0.605,
+          "maximum": 0.6525,
+          "q1": 0.62125,
+          "q3": 0.646875,
+          "iqr": 0.02562500000000001,
+          "cv": 0.026842695115338315,
+          "mad": 0.02223900000000002,
+          "skewness": -0.2439395598581446,
+          "kurtosis": -1.2890447513602383,
+          "values": [
+            0.605,
+            0.625,
+            0.6525,
+            0.6475,
+            0.62,
+            0.635,
+            0.61,
+            0.65,
+            0.645,
+            0.6275
+          ]
+        }
+      },
+      "resources": {
+        "runs": 10,
+        "wall_seconds": 0.24258979997830465,
+        "wall_hours": 6.738605554952907e-05,
+        "cpu_seconds": 0.296875,
+        "gpu_seconds": 0.0,
+        "gpu_hours": 0.0,
+        "peak_rss_bytes": 0,
+        "cost_usd": null,
+        "energy_joules": null,
+        "mean_wall_seconds": 0.024258979997830464
+      }
+    }
+  ],
+  "baselines": {
+    "treatment": "full-agent",
+    "treatment_selection_note": "",
+    "comparisons": [
+      {
+        "metric": "accuracy",
+        "treatment": "full-agent",
+        "baseline": "rag-classic",
+        "group": "baseline",
+        "higher_is_better": true,
+        "paired": true,
+        "alpha": 0.05,
+        "treatment_summary": {
+          "n": 10,
+          "mean": 0.74775,
+          "median": 0.74875,
+          "std": 0.021423312846834245,
+          "variance": 0.00045895833333333314,
+          "sem": 0.006774646362234217,
+          "minimum": 0.7175,
+          "maximum": 0.785,
+          "q1": 0.73625,
+          "q3": 0.7575,
+          "iqr": 0.02124999999999999,
+          "cv": 0.028650368233813766,
+          "mad": 0.016679250000000055,
+          "skewness": 0.07942173506759657,
+          "kurtosis": -0.7181957339978537,
+          "values": [
+            0.75,
+            0.7575,
+            0.7175,
+            0.7175,
+            0.7475,
+            0.7575,
+            0.77,
+            0.74,
+            0.785,
+            0.735
+          ]
+        },
+        "baseline_summary": {
+          "n": 10,
+          "mean": 0.5277499999999999,
+          "median": 0.53375,
+          "std": 0.02490119363493334,
+          "variance": 0.0006200694444444447,
+          "sem": 0.007874448834327674,
+          "minimum": 0.475,
+          "maximum": 0.5625,
+          "q1": 0.516875,
+          "q3": 0.5431250000000001,
+          "iqr": 0.026250000000000107,
+          "cv": 0.04718369234473395,
+          "mad": 0.018532500000000098,
+          "skewness": -0.789692034088129,
+          "kurtosis": 0.132194220026296,
+          "values": [
+            0.505,
+            0.5475,
+            0.53,
+            0.475,
+            0.5225,
+            0.515,
+            0.5625,
+            0.5375,
+            0.5375,
+            0.545
+          ]
+        },
+        "decision": {
+          "test": "paired-t",
+          "paired": true,
+          "reason": "normality was not rejected, so a t-test was used. Pairing by seed removes seed-to-seed variance from the comparison.",
+          "considered": [
+            "paired-t",
+            "wilcoxon-signed-rank",
+            "permutation"
+          ],
+          "checks": [
+            {
+              "name": "paired differences is approximately normal",
+              "satisfied": true,
+              "status": "ok",
+              "detail": "Anderson-Darling A2*=0.536, p=0.1703",
+              "evidence": {
+                "n": 10,
+                "a2_star": 0.5356531558187082,
+                "p_value": 0.17027927557367453
+              }
+            },
+            {
+              "name": "observations are independent across replications",
+              "satisfied": true,
+              "status": "ok",
+              "detail": "each replication is a separate process with a distinct seed",
+              "evidence": {}
+            }
+          ],
+          "warnings": [],
+          "parameters": {}
+        },
+        "test": {
+          "test": "paired-t",
+          "statistic": 29.70232058444702,
+          "p_value": 2.714710678475285e-10,
+          "df": 9.0,
+          "alternative": "two-sided",
+          "n": [
+            10
+          ],
+          "method_detail": "one-sample t-test on within-pair differences",
+          "reason": "normality was not rejected, so a t-test was used. Pairing by seed removes seed-to-seed variance from the comparison.",
+          "assumptions": [
+            {
+              "name": "paired differences is approximately normal",
+              "satisfied": true,
+              "status": "ok",
+              "detail": "Anderson-Darling A2*=0.536, p=0.1703",
+              "evidence": {
+                "n": 10,
+                "a2_star": 0.5356531558187082,
+                "p_value": 0.17027927557367453
+              }
+            },
+            {
+              "name": "observations are independent across replications",
+              "satisfied": true,
+              "status": "ok",
+              "detail": "each replication is a separate process with a distinct seed",
+              "evidence": {}
+            },
+            {
+              "name": "pairs are matched",
+              "satisfied": true,
+              "status": "ok",
+              "detail": "conditions were evaluated on an identical seed set",
+              "evidence": {}
+            },
+            {
+              "name": "pairs are independent of each other",
+              "satisfied": null,
+              "status": "unverified",
+              "detail": "structural",
+              "evidence": {}
+            }
+          ],
+          "warnings": [],
+          "extra": {
+            "mean_difference": 0.22000000000000003,
+            "sd_difference": 0.02342244887092534
+          }
+        },
+        "effects": [
+          {
+            "name": "absolute_difference",
+            "value": 0.22000000000000008,
+            "magnitude": "",
+            "interval": null,
+            "convention": "signed so that positive means better",
+            "note": "raw difference +0.22"
+          },
+          {
+            "name": "relative_improvement_pct",
+            "value": 41.68640454760779,
+            "magnitude": "",
+            "interval": null,
+            "convention": "signed so that positive means better",
+            "note": "absolute change +0.22"
+          },
+          {
+            "name": "hedges_g",
+            "value": 8.587610042455424,
+            "magnitude": "large",
+            "interval": {
+              "low": 4.773300413406574,
+              "high": 12.401919671504274,
+              "level": 0.95,
+              "method": "normal-approx",
+              "point": 8.587610042455424,
+              "width": 7.6286192580977,
+              "note": ""
+            },
+            "convention": "Hedges (1981), bias-corrected d",
+            "note": "bias correction J = 0.9143"
+          },
+          {
+            "name": "cohens_d_z",
+            "value": 9.39269848393562,
+            "magnitude": "large",
+            "interval": null,
+            "convention": "Cohen (1988), paired d_z",
+            "note": "standardised by the SD of paired differences"
+          },
+          {
+            "name": "cliffs_delta",
+            "value": 1.0,
+            "magnitude": "large",
+            "interval": null,
+            "convention": "Romano et al. (2006) magnitude thresholds",
+            "note": ""
+          },
+          {
+            "name": "vargha_delaney_a",
+            "value": 1.0,
+            "magnitude": "large",
+            "interval": null,
+            "convention": "Vargha & Delaney (2000)",
+            "note": "P(treatment > baseline), ties counted as half"
+          }
+        ],
+        "difference_interval": {
+          "low": 0.20324458944543838,
+          "high": 0.23675541055456167,
+          "level": 0.95,
+          "method": "paired-t",
+          "point": 0.22000000000000003,
+          "width": 0.03351082110912329,
+          "note": ""
+        },
+        "bootstrap_interval": {
+          "low": 0.20600000000000002,
+          "high": 0.233,
+          "level": 0.95,
+          "method": "bootstrap-bca-paired",
+          "point": 0.22000000000000003,
+          "width": 0.026999999999999996,
+          "note": ""
+        },
+        "equivalence": {
+          "test": "tost",
+          "statistic": 28.35221510333579,
+          "p_value": 0.9999999997945174,
+          "df": 9.0,
+          "alternative": "equivalence",
+          "n": [
+            10
+          ],
+          "method_detail": "two one-sided t-tests against a margin of +/-0.01",
+          "reason": "tests whether the difference is smaller than a declared practical margin",
+          "assumptions": [
+            {
+              "name": "the equivalence margin was declared in advance",
+              "satisfied": null,
+              "status": "unverified",
+              "detail": "taken from the metric's `tolerance` field in the specification",
+              "evidence": {}
+            },
+            {
+              "name": "differences is approximately normal",
+              "satisfied": true,
+              "status": "ok",
+              "detail": "Anderson-Darling A2*=0.536, p=0.1703",
+              "evidence": {
+                "n": 10,
+                "a2_star": 0.5356531558187082,
+                "p_value": 0.17027927557367453
+              }
+            }
+          ],
+          "warnings": [],
+          "extra": {
+            "equivalent": false,
+            "margin": 0.01,
+            "difference": 0.22000000000000003,
+            "p_lower": 9.130074474228422e-11,
+            "p_upper": 0.9999999997945174
+          }
+        },
+        "detectable": {
+          "minimum_detectable_effect": 0.023298631599471833,
+          "power": 0.8,
+          "alpha": 0.05,
+          "paired": true,
+          "n": 10,
+          "standard_error": 0.007406828681096328,
+          "observed_difference": 0.22000000000000008,
+          "observed_is_below_floor": false,
+          "metric": "accuracy",
+          "description": "With 10 replications and the observed spread, this design could detect a difference of 0.0233 in accuracy or larger 80% of the time at alpha=0.05."
+        },
+        "adjusted_p": 2.714710678475285e-10,
+        "correction_method": "holm",
+        "verdict": "improvement",
+        "narrative": "full-agent scored 0.7478 against rag-classic's 0.5277 on accuracy (10 replications each, +0.2200 [0.2032, 0.2368] at 95% confidence). The difference is statistically detectable (paired-t, adjusted p=0.0000) with a large effect size (Hedges' g=8.59)."
+      },
+      {
+        "metric": "latency_ms",
+        "treatment": "full-agent",
+        "baseline": "rag-classic",
+        "group": "baseline",
+        "higher_is_better": false,
+        "paired": true,
+        "alpha": 0.05,
+        "treatment_summary": {
+          "n": 10,
+          "mean": 145.7518552262414,
+          "median": 145.71384294493575,
+          "std": 0.4401291272358491,
+          "variance": 0.19371364864139026,
+          "sem": 0.13918105066473319,
+          "minimum": 145.0766299894813,
+          "maximum": 146.52369238299275,
+          "q1": 145.6076358187242,
+          "q3": 145.93533669698436,
+          "iqr": 0.327700878260174,
+          "cv": 0.0030197154372592,
+          "mad": 0.3166531824672503,
+          "skewness": 0.11074668029485084,
+          "kurtosis": -0.5654815633934382,
+          "values": [
+            146.2462212870716,
+            145.0766299894813,
+            145.60552840148677,
+            146.52369238299275,
+            145.6139580704365,
+            145.16999106013594,
+            145.91159437743758,
+            145.75465663916583,
+            145.67302925070567,
+            145.94325080349995
+          ]
+        },
+        "baseline_summary": {
+          "n": 10,
+          "mean": 90.27406074194197,
+          "median": 90.23741694954899,
+          "std": 0.2726835699470223,
+          "variance": 0.0743563293190526,
+          "sem": 0.08623011615384303,
+          "minimum": 89.86002941722472,
+          "maximum": 90.75356571809287,
+          "q1": 90.19406664209399,
+          "q3": 90.39854313052729,
+          "iqr": 0.20447648843330057,
+          "cv": 0.0030206192975689595,
+          "mad": 0.21987288471005176,
+          "skewness": 0.12835097886603247,
+          "kurtosis": -0.5671425887265373,
+          "values": [
+            90.58046635283688,
+            89.86002941722472,
+            90.19589163426222,
+            90.75356571809287,
+            90.19345831137123,
+            89.91092372944306,
+            90.36007127458156,
+            90.25420349922737,
+            90.2206303998706,
+            90.4113670825092
+          ]
+        },
+        "decision": {
+          "test": "paired-t",
+          "paired": true,
+          "reason": "normality was not rejected, so a t-test was used. Pairing by seed removes seed-to-seed variance from the comparison.",
+          "considered": [
+            "paired-t",
+            "wilcoxon-signed-rank",
+            "permutation"
+          ],
+          "checks": [
+            {
+              "name": "paired differences is approximately normal",
+              "satisfied": true,
+              "status": "ok",
+              "detail": "Anderson-Darling A2*=0.205, p=0.8735",
+              "evidence": {
+                "n": 10,
+                "a2_star": 0.20477536053280918,
+                "p_value": 0.8735376602626437
+              }
+            },
+            {
+              "name": "observations are independent across replications",
+              "satisfied": true,
+              "status": "ok",
+              "detail": "each replication is a separate process with a distinct seed",
+              "evidence": {}
+            }
+          ],
+          "warnings": [],
+          "parameters": {}
+        },
+        "test": {
+          "test": "paired-t",
+          "statistic": 1043.6815480608582,
+          "p_value": 0.0,
+          "df": 9.0,
+          "alternative": "two-sided",
+          "n": [
+            10
+          ],
+          "method_detail": "one-sample t-test on within-pair differences",
+          "reason": "normality was not rejected, so a t-test was used. Pairing by seed removes seed-to-seed variance from the comparison.",
+          "assumptions": [
+            {
+              "name": "paired differences is approximately normal",
+              "satisfied": true,
+              "status": "ok",
+              "detail": "Anderson-Darling A2*=0.205, p=0.8735",
+              "evidence": {
+                "n": 10,
+                "a2_star": 0.20477536053280918,
+                "p_value": 0.8735376602626437
+              }
+            },
+            {
+              "name": "observations are independent across replications",
+              "satisfied": true,
+              "status": "ok",
+              "detail": "each replication is a separate process with a distinct seed",
+              "evidence": {}
+            },
+            {
+              "name": "pairs are matched",
+              "satisfied": true,
+              "status": "ok",
+              "detail": "conditions were evaluated on an identical seed set",
+              "evidence": {}
+            },
+            {
+              "name": "pairs are independent of each other",
+              "satisfied": null,
+              "status": "unverified",
+              "detail": "structural",
+              "evidence": {}
+            }
+          ],
+          "warnings": [],
+          "extra": {
+            "mean_difference": 55.47779448429942,
+            "sd_difference": 0.1680936014046334
+          }
+        },
+        "effects": [
+          {
+            "name": "absolute_difference",
+            "value": -55.47779448429942,
+            "magnitude": "",
+            "interval": null,
+            "convention": "signed so that positive means better",
+            "note": "raw difference +55.4778"
+          },
+          {
+            "name": "relative_improvement_pct",
+            "value": -61.45485649846706,
+            "magnitude": "",
+            "interval": null,
+            "convention": "signed so that positive means better",
+            "note": "absolute change +55.4778"
+          },
+          {
+            "name": "hedges_g",
+            "value": 301.75184857259904,
+            "magnitude": "large",
+            "interval": {
+              "low": 169.50424772362882,
+              "high": 433.99944942156924,
+              "level": 0.95,
+              "method": "normal-approx",
+              "point": 301.75184857259904,
+              "width": 264.4952016979404,
+              "note": ""
+            },
+            "convention": "Hedges (1981), bias-corrected d",
+            "note": "bias correction J = 0.9143"
+          },
+          {
+            "name": "cohens_d_z",
+            "value": 330.0410843762802,
+            "magnitude": "large",
+            "interval": null,
+            "convention": "Cohen (1988), paired d_z",
+            "note": "standardised by the SD of paired differences"
+          },
+          {
+            "name": "cliffs_delta",
+            "value": 1.0,
+            "magnitude": "large",
+            "interval": null,
+            "convention": "Romano et al. (2006) magnitude thresholds",
+            "note": ""
+          },
+          {
+            "name": "vargha_delaney_a",
+            "value": 1.0,
+            "magnitude": "large",
+            "interval": null,
+            "convention": "Vargha & Delaney (2000)",
+            "note": "P(treatment > baseline), ties counted as half"
+          }
+        ],
+        "difference_interval": {
+          "low": -55.59804140291371,
+          "high": -55.35754756568514,
+          "level": 0.95,
+          "method": "paired-t (sign-flipped)",
+          "point": -55.47779448429942,
+          "width": 0.24049383722856987,
+          "note": "signed so that positive means better, matching the metric's direction"
+        },
+        "bootstrap_interval": {
+          "low": -55.5745904549547,
+          "high": -55.38093170631449,
+          "level": 0.95,
+          "method": "bootstrap-bca-paired (sign-flipped)",
+          "point": -55.47779448429942,
+          "width": 0.19365874864021038,
+          "note": "signed so that positive means better"
+        },
+        "equivalence": {
+          "test": "tost",
+          "statistic": 949.6185488228273,
+          "p_value": 1.0,
+          "df": 9.0,
+          "alternative": "equivalence",
+          "n": [
+            10
+          ],
+          "method_detail": "two one-sided t-tests against a margin of +/-5",
+          "reason": "tests whether the difference is smaller than a declared practical margin",
+          "assumptions": [
+            {
+              "name": "the equivalence margin was declared in advance",
+              "satisfied": null,
+              "status": "unverified",
+              "detail": "taken from the metric's `tolerance` field in the specification",
+              "evidence": {}
+            },
+            {
+              "name": "differences is approximately normal",
+              "satisfied": true,
+              "status": "ok",
+              "detail": "Anderson-Darling A2*=0.205, p=0.8735",
+              "evidence": {
+                "n": 10,
+                "a2_star": 0.20477536053280918,
+                "p_value": 0.8735376602626437
+              }
+            }
+          ],
+          "warnings": [],
+          "extra": {
+            "equivalent": false,
+            "margin": 5.0,
+            "difference": 55.47779448429942,
+            "p_lower": 0.0,
+            "p_upper": 1.0
+          }
+        },
+        "detectable": {
+          "minimum_detectable_effect": 0.16720501408443433,
+          "power": 0.8,
+          "alpha": 0.05,
+          "paired": true,
+          "n": 10,
+          "standard_error": 0.053155864053912025,
+          "observed_difference": 55.47779448429942,
+          "observed_is_below_floor": false,
+          "metric": "latency_ms",
+          "description": "With 10 replications and the observed spread, this design could detect a difference of 0.1672 in latency_ms or larger 80% of the time at alpha=0.05."
+        },
+        "adjusted_p": 0.0,
+        "correction_method": "holm",
+        "verdict": "regression",
+        "narrative": "full-agent scored 145.7519 against rag-classic's 90.2741 on latency_ms (10 replications each, -55.4778 [-55.5980, -55.3575] at 95% confidence). full-agent is measurably worse (paired-t, adjusted p=0.0000)."
+      },
+      {
+        "metric": "robustness",
+        "treatment": "full-agent",
+        "baseline": "rag-classic",
+        "group": "baseline",
+        "higher_is_better": true,
+        "paired": true,
+        "alpha": 0.05,
+        "treatment_summary": {
+          "n": 10,
+          "mean": 0.71225,
+          "median": 0.71375,
+          "std": 0.022250156054384077,
+          "variance": 0.0004950694444444445,
+          "sem": 0.007036117142603897,
+          "minimum": 0.685,
+          "maximum": 0.755,
+          "q1": 0.693125,
+          "q3": 0.7212500000000001,
+          "iqr": 0.028125000000000067,
+          "cv": 0.031239250339605583,
+          "mad": 0.02409224999999998,
+          "skewness": 0.46698118550278817,
+          "kurtosis": -0.5815783166404174,
+          "values": [
+            0.685,
+            0.69,
+            0.7175,
+            0.755,
+            0.6875,
+            0.7225,
+            0.7025,
+            0.7175,
+            0.735,
+            0.71
+          ]
+        },
+        "baseline_summary": {
+          "n": 10,
+          "mean": 0.47275,
+          "median": 0.46625000000000005,
+          "std": 0.029449816071864796,
+          "variance": 0.0008672916666666661,
+          "sem": 0.009312849546012573,
+          "minimum": 0.435,
+          "maximum": 0.5275,
+          "q1": 0.455625,
+          "q3": 0.48812500000000003,
+          "iqr": 0.03250000000000003,
+          "cv": 0.06229469290717038,
+          "mad": 0.027798750000000063,
+          "skewness": 0.6227936956622405,
+          "kurtosis": -0.6692363841795004,
+          "values": [
+            0.4675,
+            0.435,
+            0.495,
+            0.5275,
+            0.4425,
+            0.4675,
+            0.465,
+            0.465,
+            0.51,
+            0.4525
+          ]
+        },
+        "decision": {
+          "test": "paired-t",
+          "paired": true,
+          "reason": "normality was not rejected, so a t-test was used. Pairing by seed removes seed-to-seed variance from the comparison.",
+          "considered": [
+            "paired-t",
+            "wilcoxon-signed-rank",
+            "permutation"
+          ],
+          "checks": [
+            {
+              "name": "paired differences is approximately normal",
+              "satisfied": true,
+              "status": "ok",
+              "detail": "Anderson-Darling A2*=0.540, p=0.1661",
+              "evidence": {
+                "n": 10,
+                "a2_star": 0.539975980583816,
+                "p_value": 0.16608934323074698
+              }
+            },
+            {
+              "name": "observations are independent across replications",
+              "satisfied": true,
+              "status": "ok",
+              "detail": "each replication is a separate process with a distinct seed",
+              "evidence": {}
+            }
+          ],
+          "warnings": [],
+          "parameters": {}
+        },
+        "test": {
+          "test": "paired-t",
+          "statistic": 49.17312769307484,
+          "p_value": 2.9833913117727207e-12,
+          "df": 9.0,
+          "alternative": "two-sided",
+          "n": [
+            10
+          ],
+          "method_detail": "one-sample t-test on within-pair differences",
+          "reason": "normality was not rejected, so a t-test was used. Pairing by seed removes seed-to-seed variance from the comparison.",
+          "assumptions": [
+            {
+              "name": "paired differences is approximately normal",
+              "satisfied": true,
+              "status": "ok",
+              "detail": "Anderson-Darling A2*=0.540, p=0.1661",
+              "evidence": {
+                "n": 10,
+                "a2_star": 0.539975980583816,
+                "p_value": 0.16608934323074698
+              }
+            },
+            {
+              "name": "observations are independent across replications",
+              "satisfied": true,
+              "status": "ok",
+              "detail": "each replication is a separate process with a distinct seed",
+              "evidence": {}
+            },
+            {
+              "name": "pairs are matched",
+              "satisfied": true,
+              "status": "ok",
+              "detail": "conditions were evaluated on an identical seed set",
+              "evidence": {}
+            },
+            {
+              "name": "pairs are independent of each other",
+              "satisfied": null,
+              "status": "unverified",
+              "detail": "structural",
+              "evidence": {}
+            }
+          ],
+          "warnings": [],
+          "extra": {
+            "mean_difference": 0.2395,
+            "sd_difference": 0.015402020069530543
+          }
+        },
+        "effects": [
+          {
+            "name": "absolute_difference",
+            "value": 0.23950000000000005,
+            "magnitude": "",
+            "interval": null,
+            "convention": "signed so that positive means better",
+            "note": "raw difference +0.2395"
+          },
+          {
+            "name": "relative_improvement_pct",
+            "value": 50.66102591221578,
+            "magnitude": "",
+            "interval": null,
+            "convention": "signed so that positive means better",
+            "note": "absolute change +0.2395"
+          },
+          {
+            "name": "hedges_g",
+            "value": 14.217059034003897,
+            "magnitude": "large",
+            "interval": {
+              "low": 7.955522126309769,
+              "high": 20.478595941698025,
+              "level": 0.95,
+              "method": "normal-approx",
+              "point": 14.217059034003897,
+              "width": 12.523073815388255,
+              "note": ""
+            },
+            "convention": "Hedges (1981), bias-corrected d",
+            "note": "bias correction J = 0.9143"
+          },
+          {
+            "name": "cohens_d_z",
+            "value": 15.549908318441764,
+            "magnitude": "large",
+            "interval": null,
+            "convention": "Cohen (1988), paired d_z",
+            "note": "standardised by the SD of paired differences"
+          },
+          {
+            "name": "cliffs_delta",
+            "value": 1.0,
+            "magnitude": "large",
+            "interval": null,
+            "convention": "Romano et al. (2006) magnitude thresholds",
+            "note": ""
+          },
+          {
+            "name": "vargha_delaney_a",
+            "value": 1.0,
+            "magnitude": "large",
+            "interval": null,
+            "convention": "Vargha & Delaney (2000)",
+            "note": "P(treatment > baseline), ties counted as half"
+          }
+        ],
+        "difference_interval": {
+          "low": 0.22848205857736226,
+          "high": 0.2505179414226377,
+          "level": 0.95,
+          "method": "paired-t",
+          "point": 0.2395,
+          "width": 0.022035882845275467,
+          "note": ""
+        },
+        "bootstrap_interval": {
+          "low": 0.2300014222946015,
+          "high": 0.248,
+          "level": 0.95,
+          "method": "bootstrap-bca-paired",
+          "point": 0.2395,
+          "width": 0.017998577705398505,
+          "note": ""
+        },
+        "equivalence": {
+          "test": "tost",
+          "statistic": 46.09339109434364,
+          "p_value": 0.9999999999973357,
+          "df": 9.0,
+          "alternative": "equivalence",
+          "n": [
+            10
+          ],
+          "method_detail": "two one-sided t-tests against a margin of +/-0.015",
+          "reason": "tests whether the difference is smaller than a declared practical margin",
+          "assumptions": [
+            {
+              "name": "the equivalence margin was declared in advance",
+              "satisfied": null,
+              "status": "unverified",
+              "detail": "taken from the metric's `tolerance` field in the specification",
+              "evidence": {}
+            },
+            {
+              "name": "differences is approximately normal",
+              "satisfied": true,
+              "status": "ok",
+              "detail": "Anderson-Darling A2*=0.540, p=0.1661",
+              "evidence": {
+                "n": 10,
+                "a2_star": 0.539975980583816,
+                "p_value": 0.16608934323074698
+              }
+            }
+          ],
+          "warnings": [],
+          "extra": {
+            "equivalent": false,
+            "margin": 0.015,
+            "difference": 0.2395,
+            "p_lower": 8.649747584854595e-13,
+            "p_upper": 0.9999999999973357
+          }
+        },
+        "detectable": {
+          "minimum_detectable_effect": 0.01532060091005706,
+          "power": 0.8,
+          "alpha": 0.05,
+          "paired": true,
+          "n": 10,
+          "standard_error": 0.004870546398734146,
+          "observed_difference": 0.23950000000000005,
+          "observed_is_below_floor": false,
+          "metric": "robustness",
+          "description": "With 10 replications and the observed spread, this design could detect a difference of 0.0153 in robustness or larger 80% of the time at alpha=0.05."
+        },
+        "adjusted_p": 2.9833913117727207e-12,
+        "correction_method": "holm",
+        "verdict": "improvement",
+        "narrative": "full-agent scored 0.7123 against rag-classic's 0.4728 on robustness (10 replications each, +0.2395 [0.2285, 0.2505] at 95% confidence). The difference is statistically detectable (paired-t, adjusted p=0.0000) with a large effect size (Hedges' g=14.22)."
+      }
+    ],
+    "corrections": {
+      "accuracy": {
+        "method": "holm",
+        "alpha": 0.05,
+        "family_size": 1,
+        "rationale": "Holm-Bonferroni controls the family-wise error rate with uniformly more power than Bonferroni and no extra assumptions.",
+        "results": [
+          {
+            "label": "rag-classic",
+            "p_value": 2.714710678475285e-10,
+            "adjusted_p": 2.714710678475285e-10,
+            "rejected": true,
+            "rank": 1
+          }
+        ],
+        "n_rejected": 1
+      },
+      "latency_ms": {
+        "method": "holm",
+        "alpha": 0.05,
+        "family_size": 1,
+        "rationale": "Holm-Bonferroni controls the family-wise error rate with uniformly more power than Bonferroni and no extra assumptions.",
+        "results": [
+          {
+            "label": "rag-classic",
+            "p_value": 0.0,
+            "adjusted_p": 0.0,
+            "rejected": true,
+            "rank": 1
+          }
+        ],
+        "n_rejected": 1
+      },
+      "robustness": {
+        "method": "holm",
+        "alpha": 0.05,
+        "family_size": 1,
+        "rationale": "Holm-Bonferroni controls the family-wise error rate with uniformly more power than Bonferroni and no extra assumptions.",
+        "results": [
+          {
+            "label": "rag-classic",
+            "p_value": 2.9833913117727207e-12,
+            "adjusted_p": 2.9833913117727207e-12,
+            "rejected": true,
+            "rank": 1
+          }
+        ],
+        "n_rejected": 1
+      }
+    },
+    "omnibus": {},
+    "notes": []
+  },
+  "ablations": {
+    "reference": "",
+    "effects": [],
+    "interactions": [],
+    "corrections": {},
+    "matrix": [],
+    "notes": []
+  },
+  "sweep": {
+    "parameters": [],
+    "effects": [],
+    "notes": []
+  },
+  "failures": {
+    "total_runs": 93,
+    "failed_runs": 0,
+    "failure_rate": 0.0,
+    "failure_rate_interval": {
+      "low": 0.0,
+      "high": 0.039667502611735135,
+      "level": 0.95,
+      "method": "wilson",
+      "point": 0.0,
+      "width": 0.039667502611735135,
+      "note": ""
+    },
+    "by_class": {},
+    "by_condition": {},
+    "associations": [],
+    "examples": [],
+    "primary_class": "",
+    "notes": []
+  },
+  "determinism": {
+    "tested": true,
+    "deterministic": true,
+    "verdict": "deterministic",
+    "judged_metrics": [
+      "accuracy",
+      "robustness"
+    ],
+    "excluded_metrics": [
+      "latency_ms"
+    ],
+    "results": [
+      {
+        "metric": "accuracy",
+        "condition": "full-agent",
+        "seed": 1,
+        "values": [
+          0.75,
+          0.75,
+          0.75,
+          0.75
+        ],
+        "n_replicates": 4,
+        "expected_deterministic": true,
+        "identical": true,
+        "max_deviation": 0.0,
+        "relative_deviation": 0.0
+      },
+      {
+        "metric": "latency_ms",
+        "condition": "full-agent",
+        "seed": 1,
+        "values": [
+          146.2462212870716,
+          146.2462212870716,
+          146.2462212870716,
+          146.2462212870716
+        ],
+        "n_replicates": 4,
+        "expected_deterministic": false,
+        "identical": true,
+        "max_deviation": 0.0,
+        "relative_deviation": 0.0
+      },
+      {
+        "metric": "robustness",
+        "condition": "full-agent",
+        "seed": 1,
+        "values": [
+          0.685,
+          0.685,
+          0.685,
+          0.685
+        ],
+        "n_replicates": 4,
+        "expected_deterministic": true,
+        "identical": true,
+        "max_deviation": 0.0,
+        "relative_deviation": 0.0
+      }
+    ],
+    "worst": null,
+    "description": "Deterministic: 4 executions of an identical run produced identical values on every result metric (accuracy, robustness). latency_ms varied, as expected: those measure the machine rather than the method.",
+    "notes": []
+  },
+  "reproducibility": {
+    "metric": "accuracy",
+    "method": "stability(axis) = 1 - max(0, (|Cliff's delta| - E|delta|_null) / (1 - E|delta|_null)), where E|delta|_null is the mean |Cliff's delta| under random relabelling of the same samples. The seed axis is the reference noise floor and is not scored.",
+    "seed": {
+      "axis": "seed",
+      "metric": "accuracy",
+      "condition": "full-agent",
+      "n_seeds": 10,
+      "mean": 0.74775,
+      "std": 0.021423312846834245,
+      "cv": 0.028650368233813766,
+      "interval": {
+        "low": 0.7324246852062467,
+        "high": 0.7630753147937533,
+        "level": 0.95,
+        "method": "t",
+        "point": 0.74775,
+        "width": 0.03065062958750664,
+        "note": ""
+      },
+      "decision_stability": 0.0,
+      "decision_detail": {
+        "full_verdict": "better",
+        "subsample_size": 5,
+        "n_seeds": 10,
+        "resamples": 300,
+        "outcomes": {
+          "no_difference": 300
+        },
+        "minimum_attainable_p": 0.0625,
+        "floor_limited": true,
+        "alpha": 0.05,
+        "baseline": "rag-classic"
+      },
+      "description": "seed: 10 seeds of 'full-agent' give accuracy = 0.7478 +/- 0.0214 (CV 2.87%), mean [0.7324, 0.7631]. A replication using 5 of these seeds would reach the same conclusion 0% of the time, but that is a limit of the test rather than of the effect: with 5 runs the smallest attainable p-value is 0.0625, which is above alpha, so no 5-seed replication could reach significance whatever it measured.",
+      "role": "reference noise floor; not scored as a perturbation",
+      "warnings": []
+    },
+    "axes": [
+      {
+        "axis": "implementation",
+        "metric": "accuracy",
+        "label": "full-agent-reordered",
+        "n_reference": 10,
+        "n_perturbed": 10,
+        "reference_mean": 0.74775,
+        "perturbed_mean": 0.7505,
+        "delta_mean": 0.002749999999999919,
+        "cliffs_delta": 0.11,
+        "null_delta": 0.2118249999999999,
+        "null_p_value": 0.71571072319202,
+        "stability": 1.0,
+        "stability_interval": [
+          0.914986945141385,
+          1.0
+        ],
+        "interval": {
+          "low": -0.0070978924263454014,
+          "high": 0.01259789242634535,
+          "level": 0.95,
+          "method": "paired-t",
+          "point": 0.0027499999999999747,
+          "width": 0.019695784852690752,
+          "note": ""
+        },
+        "seed_noise": 0.021423312846834245,
+        "noise_multiples": 0.12836483412537622,
+        "equivalence": {
+          "test": "tost",
+          "statistic": 1.6653958756100913,
+          "p_value": 0.06509403122574935,
+          "df": 9.0,
+          "alternative": "equivalence",
+          "n": [
+            10
+          ],
+          "method_detail": "two one-sided t-tests against a margin of +/-0.01",
+          "reason": "tests whether the difference is smaller than a declared practical margin",
+          "assumptions": [
+            {
+              "name": "the equivalence margin was declared in advance",
+              "satisfied": null,
+              "status": "unverified",
+              "detail": "taken from the metric's `tolerance` field in the specification",
+              "evidence": {}
+            },
+            {
+              "name": "differences is approximately normal",
+              "satisfied": true,
+              "status": "ok",
+              "detail": "Anderson-Darling A2*=0.281, p=0.6407",
+              "evidence": {
+                "n": 10,
+                "a2_star": 0.28117297740317354,
+                "p_value": 0.6406700534028263
+              }
+            }
+          ],
+          "warnings": [],
+          "extra": {
+            "equivalent": false,
+            "margin": 0.01,
+            "difference": 0.0027499999999999747,
+            "p_lower": 0.008394876775010385,
+            "p_upper": 0.06509403122574935
+          }
+        },
+        "tolerance": 0.01,
+        "equivalent": false,
+        "tolerance_verdict": "inconclusive",
+        "verdict": "tolerance_inconclusive",
+        "description": "implementation (full-agent-reordered): moved accuracy by +0.0027 [-0.0071, 0.0126], 0.1x the seed noise; stability 1.00 [0.91, 1.00] (not distinguishable from relabelling noise, permutation p=0.716), and whether it stays within the declared tolerance of 0.01 is undecided: the interval straddles that boundary.",
+        "detail": {
+          "condition": "full-agent~implementation:full-agent-reordered",
+          "reference": "full-agent",
+          "paired": true,
+          "perturbation": {
+            "axis": "implementation",
+            "value": {
+              "name": "full-agent-reordered",
+              "entrypoint": "python:examples.agent_pipeline.pipeline:run_reordered",
+              "commit": "auto"
+            },
+            "label": "full-agent-reordered",
+            "reference": "full-agent",
+            "implementation": "full-agent-reordered@2078734"
+          },
+          "cliffs_delta_interval": {
+            "low": -0.05883016451318883,
+            "high": 0.2788301645131888,
+            "level": 0.95,
+            "method": "cliff-consistent",
+            "point": 0.11,
+            "width": 0.33766032902637766,
+            "note": ""
+          },
+          "null_calibration": {
+            "expectation": 0.2118249999999999,
+            "p_value": 0.71571072319202,
+            "resamples": 400
+          }
+        },
+        "warnings": []
+      },
+      {
+        "axis": "environment",
+        "metric": "accuracy",
+        "label": "hash-randomised",
+        "n_reference": 10,
+        "n_perturbed": 10,
+        "reference_mean": 0.74775,
+        "perturbed_mean": 0.74775,
+        "delta_mean": 0.0,
+        "cliffs_delta": 0.0,
+        "null_delta": 0.2116,
+        "null_p_value": 1.0,
+        "stability": 1.0,
+        "stability_interval": [
+          1.0,
+          1.0
+        ],
+        "interval": {
+          "low": 0.0,
+          "high": 0.0,
+          "level": 0.95,
+          "method": "paired-t",
+          "point": 0.0,
+          "width": 0.0,
+          "note": ""
+        },
+        "seed_noise": 0.021423312846834245,
+        "noise_multiples": 0.0,
+        "equivalence": {
+          "test": "tost",
+          "statistic": 0.0,
+          "p_value": 0.0,
+          "df": null,
+          "alternative": "two-sided",
+          "n": [
+            10
+          ],
+          "method_detail": "",
+          "reason": "zero variance; decided by the point difference alone",
+          "assumptions": [],
+          "warnings": [],
+          "extra": {
+            "equivalent": true,
+            "margin": 0.01,
+            "difference": 0.0
+          }
+        },
+        "tolerance": 0.01,
+        "equivalent": true,
+        "tolerance_verdict": "within",
+        "verdict": "reproducible",
+        "description": "environment (hash-randomised): moved accuracy by +0.0000 [0.0000, 0.0000], 0.0x the seed noise; stability 1.00 [1.00, 1.00] (not distinguishable from relabelling noise, permutation p=1.000), within the declared tolerance of 0.01.",
+        "detail": {
+          "condition": "full-agent~environment:hash-randomised",
+          "reference": "full-agent",
+          "paired": true,
+          "perturbation": {
+            "axis": "environment",
+            "value": {
+              "label": "hash-randomised",
+              "PYTHONHASHSEED": "random"
+            },
+            "label": "hash-randomised",
+            "reference": "full-agent",
+            "env": {
+              "label": "hash-randomised",
+              "PYTHONHASHSEED": "random"
+            }
+          },
+          "cliffs_delta_interval": {
+            "low": -0.1668209669440255,
+            "high": 0.1668209669440255,
+            "level": 0.95,
+            "method": "cliff-consistent",
+            "point": 0.0,
+            "width": 0.333641933888051,
+            "note": ""
+          },
+          "null_calibration": {
+            "expectation": 0.2116,
+            "p_value": 1.0,
+            "resamples": 400
+          }
+        },
+        "warnings": []
+      },
+      {
+        "axis": "environment",
+        "metric": "accuracy",
+        "label": "single-threaded",
+        "n_reference": 10,
+        "n_perturbed": 10,
+        "reference_mean": 0.74775,
+        "perturbed_mean": 0.74775,
+        "delta_mean": 0.0,
+        "cliffs_delta": 0.0,
+        "null_delta": 0.2116,
+        "null_p_value": 1.0,
+        "stability": 1.0,
+        "stability_interval": [
+          1.0,
+          1.0
+        ],
+        "interval": {
+          "low": 0.0,
+          "high": 0.0,
+          "level": 0.95,
+          "method": "paired-t",
+          "point": 0.0,
+          "width": 0.0,
+          "note": ""
+        },
+        "seed_noise": 0.021423312846834245,
+        "noise_multiples": 0.0,
+        "equivalence": {
+          "test": "tost",
+          "statistic": 0.0,
+          "p_value": 0.0,
+          "df": null,
+          "alternative": "two-sided",
+          "n": [
+            10
+          ],
+          "method_detail": "",
+          "reason": "zero variance; decided by the point difference alone",
+          "assumptions": [],
+          "warnings": [],
+          "extra": {
+            "equivalent": true,
+            "margin": 0.01,
+            "difference": 0.0
+          }
+        },
+        "tolerance": 0.01,
+        "equivalent": true,
+        "tolerance_verdict": "within",
+        "verdict": "reproducible",
+        "description": "environment (single-threaded): moved accuracy by +0.0000 [0.0000, 0.0000], 0.0x the seed noise; stability 1.00 [1.00, 1.00] (not distinguishable from relabelling noise, permutation p=1.000), within the declared tolerance of 0.01.",
+        "detail": {
+          "condition": "full-agent~environment:single-threaded",
+          "reference": "full-agent",
+          "paired": true,
+          "perturbation": {
+            "axis": "environment",
+            "value": {
+              "label": "single-threaded",
+              "OMP_NUM_THREADS": "1",
+              "MKL_NUM_THREADS": "1",
+              "OPENBLAS_NUM_THREADS": "1"
+            },
+            "label": "single-threaded",
+            "reference": "full-agent",
+            "env": {
+              "label": "single-threaded",
+              "OMP_NUM_THREADS": "1",
+              "MKL_NUM_THREADS": "1",
+              "OPENBLAS_NUM_THREADS": "1"
+            }
+          },
+          "cliffs_delta_interval": {
+            "low": -0.1668209669440255,
+            "high": 0.1668209669440255,
+            "level": 0.95,
+            "method": "cliff-consistent",
+            "point": 0.0,
+            "width": 0.333641933888051,
+            "note": ""
+          },
+          "null_calibration": {
+            "expectation": 0.2116,
+            "p_value": 1.0,
+            "resamples": 400
+          }
+        },
+        "warnings": []
+      },
+      {
+        "axis": "hardware",
+        "metric": "accuracy",
+        "label": "no-accelerator",
+        "n_reference": 10,
+        "n_perturbed": 10,
+        "reference_mean": 0.74775,
+        "perturbed_mean": 0.74775,
+        "delta_mean": 0.0,
+        "cliffs_delta": 0.0,
+        "null_delta": 0.2116,
+        "null_p_value": 1.0,
+        "stability": 1.0,
+        "stability_interval": [
+          1.0,
+          1.0
+        ],
+        "interval": {
+          "low": 0.0,
+          "high": 0.0,
+          "level": 0.95,
+          "method": "paired-t",
+          "point": 0.0,
+          "width": 0.0,
+          "note": ""
+        },
+        "seed_noise": 0.021423312846834245,
+        "noise_multiples": 0.0,
+        "equivalence": {
+          "test": "tost",
+          "statistic": 0.0,
+          "p_value": 0.0,
+          "df": null,
+          "alternative": "two-sided",
+          "n": [
+            10
+          ],
+          "method_detail": "",
+          "reason": "zero variance; decided by the point difference alone",
+          "assumptions": [],
+          "warnings": [],
+          "extra": {
+            "equivalent": true,
+            "margin": 0.01,
+            "difference": 0.0
+          }
+        },
+        "tolerance": 0.01,
+        "equivalent": true,
+        "tolerance_verdict": "within",
+        "verdict": "reproducible",
+        "description": "hardware (no-accelerator): moved accuracy by +0.0000 [0.0000, 0.0000], 0.0x the seed noise; stability 1.00 [1.00, 1.00] (not distinguishable from relabelling noise, permutation p=1.000), within the declared tolerance of 0.01.",
+        "detail": {
+          "condition": "full-agent~hardware:no-accelerator",
+          "reference": "full-agent",
+          "paired": true,
+          "perturbation": {
+            "axis": "hardware",
+            "value": {
+              "label": "no-accelerator",
+              "CUDA_VISIBLE_DEVICES": ""
+            },
+            "label": "no-accelerator",
+            "reference": "full-agent",
+            "env": {
+              "label": "no-accelerator",
+              "CUDA_VISIBLE_DEVICES": ""
+            }
+          },
+          "cliffs_delta_interval": {
+            "low": -0.1668209669440255,
+            "high": 0.1668209669440255,
+            "level": 0.95,
+            "method": "cliff-consistent",
+            "point": 0.0,
+            "width": 0.333641933888051,
+            "note": ""
+          },
+          "null_calibration": {
+            "expectation": 0.2116,
+            "p_value": 1.0,
+            "resamples": 400
+          }
+        },
+        "warnings": []
+      },
+      {
+        "axis": "configuration",
+        "metric": "accuracy",
+        "label": "temperature-0.8",
+        "n_reference": 10,
+        "n_perturbed": 10,
+        "reference_mean": 0.74775,
+        "perturbed_mean": 0.6845000000000001,
+        "delta_mean": -0.06324999999999992,
+        "cliffs_delta": -0.96,
+        "null_delta": 0.21317500000000017,
+        "null_p_value": 0.0024937655860349127,
+        "stability": 0.05083722555841519,
+        "stability_interval": [
+          0.012968529312923027,
+          0.08870592180390746
+        ],
+        "interval": {
+          "low": -0.07543937987697892,
+          "high": -0.05106062012302105,
+          "level": 0.95,
+          "method": "paired-t",
+          "point": -0.06324999999999999,
+          "width": 0.024378759753957868,
+          "note": ""
+        },
+        "seed_noise": 0.021423312846834245,
+        "noise_multiples": 2.952391184883736,
+        "equivalence": {
+          "test": "tost",
+          "statistic": 9.882362362543956,
+          "p_value": 0.999998025859637,
+          "df": 9.0,
+          "alternative": "equivalence",
+          "n": [
+            10
+          ],
+          "method_detail": "two one-sided t-tests against a margin of +/-0.01",
+          "reason": "tests whether the difference is smaller than a declared practical margin",
+          "assumptions": [
+            {
+              "name": "the equivalence margin was declared in advance",
+              "satisfied": null,
+              "status": "unverified",
+              "detail": "taken from the metric's `tolerance` field in the specification",
+              "evidence": {}
+            },
+            {
+              "name": "differences is approximately normal",
+              "satisfied": true,
+              "status": "ok",
+              "detail": "Anderson-Darling A2*=0.272, p=0.6695",
+              "evidence": {
+                "n": 10,
+                "a2_star": 0.27246238087962577,
+                "p_value": 0.66953095034605
+              }
+            }
+          ],
+          "warnings": [],
+          "extra": {
+            "equivalent": false,
+            "margin": 0.01,
+            "difference": -0.06324999999999999,
+            "p_lower": 0.999998025859637,
+            "p_upper": 1.321867596218422e-07
+          }
+        },
+        "tolerance": 0.01,
+        "equivalent": false,
+        "tolerance_verdict": "beyond",
+        "verdict": "deviates_beyond_tolerance",
+        "description": "configuration (temperature-0.8): moved accuracy by -0.0632 [-0.0754, -0.0511], 3.0x the seed noise; stability 0.05 [0.01, 0.09], beyond the declared tolerance of 0.01.",
+        "detail": {
+          "condition": "full-agent~configuration:temperature-0.8",
+          "reference": "full-agent",
+          "paired": true,
+          "perturbation": {
+            "axis": "configuration",
+            "value": {
+              "label": "temperature-0.8",
+              "temperature": 0.8
+            },
+            "label": "temperature-0.8",
+            "reference": "full-agent"
+          },
+          "cliffs_delta_interval": {
+            "low": -0.9897960369233594,
+            "high": -0.9302039630766405,
+            "level": 0.95,
+            "method": "cliff-consistent",
+            "point": -0.96,
+            "width": 0.05959207384671883,
+            "note": ""
+          },
+          "null_calibration": {
+            "expectation": 0.21317500000000017,
+            "p_value": 0.0024937655860349127,
+            "resamples": 400
+          }
+        },
+        "warnings": []
+      },
+      {
+        "axis": "dataset",
+        "metric": "accuracy",
+        "label": "agent-benchmark@v2",
+        "n_reference": 10,
+        "n_perturbed": 10,
+        "reference_mean": 0.74775,
+        "perturbed_mean": 0.778,
+        "delta_mean": 0.03025,
+        "cliffs_delta": 0.7,
+        "null_delta": 0.21619999999999995,
+        "null_p_value": 0.0199501246882793,
+        "stability": 0.3827507017096198,
+        "stability_interval": [
+          0.24427418895602293,
+          0.5212272144632168
+        ],
+        "interval": {
+          "low": 0.02227654223060893,
+          "high": 0.03822345776939107,
+          "level": 0.95,
+          "method": "paired-t",
+          "point": 0.03025,
+          "width": 0.015946915538782136,
+          "note": ""
+        },
+        "seed_noise": 0.021423312846834245,
+        "noise_multiples": 1.4120131753791798,
+        "equivalence": {
+          "test": "tost",
+          "statistic": 5.745146443556467,
+          "p_value": 0.9998610043061971,
+          "df": 9.0,
+          "alternative": "equivalence",
+          "n": [
+            10
+          ],
+          "method_detail": "two one-sided t-tests against a margin of +/-0.01",
+          "reason": "tests whether the difference is smaller than a declared practical margin",
+          "assumptions": [
+            {
+              "name": "the equivalence margin was declared in advance",
+              "satisfied": null,
+              "status": "unverified",
+              "detail": "taken from the metric's `tolerance` field in the specification",
+              "evidence": {}
+            },
+            {
+              "name": "differences is approximately normal",
+              "satisfied": true,
+              "status": "ok",
+              "detail": "Anderson-Darling A2*=0.209, p=0.8629",
+              "evidence": {
+                "n": 10,
+                "a2_star": 0.20927948407221436,
+                "p_value": 0.8628710941469853
+              }
+            }
+          ],
+          "warnings": [],
+          "extra": {
+            "equivalent": false,
+            "margin": 0.01,
+            "difference": 0.03025,
+            "p_lower": 5.867232644174436e-07,
+            "p_upper": 0.9998610043061971
+          }
+        },
+        "tolerance": 0.01,
+        "equivalent": false,
+        "tolerance_verdict": "beyond",
+        "verdict": "deviates_beyond_tolerance",
+        "description": "dataset (agent-benchmark@v2): moved accuracy by +0.0302 [0.0223, 0.0382], 1.4x the seed noise; stability 0.38 [0.24, 0.52], beyond the declared tolerance of 0.01.",
+        "detail": {
+          "condition": "full-agent~dataset:agent-benchmark@v2",
+          "reference": "full-agent",
+          "paired": true,
+          "perturbation": {
+            "axis": "dataset",
+            "value": {
+              "name": "agent-benchmark",
+              "version": "v2",
+              "path": "examples/agent_pipeline/data/benchmark-v2",
+              "n_examples": 400
+            },
+            "label": "agent-benchmark@v2",
+            "reference": "full-agent",
+            "dataset": "agent-benchmark@v2"
+          },
+          "cliffs_delta_interval": {
+            "low": 0.5914621093037307,
+            "high": 0.8085378906962692,
+            "level": 0.95,
+            "method": "cliff-consistent",
+            "point": 0.7,
+            "width": 0.21707578139253858,
+            "note": ""
+          },
+          "null_calibration": {
+            "expectation": 0.21619999999999995,
+            "p_value": 0.0199501246882793,
+            "resamples": 400
+          }
+        },
+        "warnings": []
+      },
+      {
+        "axis": "model",
+        "metric": "accuracy",
+        "label": "sim-reasoner@v2",
+        "n_reference": 10,
+        "n_perturbed": 10,
+        "reference_mean": 0.74775,
+        "perturbed_mean": 0.773,
+        "delta_mean": 0.025249999999999995,
+        "cliffs_delta": 0.62,
+        "null_delta": 0.21347499999999997,
+        "null_p_value": 0.029925187032418952,
+        "stability": 0.48313785321509173,
+        "stability_interval": [
+          0.3261485615198183,
+          0.6401271449103652
+        ],
+        "interval": {
+          "low": 0.019381820138749298,
+          "high": 0.031118179861250712,
+          "level": 0.95,
+          "method": "paired-t",
+          "point": 0.025250000000000005,
+          "width": 0.011736359722501415,
+          "note": ""
+        },
+        "seed_noise": 0.021423312846834245,
+        "noise_multiples": 1.1786225678784887,
+        "equivalence": {
+          "test": "tost",
+          "statistic": 5.8788069807595855,
+          "p_value": 0.9998824120085701,
+          "df": 9.0,
+          "alternative": "equivalence",
+          "n": [
+            10
+          ],
+          "method_detail": "two one-sided t-tests against a margin of +/-0.01",
+          "reason": "tests whether the difference is smaller than a declared practical margin",
+          "assumptions": [
+            {
+              "name": "the equivalence margin was declared in advance",
+              "satisfied": null,
+              "status": "unverified",
+              "detail": "taken from the metric's `tolerance` field in the specification",
+              "evidence": {}
+            },
+            {
+              "name": "differences is approximately normal",
+              "satisfied": true,
+              "status": "ok",
+              "detail": "Anderson-Darling A2*=0.292, p=0.6073",
+              "evidence": {
+                "n": 10,
+                "a2_star": 0.29167629845160303,
+                "p_value": 0.607276808362473
+              }
+            }
+          ],
+          "warnings": [],
+          "extra": {
+            "equivalent": false,
+            "margin": 0.01,
+            "difference": 0.025250000000000005,
+            "p_lower": 1.3263434228694138e-07,
+            "p_upper": 0.9998824120085701
+          }
+        },
+        "tolerance": 0.01,
+        "equivalent": false,
+        "tolerance_verdict": "beyond",
+        "verdict": "deviates_beyond_tolerance",
+        "description": "model (sim-reasoner@v2): moved accuracy by +0.0252 [0.0194, 0.0311], 1.2x the seed noise; stability 0.48 [0.33, 0.64], beyond the declared tolerance of 0.01.",
+        "detail": {
+          "condition": "full-agent~model:sim-reasoner@v2",
+          "reference": "full-agent",
+          "paired": true,
+          "perturbation": {
+            "axis": "model",
+            "value": {
+              "name": "sim-reasoner",
+              "version": "v2",
+              "architecture": "simulated log-odds responder",
+              "precision": "float64",
+              "config": {
+                "capability": 0.15
+              }
+            },
+            "label": "sim-reasoner@v2",
+            "reference": "full-agent",
+            "model": "sim-reasoner@v2"
+          },
+          "cliffs_delta_interval": {
+            "low": 0.4965239973493751,
+            "high": 0.7434760026506249,
+            "level": 0.95,
+            "method": "cliff-consistent",
+            "point": 0.62,
+            "width": 0.24695200530124978,
+            "note": ""
+          },
+          "null_calibration": {
+            "expectation": 0.21347499999999997,
+            "p_value": 0.029925187032418952,
+            "resamples": 400
+          }
+        },
+        "warnings": []
+      }
+    ],
+    "overall_worst_case": 0.05083722555841519,
+    "geometric_mean": 0.5133962595914614,
+    "worst_axis": "configuration",
+    "verdict": "fails_tolerance",
+    "determinism": {
+      "tested": true,
+      "deterministic": true,
+      "verdict": "deterministic",
+      "judged_metrics": [
+        "accuracy",
+        "robustness"
+      ],
+      "excluded_metrics": [
+        "latency_ms"
+      ],
+      "results": [
+        {
+          "metric": "accuracy",
+          "condition": "full-agent",
+          "seed": 1,
+          "values": [
+            0.75,
+            0.75,
+            0.75,
+            0.75
+          ],
+          "n_replicates": 4,
+          "expected_deterministic": true,
+          "identical": true,
+          "max_deviation": 0.0,
+          "relative_deviation": 0.0
+        },
+        {
+          "metric": "latency_ms",
+          "condition": "full-agent",
+          "seed": 1,
+          "values": [
+            146.2462212870716,
+            146.2462212870716,
+            146.2462212870716,
+            146.2462212870716
+          ],
+          "n_replicates": 4,
+          "expected_deterministic": false,
+          "identical": true,
+          "max_deviation": 0.0,
+          "relative_deviation": 0.0
+        },
+        {
+          "metric": "robustness",
+          "condition": "full-agent",
+          "seed": 1,
+          "values": [
+            0.685,
+            0.685,
+            0.685,
+            0.685
+          ],
+          "n_replicates": 4,
+          "expected_deterministic": true,
+          "identical": true,
+          "max_deviation": 0.0,
+          "relative_deviation": 0.0
+        }
+      ],
+      "worst": null,
+      "description": "Deterministic: 4 executions of an identical run produced identical values on every result metric (accuracy, robustness). latency_ms varied, as expected: those measure the machine rather than the method.",
+      "notes": []
+    },
+    "description": "Across 7 perturbation axes, the most fragile is 'configuration' (stability 0.05); the geometric mean is 0.51. Changing configuration, dataset, model moves accuracy beyond the tolerance declared for it, so a reproduction differing on those axes should not be expected to match. On implementation the data cannot decide whether the shift stays within tolerance; more runs would be needed to say.",
+    "notes": [
+      "Axes from most to least fragile: configuration (0.05), dataset (0.38), model (0.48), implementation (1.00), environment (1.00), environment (1.00), hardware (1.00)",
+      "These axes move the result further than one seed standard deviation: configuration (3.0x), dataset (1.4x), model (1.2x). A paper reporting seed variance alone would understate its own uncertainty on them."
+    ]
+  },
+  "integrity": {
+    "passed": true,
+    "worst_level": "pass",
+    "summary": "5 passed, 0 informational, 0 warnings, 0 failures",
+    "findings": [
+      {
+        "code": "dataset.verified",
+        "level": "pass",
+        "title": "Dataset agent-benchmark@v1 matches its registered digest",
+        "detail": "sha256:4cb166de973fceda verified against the files on disk.",
+        "remedy": "",
+        "evidence": {
+          "digest": "sha256:4cb166de973fceda83a082f989f603e0cdd7b47f9ffc6be559842d92acf9f45a"
+        }
+      },
+      {
+        "code": "seeds.aligned",
+        "level": "pass",
+        "title": "All 2 arms completed the same 10 seeds",
+        "detail": "Comparisons can be paired, which removes seed variance from every difference.",
+        "remedy": "",
+        "evidence": {}
+      },
+      {
+        "code": "metrics.complete",
+        "level": "pass",
+        "title": "All 3 declared metrics were produced by every arm",
+        "detail": "",
+        "remedy": "",
+        "evidence": {}
+      },
+      {
+        "code": "replication.sufficient",
+        "level": "pass",
+        "title": "Every arm completed at least 10 replications",
+        "detail": "",
+        "remedy": "",
+        "evidence": {}
+      },
+      {
+        "code": "spec.unchanged",
+        "level": "pass",
+        "title": "The specification is unchanged since these runs were executed",
+        "detail": "Digest c3033e55b7f4 matches. The analysis was declared before the results were seen.",
+        "remedy": "",
+        "evidence": {}
+      }
+    ]
+  },
+  "cost": [
+    {
+      "condition": "full-agent",
+      "role": "treatment",
+      "accuracy": 0.74775,
+      "wall_seconds": 0.29104630000074394,
+      "wall_hours": 8.08461944446511e-05,
+      "gpu_hours": 0.0,
+      "cost_usd": null,
+      "runs": 10,
+      "vs_cheapest_baseline": "rag-classic",
+      "metric_delta": 0.22000000000000008,
+      "extra_wall_seconds": 0.07228499998745974,
+      "compute_multiple": 1.3304286452085916,
+      "metric_gain_per_extra_hour": 10956.630008126156
+    },
+    {
+      "condition": "rag-classic",
+      "role": "baseline",
+      "accuracy": 0.5277499999999999,
+      "wall_seconds": 0.2187613000132842,
+      "wall_hours": 6.076702778146783e-05,
+      "gpu_hours": 0.0,
+      "cost_usd": null,
+      "runs": 10,
+      "vs_cheapest_baseline": "rag-classic",
+      "metric_delta": 0.0,
+      "extra_wall_seconds": 0.0,
+      "compute_multiple": 1.0,
+      "metric_gain_per_extra_hour": null
+    }
+  ],
+  "resources": {
+    "runs": 93,
+    "wall_seconds": 1.990182299981825,
+    "wall_hours": 0.0005528284166616181,
+    "cpu_seconds": 2.1875,
+    "gpu_seconds": 0.0,
+    "gpu_hours": 0.0,
+    "peak_rss_bytes": 0,
+    "cost_usd": null,
+    "energy_joules": null,
+    "mean_wall_seconds": 0.021399809677223925
+  }
+}

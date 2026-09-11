@@ -41,23 +41,38 @@ reconstructed afterwards.
 
 ## What it does that a tracker does not
 
-| | Typical experiment tracker | Experiment Fabric |
+Checked against primary documentation in September 2026, not vendor
+comparison posts. The full survey, with citations and corrections, is in
+[`docs/related-work.md`](docs/related-work.md).
+
+| | Established trackers | Experiment Fabric |
 |---|---|---|
 | Log metrics and parameters | yes | yes |
 | Store artifacts, model registry | yes | yes, content-addressed |
-| Dataset versioning | partial | first-class; identity **is** the content hash |
-| Experiment graphs | limited | the core abstraction |
+| Dataset digest recorded | yes (MLflow computes one automatically) | yes |
+| Dataset digest **is** the identity, and a conflicting re-registration is refused | no | yes |
+| Experiment graphs | limited | the core abstraction, traversable both ways |
 | Automated ablations | limited | native, with interaction analysis |
-| Statistical analysis | limited | native, with recorded assumptions |
-| Test selection | manual | automatic, with the reasoning stored |
-| Reproducibility testing | limited | measured on six perturbation axes |
-| Determinism testing | no | executes identical runs and checks |
-| Hardware / environment perturbation | no | executable on one machine |
-| Failure analysis | partial | classified, attributed, tested |
+| Statistical analysis | limited; specialised tools exist (NLPStatTest) | native, domain-agnostic |
+| Test selection | manual | automatic, with the reasoning and assumptions stored |
 | Minimum detectable effect | no | on every comparison |
-| Provenance | partial | end to end, traversable both ways |
+| Determinism testing | no | executes identical runs and checks |
+| Perturbation study across six axes | no | native, executable on one machine |
+| Decision stability under seed resampling | no | native |
+| Failure analysis | partial | classified, attributed, tested |
 | Reproduction certificates | no | content-addressed, tamper-evident |
 | Paper generation | limited | Markdown, HTML, LaTeX, JSON from one model |
+
+Two corrections worth making explicitly, because an earlier version of
+this table got them wrong:
+
+- **MLflow does version datasets.** `mlflow.data` records a digest and
+  computes one automatically. The real difference is narrower: there, the
+  digest is metadata attached to a run; here it *is* the dataset's
+  identity, and registering the same version with different bytes is
+  refused with a field-level diff.
+- **DVC is stronger than Fabric at data versioning**, not weaker. It
+  handles large remote storage, which Fabric does not attempt at all.
 
 The honest version of the difference: a tracker records **what happened**.
 Fabric records **what would have to be true for the result to mean what

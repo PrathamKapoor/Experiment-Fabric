@@ -114,6 +114,7 @@ def _split_top_level(text: str, sep: str = ",") -> list[str]:
 
 
 def _parse_flow(text: str, line_no: int) -> Any:
+    """Parse a flow collection. Keys stay raw; _canonical_key normalises them."""
     text = text.strip()
     if text.startswith("["):
         if not text.endswith("]"):
@@ -133,7 +134,7 @@ def _parse_flow(text: str, line_no: int) -> Any:
             if ":" not in pair:
                 raise YamlError("flow mapping entry has no colon: " + repr(pair), line_no)
             key, _, val = pair.partition(":")
-            out[str(_scalar(key))] = _parse_value(val.strip(), line_no)
+            out[_scalar(key)] = _parse_value(val.strip(), line_no)
         return out
     raise YamlError("not a flow collection: " + repr(text), line_no)
 
@@ -273,8 +274,10 @@ def _parse_sequence(reader: _Reader, indent: int) -> list[Any]:
     return items
 
 
-def _parse_mapping(reader: _Reader, indent: int) -> dict[str, Any]:
-    mapping: dict[str, Any] = {}
+def _parse_mapping(reader: _Reader, indent: int) -> dict[Any, Any]:
+    # Keys are left as parsed scalars; _canonical_key turns them into strings
+    # once, on both parser paths, so the two cannot disagree.
+    mapping: dict[Any, Any] = {}
     while True:
         head = reader.peek()
         if head is None:
@@ -289,7 +292,7 @@ def _parse_mapping(reader: _Reader, indent: int) -> dict[str, Any]:
         match = _match_key(content)
         if not match:
             raise YamlError("expected a 'key: value' pair, got " + repr(content), line_no)
-        key = str(_scalar(match.group("key")))
+        key = _scalar(match.group("key"))
         value_text = (match.group("value") or "").strip()
         reader.advance()
         if value_text in ("|", ">", "|-", ">-"):
@@ -312,15 +315,75 @@ def _parse_mapping(reader: _Reader, indent: int) -> dict[str, Any]:
     return mapping
 
 
+# YAML 1.1, which PyYAML implements, requires a decimal point in the
+# mantissa *and* a sign in the exponent before it will call something a
+# float. So `1e-4` and `1.0e5` are strings to PyYAML and numbers to almost
+# everyone else, including the bundled parser.
+#
+# Left alone, that means `learning_rate: [1e-4, 5e-5]` parses to strings on
+# a machine with PyYAML installed and to floats on one without -- and since
+# the specification digest is computed from the parsed document, the same
+# file would have two different experiment identities depending on what
+# happened to be in the environment. That is precisely the class of bug
+# this project exists to catch, so Fabric defines the canonical reading and
+# applies it to both parsers rather than inheriting either one.
+_SCIENTIFIC = re.compile(r"^[+-]?(?:\d+\.?\d*|\.\d+)[eE][+-]?\d+$")
+
+
+_KEY_SPELLING = {True: "true", False: "false", None: "null"}
+
+
+def _canonical_key(key: Any) -> str:
+    """Mapping keys are always strings.
+
+    Both parsers type-coerce bare scalars, so a key spelled ``true`` or
+    ``null`` arrives as a Python object rather than text. In a
+    configuration format a key is a name, so it is converted back to a
+    string here on both paths.
+
+    The residual caveat, which is not worth more machinery: a key spelled
+    with a YAML boolean or null synonym (``none``, ``yes``, ``off``) is
+    normalised to its canonical spelling, so ``none:`` and ``null:`` are
+    the same key. Do not name a parameter after a YAML keyword.
+    """
+    if isinstance(key, str):
+        return key
+    if isinstance(key, bool) or key is None:
+        return _KEY_SPELLING[key]
+    return str(key)
+
+
+def _canonicalise(value: Any) -> Any:
+    """Apply Fabric's reading of a parsed document, whichever parser ran."""
+    if isinstance(value, str):
+        if _SCIENTIFIC.match(value.strip()):
+            try:
+                return float(value)
+            except ValueError:  # pragma: no cover - the regex already guarantees this
+                return value
+        return value
+    if isinstance(value, dict):
+        return {_canonical_key(k): _canonicalise(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_canonicalise(v) for v in value]
+    if isinstance(value, tuple):
+        return tuple(_canonicalise(v) for v in value)
+    return value
+
+
 def loads_yaml(text: str) -> Any:
-    """Parse a YAML document from a string."""
+    """Parse a YAML document from a string.
+
+    Uses PyYAML when it is installed and the bundled parser otherwise, then
+    canonicalises the result so the two cannot disagree.
+    """
     if _pyyaml is not None:
-        return _pyyaml.safe_load(text)
+        return _canonicalise(_pyyaml.safe_load(text))
     reader = _Reader(text)
     head = reader.peek()
     if head is None:
         return None
-    return _parse_node(reader, head[0])
+    return _canonicalise(_parse_node(reader, head[0]))
 
 
 def load_yaml(path: str | os.PathLike[str]) -> Any:
@@ -340,13 +403,37 @@ def load_yaml(path: str | os.PathLike[str]) -> Any:
 _SPECIAL_CHARS = ":#[]{}\n"
 
 
+def _emit_float(value: float) -> str:
+    """Write a float that every parser reads back as a float.
+
+    ``repr(5e-05)`` is ``5e-05``, which YAML 1.1 treats as a string because
+    the mantissa has no decimal point. Emitting ``5.0e-05`` instead keeps
+    the round trip intact for PyYAML as well as the bundled parser.
+    """
+    if value != value or value in (float("inf"), float("-inf")):
+        return f'"{value}"'
+    text = repr(value)
+    if "e" in text or "E" in text:
+        mantissa, _, exponent = text.partition("e")
+        if "." not in mantissa:
+            mantissa += ".0"
+        if exponent and exponent[0] not in "+-":
+            exponent = "+" + exponent
+        return f"{mantissa}e{exponent}"
+    return text
+
+
 def _emit_scalar(value: Any) -> str:
     if value is None:
         return "null"
     if isinstance(value, bool):
         return "true" if value else "false"
-    if isinstance(value, (int, float)):
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, int):
         return repr(value)
+    if isinstance(value, float):
+        return _emit_float(value)
     text = str(value)
     reserved = _NULLS | _TRUE | _FALSE
     needs_quote = (

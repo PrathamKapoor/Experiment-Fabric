@@ -1,0 +1,22 @@
+# The pilot sample.
+#
+# Each entry is a perturbation study on a distinct pipeline. `real: false`
+# marks a simulated pipeline: it exercises the instrument and is excluded
+# from every finding, as the protocol requires.
+
+experiments:
+  - name: sentiment-classifier
+    spec: examples/text_classification/reproducibility.yaml
+    kind: classical ML, pure Python, bag-of-words
+    real: true
+
+  - name: torch-mlp
+    spec: examples/torch_mlp/reproducibility.yaml
+    kind: neural network, PyTorch, autograd
+    real: true
+    requires: torch
+
+  - name: agent-pipeline
+    spec: examples/agent_pipeline/reproducibility.yaml
+    kind: simulated retrieval agent
+    real: false

@@ -6,7 +6,7 @@ that a bundle can generate.
 | Section | Content | Generated from |
 |---|---|---|
 | 1. Introduction | Results are reported; the conditions that produced them are not preserved. The gap, and what it costs. | prose |
-| 2. Related work | Experiment trackers, workflow provenance (W3C PROV), reproducibility studies, statistical practice in ML. | prose |
+| 2. Related work | Trackers, replicability frameworks, provenance systems, statistical tooling, and the empirical randomness literature -- including what already answers parts of this question. | `docs/related-work.md` |
 | 3. The problem | "Reproducible" is not falsifiable as usually stated. What a falsifiable version requires. | prose |
 | 4. Method | Experiment graphs; the perturbation design; calibrated stability; the seed axis as yardstick. | `docs/reproducibility.md` |
 | 5. Instrument | Fabric: expansion, execution, provenance, statistics, integrity. Enough detail to reproduce the instrument itself. | `README.md`, `docs/` |

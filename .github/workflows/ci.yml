@@ -121,6 +121,24 @@ jobs:
           fabric reproduce /tmp/bundle-310 | tee /tmp/reproduction.txt
           grep -qE "PASS" /tmp/reproduction.txt
 
+  container:
+    name: Reproduction container
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the image
+        run: docker build -t experiment-fabric:ci .
+      - name: The CLI starts and the core is still dependency-free
+        run: |
+          docker run --rm experiment-fabric:ci fabric --version
+          docker run --rm experiment-fabric:ci python scripts/check_no_dependencies.py
+      - name: Run an experiment, export a bundle, reproduce it in the container
+        run: |
+          mkdir -p "$PWD/out"
+          docker run --rm -v "$PWD/out:/out" experiment-fabric:ci             bash scripts/container_check.sh /out
+      - name: The bundle survives leaving the container
+        run: test -f out/bundle/manifest.json
+
   build:
     name: Build and install the wheel
     runs-on: ubuntu-latest

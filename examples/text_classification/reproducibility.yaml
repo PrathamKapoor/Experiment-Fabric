@@ -1,0 +1,119 @@
+# Does the sentiment classifier reproduce?
+#
+#   fabric run examples/text_classification/reproducibility.yaml
+#
+# The same perturbation design as the PyTorch example, on a pipeline with
+# entirely different machinery: hand-written classifiers, pure Python, no
+# framework. Two pipelines with nothing in common except the instrument.
+
+experiment:
+  name: sentiment-reproducibility
+  research_question: >
+    How far does a pure-Python text classifier move under controlled
+    perturbations of the corpus version, the feature space, the learning rate
+    and the software environment - relative to how far it moves when only the
+    random seed changes?
+  hypothesis: >
+    The corpus version dominates because it changes the label noise. The
+    environment does nothing at all, because this pipeline has no threads and
+    no floating-point reductions that could reorder.
+  treatment_name: logistic-regression
+  tags: [text-classification, reproducibility, perturbation]
+
+dataset:
+  name: sentiment
+  version: v1
+  path: examples/text_classification/data/sentiment-v1
+  n_examples: 1600
+  splits:
+    train: {n: 1200, path: train.jsonl}
+    test: {n: 400, path: test.jsonl, role: evaluation}
+
+model:
+  name: bag-of-words
+  version: v1
+  architecture: sparse linear model over token counts
+  precision: float64
+
+algorithm:
+  name: logistic-regression
+  entrypoint: python:examples.text_classification.model:logistic_regression
+  commit: auto
+
+components: [lowercasing, bigrams, subsampling]
+
+configuration:
+  learning_rate: 0.05
+  epochs: 8
+  batch_size: 16
+  l2: 0.0
+  alpha: 1.0
+
+seeds:
+  strategy: fixed
+  values: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+baselines:
+  - name: naive-bayes
+    description: Retained so decision stability has a comparison to be stable about.
+    algorithm:
+      name: naive-bayes
+      entrypoint: python:examples.text_classification.model:naive_bayes
+      commit: auto
+
+metrics:
+  - name: accuracy
+    direction: maximize
+    primary: true
+    tolerance: 0.01
+  - name: f1
+    direction: maximize
+    tolerance: 0.01
+  - name: vocabulary_size
+    direction: minimize
+    tolerance: 50
+    description: Feature count. Moves when the feature space changes.
+  - name: train_seconds
+    direction: minimize
+    unit: s
+    tolerance: 1.0
+
+reproducibility:
+  enabled: true
+  determinism_replicates: 3
+  perturbations:
+    environment:
+      values:
+        - label: single-threaded
+          OMP_NUM_THREADS: "1"
+          MKL_NUM_THREADS: "1"
+        - label: hash-randomised
+          PYTHONHASHSEED: random
+    implementation:
+      values:
+        - name: naive-bayes-as-implementation
+          entrypoint: python:examples.text_classification.model:naive_bayes
+          commit: auto
+    dataset:
+      values:
+        - name: sentiment
+          version: v2
+          path: examples/text_classification/data/sentiment-v2
+          n_examples: 1600
+    configuration:
+      values:
+        - label: lr-0.2
+          learning_rate: 0.2
+        - label: more-epochs
+          epochs: 16
+
+analysis:
+  primary_metric: accuracy
+  alpha: 0.05
+  correction: holm
+  bootstrap_resamples: 5000
+
+execution:
+  isolation: process
+  max_workers: 4
+  timeout_seconds: 600

@@ -1,0 +1,85 @@
+{
+  "bundle_version": "1.0",
+  "experiment_id": "EXP-f694df8930",
+  "name": "sentiment-reproducibility",
+  "research_question": "How far does a pure-Python text classifier move under controlled perturbations of the corpus version, the feature space, the learning rate and the software environment - relative to how far it moves when only the random seed changes?",
+  "spec_digest": "sha256:cdd116b3b2ce93b341b2595778d9a53bc264e677aedcdacef3edda7f224cf5ba",
+  "created_at": 1789100534.7534254,
+  "files": {
+    "README.md": "sha256:00037cf4f8e939c46cd26d621b8e71a69d64f97b0965189c8a40e79ee7ebf4f4",
+    "analysis.json": "sha256:8854d515c2f31b0dd31c66060be0b35850643aa4792913a9adcfd4d5926357aa",
+    "certificate.json": "sha256:7262672da04cc70b6614f1e993e8f3f1ca5a8e4a28e9e98e341b855687ab9361",
+    "experiment.yaml": "sha256:4eac6c65c45145b98c78862b45e2ed883364886b139fd3b2513cb4e0aca0475e",
+    "report.md": "sha256:3d95e890d712013b720a8b4b2bb0546fd4a04ba8a0cf85375d0461663ecbce0b",
+    "reproduce.sh": "sha256:1733f60b0b25b24fe68183966259d6b7e03833a77fb85df8ad959e40487078a6",
+    "results.json": "sha256:7dc5e9db2b6f9c41ea78e0cfc806018f88e58f8bdeacb858a778b80c2a393d2a"
+  },
+  "entities": {
+    "dataset": {
+      "name": "sentiment",
+      "version": "v1",
+      "digest": "sha256:dc7654fbfa35ef9c3b338f8a997b912339861cccbe4c677d167fd5722519e82f",
+      "source": "",
+      "preprocessing": "",
+      "schema": {},
+      "splits": {
+        "train": {
+          "n": 1200,
+          "path": "train.jsonl"
+        },
+        "test": {
+          "n": 400,
+          "path": "test.jsonl",
+          "role": "evaluation"
+        }
+      },
+      "n_examples": 1600,
+      "license": "",
+      "notes": "",
+      "local_path": "C:\\Pratham\\Projects\\experiment-fabric\\examples/text_classification/data/sentiment-v1",
+      "registered_at": 1789100534.0373046,
+      "id": "ds-fa210bbbee52f073",
+      "kind": "Dataset"
+    },
+    "model": {
+      "name": "bag-of-words",
+      "version": "v1",
+      "weights_digest": "",
+      "architecture": "sparse linear model over token counts",
+      "commit": "",
+      "precision": "float64",
+      "quantization": "none",
+      "tokenizer": "",
+      "parameters": null,
+      "provider": "",
+      "config": {},
+      "local_path": "",
+      "registered_at": 1789100534.0515254,
+      "id": "mdl-75ebab4675446f1c",
+      "kind": "Model"
+    },
+    "algorithm": {
+      "name": "logistic-regression",
+      "entrypoint": "python:examples.text_classification.model:logistic_regression",
+      "commit": "2078734d7f4bad150b08e975ec7094fcc444139f",
+      "source_digest": "sha256:822ca4c09cfa4cd0581969a6e0771b6a4784d66117b70e8e022daa680cd42be9",
+      "version": "v1",
+      "description": "",
+      "params": {},
+      "dirty": true,
+      "registered_at": 1789100534.1334395,
+      "id": "alg-f583466bc695ec84",
+      "kind": "Algorithm"
+    }
+  },
+  "environment": {},
+  "hardware": {},
+  "counts": {
+    "conditions": 8,
+    "runs": 83,
+    "successful": 83,
+    "failed": 0,
+    "seeds": 10
+  },
+  "certificate_id": "EXP-CERT-a11bab82c836"
+}

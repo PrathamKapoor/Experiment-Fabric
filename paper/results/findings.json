@@ -1,0 +1,384 @@
+{
+  "generated_at": 1789100538.0667813,
+  "experiments": [
+    {
+      "name": "sentiment-classifier",
+      "real": true,
+      "experiment_id": "EXP-f694df8930",
+      "kind": "classical ML, pure Python, bag-of-words",
+      "bundle": "paper/results/bundles/sentiment-classifier",
+      "certificate_id": "EXP-CERT-a11bab82c836"
+    },
+    {
+      "name": "torch-mlp",
+      "real": true,
+      "experiment_id": "EXP-24d9c76f72",
+      "kind": "neural network, PyTorch, autograd",
+      "bundle": "paper/results/bundles/torch-mlp",
+      "certificate_id": "EXP-CERT-4ec933c5c20e"
+    },
+    {
+      "name": "agent-pipeline",
+      "real": false,
+      "experiment_id": "EXP-832b6cabc2",
+      "kind": "simulated retrieval agent",
+      "bundle": "paper/results/bundles/agent-pipeline",
+      "certificate_id": "EXP-CERT-32f23f47e24f"
+    }
+  ],
+  "skipped": [],
+  "axes": [
+    {
+      "experiment": "sentiment-classifier",
+      "real": true,
+      "axis": "implementation",
+      "label": "naive-bayes-as-implementation",
+      "metric": "accuracy",
+      "delta": 0.010249999999999981,
+      "noise_multiples": 0.7622275142043448,
+      "stability": 0.6892230576441103,
+      "tolerance_verdict": "inconclusive",
+      "permutation_p": 0.08977556109725686
+    },
+    {
+      "experiment": "sentiment-classifier",
+      "real": true,
+      "axis": "environment",
+      "label": "hash-randomised",
+      "metric": "accuracy",
+      "delta": 0.0,
+      "noise_multiples": 0.0,
+      "stability": 1.0,
+      "tolerance_verdict": "within",
+      "permutation_p": 1.0
+    },
+    {
+      "experiment": "sentiment-classifier",
+      "real": true,
+      "axis": "environment",
+      "label": "single-threaded",
+      "metric": "accuracy",
+      "delta": 0.0,
+      "noise_multiples": 0.0,
+      "stability": 1.0,
+      "tolerance_verdict": "within",
+      "permutation_p": 1.0
+    },
+    {
+      "experiment": "sentiment-classifier",
+      "real": true,
+      "axis": "configuration",
+      "label": "lr-0.2",
+      "metric": "accuracy",
+      "delta": -0.021499999999999964,
+      "noise_multiples": 1.5988186883310649,
+      "stability": 0.3070231546629142,
+      "tolerance_verdict": "beyond",
+      "permutation_p": 0.007481296758104738
+    },
+    {
+      "experiment": "sentiment-classifier",
+      "real": true,
+      "axis": "configuration",
+      "label": "more-epochs",
+      "metric": "accuracy",
+      "delta": 0.0014999999999999458,
+      "noise_multiples": 0.11154548988355882,
+      "stability": 1.0,
+      "tolerance_verdict": "within",
+      "permutation_p": 0.71571072319202
+    },
+    {
+      "experiment": "sentiment-classifier",
+      "real": true,
+      "axis": "dataset",
+      "label": "sentiment@v2",
+      "metric": "accuracy",
+      "delta": -0.10099999999999998,
+      "noise_multiples": 7.510729652159897,
+      "stability": 0.0,
+      "tolerance_verdict": "beyond",
+      "permutation_p": 0.0024937655860349127
+    },
+    {
+      "experiment": "torch-mlp",
+      "real": true,
+      "axis": "implementation",
+      "label": "torch-mlp-unfused-loss",
+      "metric": "test_loss",
+      "delta": 0.0,
+      "noise_multiples": 0.0,
+      "stability": 1.0,
+      "tolerance_verdict": "within",
+      "permutation_p": 1.0
+    },
+    {
+      "experiment": "torch-mlp",
+      "real": true,
+      "axis": "environment",
+      "label": "single-threaded",
+      "metric": "test_loss",
+      "delta": 2.4308264255534784e-05,
+      "noise_multiples": 0.010381864625020788,
+      "stability": 1.0,
+      "tolerance_verdict": "within",
+      "permutation_p": 0.85785536159601
+    },
+    {
+      "experiment": "torch-mlp",
+      "real": true,
+      "axis": "environment",
+      "label": "two-threaded",
+      "metric": "test_loss",
+      "delta": 1.681596040725708e-05,
+      "noise_multiples": 0.0071819617662788006,
+      "stability": 1.0,
+      "tolerance_verdict": "within",
+      "permutation_p": 0.9177057356608479
+    },
+    {
+      "experiment": "torch-mlp",
+      "real": true,
+      "axis": "configuration",
+      "label": "batch-32",
+      "metric": "test_loss",
+      "delta": -0.00012245625257489845,
+      "noise_multiples": 0.05230008294115361,
+      "stability": 1.0,
+      "tolerance_verdict": "within",
+      "permutation_p": 0.9301745635910225
+    },
+    {
+      "experiment": "torch-mlp",
+      "real": true,
+      "axis": "dataset",
+      "label": "spiral@v2",
+      "metric": "test_loss",
+      "delta": 0.18841209411621096,
+      "noise_multiples": 80.4692936636065,
+      "stability": 0.0,
+      "tolerance_verdict": "beyond",
+      "permutation_p": 0.0024937655860349127
+    },
+    {
+      "experiment": "torch-mlp",
+      "real": true,
+      "axis": "model",
+      "label": "mlp-2x128@v2",
+      "metric": "test_loss",
+      "delta": -0.0008338660001754594,
+      "noise_multiples": 0.35613747811129853,
+      "stability": 0.9138215509582434,
+      "tolerance_verdict": "within",
+      "permutation_p": 0.3092269326683292
+    },
+    {
+      "experiment": "agent-pipeline",
+      "real": false,
+      "axis": "implementation",
+      "label": "full-agent-reordered",
+      "metric": "accuracy",
+      "delta": 0.002749999999999919,
+      "noise_multiples": 0.12836483412537622,
+      "stability": 1.0,
+      "tolerance_verdict": "inconclusive",
+      "permutation_p": 0.71571072319202
+    },
+    {
+      "experiment": "agent-pipeline",
+      "real": false,
+      "axis": "environment",
+      "label": "hash-randomised",
+      "metric": "accuracy",
+      "delta": 0.0,
+      "noise_multiples": 0.0,
+      "stability": 1.0,
+      "tolerance_verdict": "within",
+      "permutation_p": 1.0
+    },
+    {
+      "experiment": "agent-pipeline",
+      "real": false,
+      "axis": "environment",
+      "label": "single-threaded",
+      "metric": "accuracy",
+      "delta": 0.0,
+      "noise_multiples": 0.0,
+      "stability": 1.0,
+      "tolerance_verdict": "within",
+      "permutation_p": 1.0
+    },
+    {
+      "experiment": "agent-pipeline",
+      "real": false,
+      "axis": "hardware",
+      "label": "no-accelerator",
+      "metric": "accuracy",
+      "delta": 0.0,
+      "noise_multiples": 0.0,
+      "stability": 1.0,
+      "tolerance_verdict": "within",
+      "permutation_p": 1.0
+    },
+    {
+      "experiment": "agent-pipeline",
+      "real": false,
+      "axis": "configuration",
+      "label": "temperature-0.8",
+      "metric": "accuracy",
+      "delta": -0.06324999999999992,
+      "noise_multiples": 2.952391184883736,
+      "stability": 0.05083722555841519,
+      "tolerance_verdict": "beyond",
+      "permutation_p": 0.0024937655860349127
+    },
+    {
+      "experiment": "agent-pipeline",
+      "real": false,
+      "axis": "dataset",
+      "label": "agent-benchmark@v2",
+      "metric": "accuracy",
+      "delta": 0.03025,
+      "noise_multiples": 1.4120131753791798,
+      "stability": 0.3827507017096198,
+      "tolerance_verdict": "beyond",
+      "permutation_p": 0.0199501246882793
+    },
+    {
+      "experiment": "agent-pipeline",
+      "real": false,
+      "axis": "model",
+      "label": "sim-reasoner@v2",
+      "metric": "accuracy",
+      "delta": 0.025249999999999995,
+      "noise_multiples": 1.1786225678784887,
+      "stability": 0.48313785321509173,
+      "tolerance_verdict": "beyond",
+      "permutation_p": 0.029925187032418952
+    }
+  ],
+  "h1": {
+    "rows": [
+      {
+        "experiment": "sentiment-classifier",
+        "max_noise_multiples": 7.510729652159897,
+        "exceeds_seed": true,
+        "worst_axis": "dataset"
+      },
+      {
+        "experiment": "torch-mlp",
+        "max_noise_multiples": 80.4692936636065,
+        "exceeds_seed": true,
+        "worst_axis": "dataset"
+      }
+    ],
+    "hits": 2,
+    "n": 2,
+    "wilson": [
+      0.34238022750665315,
+      1.0
+    ]
+  },
+  "h2": {
+    "ranking": [
+      {
+        "axis": "dataset",
+        "median_noise_multiples": 43.9900116578832,
+        "n": 2
+      },
+      {
+        "axis": "implementation",
+        "median_noise_multiples": 0.3811137571021724,
+        "n": 2
+      },
+      {
+        "axis": "model",
+        "median_noise_multiples": 0.35613747811129853,
+        "n": 1
+      },
+      {
+        "axis": "configuration",
+        "median_noise_multiples": 0.11154548988355882,
+        "n": 3
+      },
+      {
+        "axis": "environment",
+        "median_noise_multiples": 0.0035909808831394003,
+        "n": 4
+      }
+    ]
+  },
+  "h3": {
+    "rows": [
+      {
+        "experiment": "sentiment-classifier",
+        "real": true,
+        "deterministic": true,
+        "judged_metrics": [
+          "accuracy",
+          "f1",
+          "vocabulary_size"
+        ],
+        "excluded_metrics": [
+          "train_seconds"
+        ]
+      },
+      {
+        "experiment": "torch-mlp",
+        "real": true,
+        "deterministic": true,
+        "judged_metrics": [
+          "accuracy",
+          "test_loss",
+          "threads",
+          "train_loss"
+        ],
+        "excluded_metrics": [
+          "train_seconds"
+        ]
+      },
+      {
+        "experiment": "agent-pipeline",
+        "real": false,
+        "deterministic": true,
+        "judged_metrics": [
+          "accuracy",
+          "robustness"
+        ],
+        "excluded_metrics": [
+          "latency_ms"
+        ]
+      }
+    ],
+    "non_deterministic": 0,
+    "n": 2
+  },
+  "h4": {
+    "rows": [
+      {
+        "experiment": "sentiment-classifier",
+        "real": true,
+        "decision_stability": 1.0,
+        "full_verdict": "no_difference",
+        "subsample_size": 5,
+        "floor_limited": true
+      },
+      {
+        "experiment": "torch-mlp",
+        "real": true,
+        "decision_stability": 0.0,
+        "full_verdict": "worse",
+        "subsample_size": 5,
+        "floor_limited": true
+      },
+      {
+        "experiment": "agent-pipeline",
+        "real": false,
+        "decision_stability": 0.0,
+        "full_verdict": "better",
+        "subsample_size": 5,
+        "floor_limited": true
+      }
+    ]
+  }
+}

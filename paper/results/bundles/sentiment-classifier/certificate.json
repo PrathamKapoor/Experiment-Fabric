@@ -1,0 +1,134 @@
+{
+  "version": "1.0",
+  "experiment_id": "EXP-f694df8930",
+  "name": "sentiment-reproducibility",
+  "research_question": "How far does a pure-Python text classifier move under controlled perturbations of the corpus version, the feature space, the learning rate and the software environment - relative to how far it moves when only the random seed changes?",
+  "spec_digest": "sha256:cdd116b3b2ce93b341b2595778d9a53bc264e677aedcdacef3edda7f224cf5ba",
+  "checks": [
+    {
+      "name": "code",
+      "status": "incomplete",
+      "detail": "logistic-regression at sha256:822ca4c09cfa4cd0, commit 2078734d7f4b with uncommitted changes: the entrypoint file is pinned but the modules it imports are not",
+      "evidence": {
+        "source_digest": "sha256:822ca4c09cfa4cd0581969a6e0771b6a4784d66117b70e8e022daa680cd42be9",
+        "commit": "2078734d7f4bad150b08e975ec7094fcc444139f",
+        "dirty": true
+      }
+    },
+    {
+      "name": "dataset",
+      "status": "verified",
+      "detail": "sentiment@v1 sha256:dc7654fbfa35ef9c: content identifier verified",
+      "evidence": {
+        "digest": "sha256:dc7654fbfa35ef9c3b338f8a997b912339861cccbe4c677d167fd5722519e82f",
+        "id": "ds-fa210bbbee52f073"
+      }
+    },
+    {
+      "name": "model",
+      "status": "recorded",
+      "detail": "bag-of-words@v1 (no weights digest declared)",
+      "evidence": {
+        "id": "mdl-75ebab4675446f1c"
+      }
+    },
+    {
+      "name": "environment",
+      "status": "verified",
+      "detail": "1 environment(s) captured: env-bc687e9f7021",
+      "evidence": {
+        "environment_ids": [
+          "env-bc687e9f7021ff37"
+        ]
+      }
+    },
+    {
+      "name": "hardware",
+      "status": "recorded",
+      "detail": "1 machine(s): hw-8223ca8010a1c",
+      "evidence": {
+        "hardware_ids": [
+          "hw-8223ca8010a1cc99"
+        ]
+      }
+    },
+    {
+      "name": "seeds",
+      "status": "complete",
+      "detail": "10/10 seeds completed in the thinnest arm",
+      "evidence": {
+        "planned": 10,
+        "minimum_completed": 10
+      }
+    },
+    {
+      "name": "baselines",
+      "status": "complete",
+      "detail": "1/1 executed",
+      "evidence": {
+        "expected": 1,
+        "executed": 1
+      }
+    },
+    {
+      "name": "ablations",
+      "status": "unverified",
+      "detail": "no ablations were declared",
+      "evidence": {}
+    },
+    {
+      "name": "statistics",
+      "status": "verified",
+      "detail": "4/4 comparisons tested, holm-corrected at alpha=0.05, analysis version 1.0",
+      "evidence": {
+        "comparisons": 4,
+        "untested": 0
+      }
+    },
+    {
+      "name": "artifacts",
+      "status": "complete",
+      "detail": "83 artifacts, all present and matching their digests",
+      "evidence": {
+        "count": 83
+      }
+    },
+    {
+      "name": "provenance",
+      "status": "complete",
+      "detail": "83 runs recorded (0 failed); every successful run carries its environment, hardware and code identity",
+      "evidence": {
+        "runs": 83,
+        "failed": 0
+      }
+    },
+    {
+      "name": "determinism",
+      "status": "verified",
+      "detail": "Deterministic: 4 executions of an identical run produced identical values on every result metric (accuracy, f1, vocabulary_size). train_seconds varied, as expected: those measure the machine rather than the method.",
+      "evidence": {}
+    },
+    {
+      "name": "reproducibility",
+      "status": "incomplete",
+      "detail": "Across 6 perturbation axes, the most fragile is 'dataset' (stability 0.00); the geometric mean is 0.02. Changing configuration, dataset moves accuracy beyond the tolerance declared for it, so a reproduction differing on those axes should not be expected to match. On implementation the data cannot decide whether the shift stays within tolerance; more runs would be needed to say.",
+      "evidence": {
+        "worst_case": 0.0,
+        "axes": 6
+      }
+    },
+    {
+      "name": "integrity",
+      "status": "verified",
+      "detail": "6 passed, 0 informational, 0 warnings, 0 failures",
+      "evidence": {}
+    }
+  ],
+  "reproduction": null,
+  "verdict": "PASS WITH GAPS",
+  "certificate_id": "EXP-CERT-a11bab82c836",
+  "issued_at": 1789100534.6556237,
+  "notes": [
+    "A verdict of PASS WITH GAPS means every check that could be run passed, and some could not be run. The gaps are listed above; they are not failures, but they are not verification either."
+  ]
+}

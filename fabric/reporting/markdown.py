@@ -19,6 +19,7 @@ from fabric.reporting.document import (
     Chart,
     Code,
     Document,
+    GraphView,
     KeyValues,
     Paragraph,
     Table,
@@ -117,6 +118,18 @@ def render_block(block: Block) -> list[str]:
         return lines
     if isinstance(block, Chart):
         return render_chart(block)
+    if isinstance(block, GraphView):
+        # Markdown cannot be interactive, but many renderers draw mermaid,
+        # and the ones that do not still show a readable definition.
+        lines = []
+        if block.caption:
+            lines.append(f"*{block.caption}*")
+            lines.append("")
+        if block.mermaid:
+            lines.append("```mermaid")
+            lines.append(block.mermaid)
+            lines.append("```")
+        return lines
     return []
 
 

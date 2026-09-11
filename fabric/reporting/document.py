@@ -93,6 +93,26 @@ class Code(Block):
 
 
 @dataclass
+class GraphView(Block):
+    """An interactive provenance graph.
+
+    Carries pre-rendered HTML plus text fallbacks, because only one output
+    format can be interactive and the others must still say what the graph
+    contains rather than silently omitting it.
+    """
+
+    html: str = ""
+    caption: str = ""
+    mermaid: str = ""
+    stats: dict[str, Any] = field(default_factory=dict)
+    alt: str = ""
+
+    def to_dict(self) -> dict[str, Any]:
+        return {"type": "graphview", "caption": self.caption, "stats": self.stats,
+                "mermaid": self.mermaid, "alt": self.alt}
+
+
+@dataclass
 class Chart(Block):
     """A chart described by data, rendered by whichever format supports it."""
 

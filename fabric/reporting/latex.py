@@ -23,6 +23,7 @@ from fabric.reporting.document import (
     Chart,
     Code,
     Document,
+    GraphView,
     KeyValues,
     Paragraph,
     Table,
@@ -129,6 +130,9 @@ def _render_block(block: Block) -> str:
         return rf"\par\noindent\textbf{{{escape(block.title)}.}}{text}\par"
     if isinstance(block, Code):
         return (r"\begin{verbatim}" + "\n" + block.text + "\n" + r"\end{verbatim}")
+    if isinstance(block, GraphView):
+        return (rf"\par\noindent\textit{{{escape(block.caption)}}}\par"
+                if block.caption else "")
     if isinstance(block, Chart):
         # Charts carry no information the tables do not; the caption keeps
         # the reference so a figure can be dropped in later.

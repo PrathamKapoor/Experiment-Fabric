@@ -16,7 +16,7 @@ normally archaeology:
 from __future__ import annotations
 
 from collections import deque
-from collections.abc import Iterable, Iterator, Mapping
+from collections.abc import Iterable, Iterator, Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any, ClassVar
 
@@ -260,6 +260,145 @@ class ExperimentGraph:
         """The node plus everything it descends from."""
         ids = {node_id} | {n.id for n in self.ancestors(node_id)}
         return self.subgraph(ids)
+
+    def collapsed(self, *, keep_metrics: bool = True,
+                  metrics: Sequence[str] | None = None,
+                  include_comparisons: bool = False,
+                  include_artifacts: bool = False) -> ExperimentGraph:
+        """A legible summary: replications folded into one node per condition.
+
+        The full graph of a 120-run experiment has several hundred run,
+        metric and artifact nodes. Drawn literally it is a hairball that
+        communicates nothing. Folding each condition's replications into a
+        single "10 runs" node keeps every *structural* relationship -- which
+        dataset, which model, which code, which environment -- while making
+        the picture readable.
+
+        ``metrics`` restricts which metric nodes survive -- by default a
+        twelve-arm, five-metric experiment contributes sixty metric nodes and
+        fifty comparison nodes, which is another hairball. Keeping the primary
+        metric alone leaves the structural spine visible.
+
+        This is an abstraction, and anything displaying it should say so:
+        the full graph remains available for querying and export.
+        """
+        wanted = set(metrics) if metrics is not None else None
+        result = ExperimentGraph(self.name)
+        runs_by_condition: dict[str, list[Node]] = {}
+        metrics_by_run: dict[str, list[Node]] = {}
+        artifacts_by_run: dict[str, list[Node]] = {}
+
+        for node in self._nodes.values():
+            if node.kind == "run":
+                parents = list(self.predecessors(node.id, REPLICATES))
+                key = parents[0].id if parents else ""
+                runs_by_condition.setdefault(key, []).append(node)
+            elif node.kind == "metric":
+                origin = str(node.attributes.get("run", ""))
+                metrics_by_run.setdefault(origin, []).append(node)
+            elif node.kind == "artifact":
+                origin = node.id.split("/artifact/")[0]
+                artifacts_by_run.setdefault(origin, []).append(node)
+
+        folded: dict[str, str] = {}  # original node id -> node id in the summary
+        for node in self._nodes.values():
+            if node.kind in ("run", "metric", "artifact"):
+                continue
+            if node.kind in ("comparison", "claim") and not include_comparisons:
+                # A claim node with its supporting comparisons removed would
+                # float unattached and imply support it no longer shows.
+                continue
+            result.add_node(node.id, node.kind, node.label, **node.attributes)
+            folded[node.id] = node.id
+
+        for condition_id, runs in runs_by_condition.items():
+            if not condition_id or condition_id not in result:
+                continue
+            group_id = f"{condition_id}/runs"
+            succeeded = sum(1 for r in runs if r.attributes.get("status") in
+                            ("completed", "cached"))
+            failed = sum(1 for r in runs if r.attributes.get("status") == "failed")
+            label = f"{len(runs)} runs" + (f", {failed} failed" if failed else "")
+            result.add_node(group_id, "runs", label, count=len(runs),
+                            succeeded=succeeded, failed=failed,
+                            seeds=sorted({r.attributes.get("seed") for r in runs}))
+            result.add_edge(condition_id, group_id, REPLICATES)
+            for run in runs:
+                folded[run.id] = group_id
+
+            artifact_count = sum(len(artifacts_by_run.get(r.id, [])) for r in runs)
+            if artifact_count and include_artifacts:
+                artifact_id = f"{condition_id}/artifacts"
+                result.add_node(artifact_id, "artifact", f"{artifact_count} artifacts",
+                                count=artifact_count)
+                result.add_edge(group_id, artifact_id, PRODUCES)
+
+            if not keep_metrics:
+                continue
+            values: dict[str, list[float]] = {}
+            for run in runs:
+                for metric in metrics_by_run.get(run.id, []):
+                    name = str(metric.attributes.get("metric", ""))
+                    value = metric.attributes.get("value")
+                    if name and isinstance(value, (int, float)):
+                        values.setdefault(name, []).append(float(value))
+            for name, samples in sorted(values.items()):
+                if wanted is not None and name not in wanted:
+                    continue
+                mean = sum(samples) / len(samples)
+                metric_id = f"{condition_id}/metric/{name}"
+                result.add_node(metric_id, "metric", f"{name}={mean:.4g}",
+                                metric=name, value=mean, n=len(samples))
+                result.add_edge(group_id, metric_id, PRODUCES)
+                folded[f"metric:{condition_id}:{name}"] = metric_id
+
+        # Re-point every surviving edge at whatever its endpoints folded into.
+        for edge in self.edges:
+            source = folded.get(edge.source)
+            target = folded.get(edge.target)
+            if not source or not target or source == target:
+                continue
+            if source in result and target in result:
+                result.add_edge(source, target, edge.relation, **edge.attributes)
+
+        # Comparisons and claims connect through metric values; reconnect them
+        # to the folded per-condition metric nodes instead.
+        if not include_comparisons:
+            return result._without_isolated_nodes()
+        for node in self._nodes.values():
+            if node.kind != "comparison":
+                continue
+            metric_name = str(node.attributes.get("metric", ""))
+            for source in self.predecessors(node.id, SUPPORTS):
+                origin = (source.attributes.get("run")
+                          if source.kind == "metric" else source.id)
+                condition = None
+                for candidate, runs in runs_by_condition.items():
+                    if any(r.id == origin for r in runs):
+                        condition = candidate
+                        break
+                if condition is None:
+                    continue
+                metric_id = f"{condition}/metric/{metric_name}"
+                if metric_id in result and node.id in result:
+                    result.add_edge(metric_id, node.id, SUPPORTS)
+        return result._without_isolated_nodes()
+
+    def _without_isolated_nodes(self) -> ExperimentGraph:
+        """Drop nodes left with no edges at all.
+
+        Folding can orphan a node whose only relationships went through
+        something that was removed -- an analysis node once its comparisons
+        are gone, for instance. An unconnected box in a provenance picture
+        claims a relationship it cannot show.
+        """
+        connected = {
+            node.id for node in self._nodes.values()
+            if self._out.get(node.id) or self._in.get(node.id)
+        }
+        if len(connected) == len(self._nodes):
+            return self
+        return self.subgraph(connected)
 
     # -- statistics --------------------------------------------------------
 

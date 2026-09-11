@@ -28,6 +28,7 @@ from fabric.reporting.document import (
     Chart,
     Code,
     Document,
+    GraphView,
     KeyValues,
     Paragraph,
     Section,
@@ -893,6 +894,27 @@ def _provenance_section(document: Document, analysis: ExperimentAnalysis,
     section.summary = "Where every number came from."
 
     if graph is not None:
+        from fabric.reporting import graphview
+
+        # The primary metric only: every metric of every arm is a hairball.
+        summary = graph.collapsed(metrics=[analysis.primary_metric])
+        rendered = graphview.render(
+            summary,
+            element_id=f"provenance-{analysis.experiment_id}",
+            caption="Every arm of this experiment and the inputs it came from. "
+                    "Click a node to light up its lineage; drag to pan, scroll to zoom.",
+            full_node_count=len(graph),
+        )
+        if rendered:
+            section.add(GraphView(
+                html=rendered,
+                caption="The provenance graph. Clicking a node performs the same "
+                        "query as 'fabric why' and highlights the chain of custody.",
+                mermaid=summary.to_mermaid(),
+                stats=summary.stats(),
+                alt=f"Provenance graph with {len(summary)} nodes.",
+            ))
+
         stats = graph.stats()
         section.add(KeyValues([
             ("Graph nodes", str(stats["nodes"])),

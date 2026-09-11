@@ -25,10 +25,12 @@ from fabric.reporting.document import (
     Chart,
     Code,
     Document,
+    GraphView,
     KeyValues,
     Paragraph,
     Table,
 )
+from fabric.reporting.graphview import STYLE as GRAPH_STYLE
 
 STYLESHEET = """
 :root {
@@ -233,6 +235,8 @@ def _render_block(block: Block) -> str:
     if isinstance(block, Code):
         caption = f'<p class="caption">{_esc(block.caption)}</p>' if block.caption else ""
         return f"{caption}<pre><code>{_esc(block.text)}</code></pre>"
+    if isinstance(block, GraphView):
+        return block.html
     if isinstance(block, Chart):
         svg = plots.render(block.kind, block.data)
         if not svg:
@@ -303,5 +307,5 @@ def render(document: Document, *, standalone: bool = True) -> str:
         '<html lang="en">\n<head>\n<meta charset="utf-8">\n'
         '<meta name="viewport" content="width=device-width, initial-scale=1">\n'
         f"<title>{_esc(document.title)} — Experiment Fabric</title>\n"
-        f"<style>{STYLESHEET}</style>\n</head>\n<body>\n{content}\n</body>\n</html>\n"
+        f"<style>{STYLESHEET}{GRAPH_STYLE}</style>\n</head>\n<body>\n{content}\n</body>\n</html>\n"
     )

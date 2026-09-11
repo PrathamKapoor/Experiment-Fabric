@@ -736,7 +736,21 @@ def cmd_graph(args: argparse.Namespace) -> int:
     if args.node and args.node not in graph:
         raise CommandError(f"no node {args.node} in the provenance graph")
 
-    if args.format == "ascii":
+    if args.format == "html":
+        from fabric.reporting import graphview
+
+        source = graph.lineage(args.node) if args.node else graph
+        summary = (source if args.full or args.node
+                   else source.collapsed(metrics=[plan.spec.primary_metric]))
+        text = graphview.render_page(
+            summary,
+            title=f"{plan.experiment.name} - provenance",
+            caption="Click a node to light up its lineage; drag to pan, scroll to zoom.",
+            full_node_count=len(graph),
+        )
+        if not args.out:
+            args.out = os.path.join(workspace.reports_dir(experiment_id), "graph.html")
+    elif args.format == "ascii":
         node = args.node or (graph.nodes_of_kind("claim") or graph.leaves)[0].id
         text = graph.to_ascii(node, depth=args.depth)
     elif args.format == "dot":
@@ -1191,9 +1205,12 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("graph", help="export the provenance graph")
     p.add_argument("experiment")
     p.add_argument("--format", default="mermaid",
-                   choices=["mermaid", "dot", "json", "ascii"])
+                   choices=["mermaid", "dot", "json", "ascii", "html"])
     p.add_argument("--node", help="restrict to one node's lineage")
     p.add_argument("--depth", type=int, default=6, help="ascii tree depth")
+    p.add_argument("--full", action="store_true",
+                   help="every run, rather than folding replications per condition")
+    p.add_argument("--open", action="store_true", help="open an html graph")
     p.add_argument("--out", help="write to a file")
     p.set_defaults(func=cmd_graph)
 

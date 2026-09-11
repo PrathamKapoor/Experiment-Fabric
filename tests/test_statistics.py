@@ -424,3 +424,20 @@ def test_required_replications_answers_how_many_more_seeds():
     few = required_replications(effect=0.05, spread=0.02)
     many = required_replications(effect=0.005, spread=0.02)
     assert 2 <= few < many
+
+
+def test_timing_metrics_are_not_expected_to_be_deterministic():
+    """A stopwatch is not a claim about the method."""
+    from fabric.core.entities import MetricSpec, metric_specs
+
+    specs = {s.name: s for s in metric_specs(
+        ["accuracy", "train_seconds", "latency_ms", "peak_memory_bytes", "f1"])}
+    assert specs["accuracy"].deterministic is True
+    assert specs["f1"].deterministic is True
+    assert specs["train_seconds"].deterministic is False
+    assert specs["latency_ms"].deterministic is False
+    assert specs["peak_memory_bytes"].deterministic is False
+
+    # and the inference is overridable
+    explicit = MetricSpec.from_any({"name": "train_seconds", "deterministic": True})
+    assert explicit.deterministic is True

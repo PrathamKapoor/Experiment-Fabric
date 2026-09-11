@@ -33,6 +33,8 @@ class MetricDeterminism:
     seed: int
     values: tuple[float, ...]
     n_replicates: int
+    expected_deterministic: bool = True
+    """False for metrics that measure the machine rather than the method."""
 
     @property
     def identical(self) -> bool:
@@ -58,6 +60,7 @@ class MetricDeterminism:
             "seed": self.seed,
             "values": list(self.values),
             "n_replicates": self.n_replicates,
+            "expected_deterministic": self.expected_deterministic,
             "identical": self.identical,
             "max_deviation": self.max_deviation,
             "relative_deviation": self.relative_deviation,
@@ -73,8 +76,24 @@ class DeterminismReport:
     notes: list[str] = field(default_factory=list)
 
     @property
+    def judged(self) -> list[MetricDeterminism]:
+        """The results the verdict is based on.
+
+        Timing and memory metrics are excluded: they vary between identical
+        runs by construction, and letting them decide the verdict would
+        report every real pipeline as non-deterministic while hiding
+        whether its results actually reproduce.
+        """
+        return [r for r in self.results if r.expected_deterministic]
+
+    @property
+    def excluded(self) -> list[MetricDeterminism]:
+        return [r for r in self.results if not r.expected_deterministic]
+
+    @property
     def deterministic(self) -> bool:
-        return self.tested and all(r.identical for r in self.results)
+        judged = self.judged
+        return self.tested and bool(judged) and all(r.identical for r in judged)
 
     @property
     def verdict(self) -> str:
@@ -84,7 +103,7 @@ class DeterminismReport:
 
     @property
     def worst(self) -> MetricDeterminism | None:
-        candidates = [r for r in self.results if not r.identical]
+        candidates = [r for r in self.judged if not r.identical]
         if not candidates:
             return None
         return max(candidates, key=lambda r: r.relative_deviation)
@@ -96,7 +115,7 @@ class DeterminismReport:
         the reproducibility analysis uses it to say when a "difference"
         is smaller than the machine's own jitter.
         """
-        deviations = [r.max_deviation for r in self.results if r.metric == metric]
+        deviations = [r.max_deviation for r in self.judged if r.metric == metric]
         return max(deviations) if deviations else 0.0
 
     def describe(self) -> str:
@@ -107,11 +126,19 @@ class DeterminismReport:
                 "to have Fabric execute identical runs and check."
             )
         if self.deterministic:
-            n = max((r.n_replicates for r in self.results), default=0)
-            return (
+            n = max((r.n_replicates for r in self.judged), default=0)
+            metrics = sorted({r.metric for r in self.judged})
+            text = (
                 f"Deterministic: {n} executions of an identical run produced identical "
-                "values on every metric."
+                f"values on every result metric ({', '.join(metrics)})."
             )
+            excluded = sorted({r.metric for r in self.excluded})
+            if excluded:
+                text += (
+                    f" {', '.join(excluded)} varied, as expected: those measure the "
+                    "machine rather than the method."
+                )
+            return text
         worst = self.worst
         assert worst is not None
         return (
@@ -127,6 +154,8 @@ class DeterminismReport:
             "tested": self.tested,
             "deterministic": self.deterministic,
             "verdict": self.verdict,
+            "judged_metrics": sorted({r.metric for r in self.judged}),
+            "excluded_metrics": sorted({r.metric for r in self.excluded}),
             "results": [r.to_dict() for r in self.results],
             "worst": worst.to_dict() if worst else None,
             "description": self.describe(),
@@ -149,8 +178,10 @@ def analyse_determinism(results: ResultSet, *,
             for seed, values in grouped.items():
                 if len(values) < 2:
                     continue
-                report.tested = True
+                if spec.deterministic:
+                    report.tested = True
                 report.results.append(MetricDeterminism(
+                    expected_deterministic=spec.deterministic,
                     metric=spec.name,
                     condition=condition.name,
                     seed=seed,

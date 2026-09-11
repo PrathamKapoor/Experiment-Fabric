@@ -1,0 +1,138 @@
+# Does a real PyTorch training run reproduce?
+#
+#   fabric run examples/torch_mlp/reproducibility.yaml
+#
+# One thing changes per condition. This is the perturbation study applied to
+# an actual training pipeline rather than a simulation.
+
+experiment:
+  name: torch-mlp-reproducibility
+  research_question: >
+    How far does a real PyTorch training run move under controlled
+    perturbations of the thread count, the loss implementation, the model
+    width, the dataset version and the batch size - relative to how far it
+    moves when only the random seed changes?
+  hypothesis: >
+    Changing the CPU thread count perturbs floating-point reduction order and
+    so moves the loss slightly, while leaving accuracy untouched; the model
+    width, the dataset version and the batch size move both. Fixing the seed
+    does not make training deterministic across thread counts.
+  treatment_name: mlp
+  tags: [pytorch, reproducibility, perturbation]
+
+dataset:
+  name: spiral
+  version: v1
+  path: examples/torch_mlp/data/spiral-v1
+  n_examples: 1400
+  splits:
+    train: {n: 1050, path: train.jsonl}
+    test: {n: 350, path: test.jsonl, role: evaluation}
+
+model:
+  name: mlp-2x64
+  version: v1
+  architecture: 2-64-64-2 multi-layer perceptron
+  precision: float32
+  config:
+    framework: pytorch
+    width: 64
+
+algorithm:
+  name: torch-mlp
+  entrypoint: python:examples.torch_mlp.model:mlp
+  commit: auto
+
+components: [normalisation, dropout, weight_decay, lr_schedule]
+
+configuration:
+  epochs: 40
+  batch_size: 64
+  learning_rate: 0.01
+  weight_decay: 0.0001
+  dropout_rate: 0.1
+
+seeds:
+  strategy: fixed
+  values: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+baselines:
+  - name: logistic-regression
+    description: Kept so decision stability has a comparison to be stable about.
+    algorithm:
+      name: torch-logreg
+      entrypoint: python:examples.torch_mlp.model:logistic_regression
+      commit: auto
+
+metrics:
+  # test_loss is primary here, deliberately. Accuracy on 350 points is
+  # quantised to 1/350 = 0.0029 and saturates at this task's ceiling, so it
+  # has no resolution left to detect a perturbation with. Studying
+  # reproducibility on a metric that cannot move would measure nothing and
+  # report it as perfect stability.
+  - name: test_loss
+    direction: minimize
+    primary: true
+    tolerance: 0.02
+    description: Cross-entropy on the held-out split. The sensitive metric.
+  - name: accuracy
+    direction: maximize
+    tolerance: 0.01
+    description: Reported alongside, to show what the perturbation does NOT move.
+  - name: train_loss
+    direction: minimize
+    tolerance: 0.05
+  - name: train_seconds
+    direction: minimize
+    unit: s
+    tolerance: 3.0
+  - name: threads
+    direction: neutral
+
+reproducibility:
+  enabled: true
+  determinism_replicates: 3
+  perturbations:
+    environment:
+      values:
+        - label: single-threaded
+          OMP_NUM_THREADS: "1"
+          MKL_NUM_THREADS: "1"
+        - label: two-threaded
+          OMP_NUM_THREADS: "2"
+          MKL_NUM_THREADS: "2"
+    implementation:
+      values:
+        - name: torch-mlp-unfused-loss
+          entrypoint: python:examples.torch_mlp.model:mlp_fused_loss
+          commit: auto
+    model:
+      values:
+        - name: mlp-2x128
+          version: v2
+          architecture: 2-128-128-2 multi-layer perceptron
+          precision: float32
+          config:
+            framework: pytorch
+            width: 128
+    dataset:
+      values:
+        - name: spiral
+          version: v2
+          path: examples/torch_mlp/data/spiral-v2
+          n_examples: 1400
+    configuration:
+      values:
+        - label: batch-32
+          batch_size: 32
+
+analysis:
+  primary_metric: test_loss
+  alpha: 0.05
+  correction: holm
+  bootstrap_resamples: 5000
+
+execution:
+  isolation: process
+  max_workers: 3
+  timeout_seconds: 900

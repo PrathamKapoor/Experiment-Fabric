@@ -1,0 +1,10 @@
+{
+  "generator": "examples/torch_mlp/make_data.py",
+  "id_overlap": 0,
+  "label_noise": 0.02,
+  "splits": {
+    "test": 350,
+    "train": 1050
+  },
+  "version": "v1"
+}

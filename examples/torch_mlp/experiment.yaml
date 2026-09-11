@@ -1,0 +1,125 @@
+# A real PyTorch training run: ablation and baselines.
+#
+#   pip install torch --index-url https://download.pytorch.org/whl/cpu
+#   python examples/torch_mlp/make_data.py
+#   fabric run examples/torch_mlp/experiment.yaml
+
+experiment:
+  name: torch-mlp-ablation
+  research_question: >
+    On a non-linearly-separable task, how much does each optional component of
+    a small MLP (batch normalisation, dropout, weight decay, a cosine learning
+    rate schedule) contribute to held-out accuracy, and does any of it beat a
+    linear model by more than seed noise?
+  hypothesis: >
+    The MLP beats the linear baseline decisively because the task is not
+    linearly separable. Batch normalisation carries most of the remaining
+    gain; dropout and weight decay do nothing measurable at this scale.
+  treatment_name: mlp
+  tags: [pytorch, ablation, real-training]
+
+dataset:
+  name: spiral
+  version: v1
+  path: examples/torch_mlp/data/spiral-v1
+  source: examples/torch_mlp/make_data.py
+  preprocessing: none; coordinates are used as-is
+  n_examples: 1400
+  splits:
+    train:
+      n: 1050
+      path: train.jsonl
+    test:
+      n: 350
+      path: test.jsonl
+      role: evaluation
+
+model:
+  name: mlp-2x64
+  version: v1
+  architecture: 2-64-64-2 multi-layer perceptron
+  precision: float32
+  config:
+    framework: pytorch
+    width: 64
+
+algorithm:
+  name: torch-mlp
+  entrypoint: python:examples.torch_mlp.model:mlp
+  commit: auto
+  description: Adam, cross-entropy, minibatch training.
+
+components: [normalisation, dropout, weight_decay, lr_schedule]
+
+configuration:
+  epochs: 40
+  batch_size: 64
+  learning_rate: [0.003, 0.01]
+  weight_decay: 0.0001
+  dropout_rate: 0.1
+
+seeds:
+  strategy: fixed
+  values: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+baselines:
+  - name: logistic-regression
+    description: A linear model, which cannot separate two interleaved spirals.
+    algorithm:
+      name: torch-logreg
+      entrypoint: python:examples.torch_mlp.model:logistic_regression
+      commit: auto
+  - name: untrained
+    description: The same architecture at initialisation. The floor.
+    algorithm:
+      name: torch-untrained
+      entrypoint: python:examples.torch_mlp.model:untrained
+      commit: auto
+
+ablations:
+  - remove_normalisation
+  - remove_dropout
+  - remove_weight_decay
+  - remove_lr_schedule
+  - name: remove_normalisation+dropout
+    remove: [normalisation, dropout]
+    description: The two regularisers together.
+
+metrics:
+  - name: accuracy
+    direction: maximize
+    primary: true
+    tolerance: 0.01
+    description: Held-out accuracy on 350 unseen points.
+  - name: f1
+    direction: maximize
+    tolerance: 0.01
+  - name: test_loss
+    direction: minimize
+    tolerance: 0.02
+    description: >
+      The sensitive metric. It responds to perturbations that leave accuracy
+      untouched, which is why both are reported.
+  - name: train_loss
+    direction: minimize
+    tolerance: 0.05
+  - name: train_seconds
+    direction: minimize
+    unit: s
+    tolerance: 2.0
+  - name: threads
+    direction: neutral
+    description: Recorded so the environment perturbation is visible in the data.
+
+analysis:
+  primary_metric: accuracy
+  alpha: 0.05
+  correction: holm
+  bootstrap_resamples: 5000
+
+execution:
+  # Process isolation: each run gets a fresh interpreter, so PyTorch's global
+  # thread configuration cannot leak between conditions.
+  isolation: process
+  max_workers: 3
+  timeout_seconds: 600

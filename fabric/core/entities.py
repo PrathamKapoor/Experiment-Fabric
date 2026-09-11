@@ -358,6 +358,24 @@ class MetricSpec:
     difference tests, which is what a reproduction attempt actually wants
     to know: not "is it different?" but "is it the same within X?".
     """
+    deterministic: bool | None = None
+    """Whether identical runs are expected to produce an identical value.
+
+    Wall-clock timings and memory readings are measurements of the machine,
+    not claims about the method: they vary between identical runs by
+    construction. Reporting a pipeline as non-deterministic because a
+    stopwatch moved would bury the finding that matters -- whether the
+    *results* reproduce -- under one that never could.
+
+    Left as ``None`` it is inferred from the metric name, however the spec
+    is constructed -- so ``MetricSpec(name="train_seconds")`` and
+    ``MetricSpec.from_any("train_seconds")`` agree, rather than the direct
+    constructor silently claiming a stopwatch is reproducible.
+    """
+
+    def __post_init__(self) -> None:
+        if self.deterministic is None:
+            object.__setattr__(self, "deterministic", _infer_determinism(self.name))
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -367,6 +385,7 @@ class MetricSpec:
             "primary": self.primary,
             "description": self.description,
             "tolerance": self.tolerance,
+            "deterministic": self.deterministic,
         }
 
     @staticmethod
@@ -383,6 +402,7 @@ class MetricSpec:
                 data = {"name": name, **(spec or {})}
             name = str(data["name"])
             direction = data.get("direction")
+            declared = data.get("deterministic")
             return MetricSpec(
                 name=name,
                 direction=Direction(direction) if direction else _infer_direction(name),
@@ -390,11 +410,26 @@ class MetricSpec:
                 primary=bool(data.get("primary", False)),
                 description=str(data.get("description", "")),
                 tolerance=_opt_float(data.get("tolerance")),
+                deterministic=None if declared is None else bool(declared),
             )
         raise TypeError(f"cannot read a metric specification from {value!r}")
 
 
 _LOWER_IS_BETTER = ("loss", "error", "latency", "time", "cost", "memory", "perplexity", "regret", "rate_of_failure")
+
+_MEASURES_THE_MACHINE = ("seconds", "latency", "time", "duration", "elapsed",
+                         "memory", "rss", "bytes", "throughput", "flops",
+                         "wall", "runtime", "energy", "watts")
+"""Name fragments that mark a metric as a measurement of the machine.
+
+These vary between identical runs by construction, so they are excluded
+from the determinism verdict rather than being allowed to fail it.
+"""
+
+
+def _infer_determinism(name: str) -> bool:
+    lowered = name.lower()
+    return not any(token in lowered for token in _MEASURES_THE_MACHINE)
 
 
 def _infer_direction(name: str) -> Direction:

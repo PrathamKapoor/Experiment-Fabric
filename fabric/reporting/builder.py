@@ -728,14 +728,18 @@ def _reproducibility_section(document: Document, analysis: ExperimentAnalysis) -
     subsection.paragraph(determinism.describe())
     if determinism.tested:
         subsection.table(
-            ["Condition", "Metric", "Seed", "Replicates", "Identical", "Max deviation"],
+            ["Condition", "Metric", "Seed", "Replicates", "Identical",
+             "Max deviation", "Counts toward the verdict"],
             [[r.condition, r.metric, str(r.seed), str(r.n_replicates),
-              "yes" if r.identical else "no", _num(r.max_deviation, 8)]
+              "yes" if r.identical else "no", _num(r.max_deviation, 8),
+              "yes" if r.expected_deterministic else "no (measures the machine)"]
              for r in determinism.results],
             caption="Repeat executions of identical runs",
             note="A determinism replicate is the same run executed again: same seed, "
-                 "same code, same data, same machine. Any difference is a floor on "
-                 "the effects this pipeline can measure.")
+                 "same code, same data, same machine. Any difference on a result "
+                 "metric is a floor on the effects this pipeline can measure. Timing "
+                 "and memory metrics vary between identical runs by construction and "
+                 "are reported but excluded from the verdict.")
     subsection.bullets(determinism.notes)
 
     if profile.seed:

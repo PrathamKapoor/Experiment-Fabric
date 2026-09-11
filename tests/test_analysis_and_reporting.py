@@ -550,3 +550,52 @@ def test_a_non_exact_reproduction_without_tolerance_stays_honest(executed):
     # that was never set.
     assert report.verdict == "FAIL"
     assert any("tolerance was declared" in note for note in report.notes)
+
+
+def test_a_varying_stopwatch_does_not_make_a_pipeline_non_deterministic():
+    """Determinism is judged on results, not on wall-clock measurements.
+
+    A pipeline whose accuracy reproduces exactly but whose timing wobbles is
+    deterministic. Reporting otherwise would bury the finding that matters.
+    """
+    from fabric.analysis.determinism import analyse_determinism
+    from fabric.analysis.results import ResultSet
+    from fabric.core.entities import Condition, MetricSpec, Role, Run, RunStatus
+
+    condition = Condition(name="arm", role=Role.TREATMENT)
+    runs = [
+        Run(id=f"RUN-{replicate}", experiment_id="E", condition_id=condition.id,
+            condition_name="arm", seed=1, replicate=replicate,
+            status=RunStatus.COMPLETED,
+            metrics={"accuracy": 0.9, "train_seconds": 1.0 + 0.3 * replicate})
+        for replicate in range(3)
+    ]
+    metrics = (MetricSpec(name="accuracy"), MetricSpec(name="train_seconds"))
+    results = ResultSet.build(runs, [condition], metrics)
+    report = analyse_determinism(results, metrics=metrics)
+
+    assert report.tested is True
+    assert report.deterministic is True
+    assert {r.metric for r in report.judged} == {"accuracy"}
+    assert {r.metric for r in report.excluded} == {"train_seconds"}
+    assert "train_seconds varied, as expected" in report.describe()
+
+
+def test_a_genuinely_unstable_result_metric_still_fails():
+    from fabric.analysis.determinism import analyse_determinism
+    from fabric.analysis.results import ResultSet
+    from fabric.core.entities import Condition, MetricSpec, Role, Run, RunStatus
+
+    condition = Condition(name="arm", role=Role.TREATMENT)
+    runs = [
+        Run(id=f"RUN-{replicate}", experiment_id="E", condition_id=condition.id,
+            condition_name="arm", seed=1, replicate=replicate,
+            status=RunStatus.COMPLETED,
+            metrics={"accuracy": 0.9 + 0.001 * replicate})
+        for replicate in range(3)
+    ]
+    metrics = (MetricSpec(name="accuracy"),)
+    report = analyse_determinism(ResultSet.build(runs, [condition], metrics), metrics=metrics)
+    assert report.deterministic is False
+    assert "NOT deterministic" in report.describe()
+    assert report.noise_floor("accuracy") == pytest.approx(0.002)

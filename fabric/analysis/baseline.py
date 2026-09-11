@@ -74,6 +74,19 @@ def analyse_baselines(
     """Compare the treatment against every baseline, on every metric."""
     analysis = BaselineAnalysis()
     baselines = results.baselines
+
+    # Resolve the treatment *before* the no-baseline exit. Without it the
+    # headline reports "no treatment produced results" for an experiment
+    # that ran perfectly well and simply had nothing to compare against --
+    # a false statement in the most prominent line of the report.
+    primary = metrics[0].name if metrics else ""
+    treatment = (
+        results.conditions.get(treatment_name)
+        if treatment_name else results.primary_treatment(primary)
+    )
+    if treatment is not None:
+        analysis.treatment = treatment.name
+
     if not baselines:
         analysis.notes.append(
             "No baselines were declared, so no comparative claim can be made. "
@@ -81,15 +94,9 @@ def analyse_baselines(
         )
         return analysis
 
-    primary = metrics[0].name if metrics else ""
-    treatment = (
-        results.conditions.get(treatment_name)
-        if treatment_name else results.primary_treatment(primary)
-    )
     if treatment is None:
         analysis.notes.append("No treatment condition produced results.")
         return analysis
-    analysis.treatment = treatment.name
 
     candidates = results.treatments
     if len(candidates) > 1:

@@ -466,3 +466,40 @@ def test_reproduction_reports_a_real_deviation(executed):
     assert report.verdict in ("FAIL", "PASS WITH DEVIATION")
     assert report.headline.difference == pytest.approx(0.2, abs=1e-6)
     assert "REPRODUCTION COMPLETE" in report.render()
+
+
+def test_an_experiment_without_baselines_still_reports_its_result(tmp_path, monkeypatch):
+    """A headline must never claim there are no results when there are.
+
+    With no baselines to compare against, the treatment resolution used to
+    be skipped entirely, and the headline announced "No treatment condition
+    produced results" above a table of successful runs.
+    """
+    from fabric.core.spec import ExperimentSpec
+    from fabric.core.store import Workspace
+    from fabric.execution.planner import plan_experiment
+    from fabric.execution.runner import ExecutionOptions, Runner
+
+    monkeypatch.chdir(tmp_path)
+    workspace = Workspace.initialise(str(tmp_path))
+    spec = ExperimentSpec.from_yaml("""
+experiment:
+  name: no-baselines
+research_question: Does it report a result with nothing to compare against?
+algorithm:
+  name: solo
+  entrypoint: python:tests.helpers:deterministic
+metrics: [accuracy]
+seeds: {values: [1, 2, 3, 4, 5]}
+execution: {isolation: inline}
+""")
+    plan = plan_experiment(spec, workspace, root=str(tmp_path))
+    workspace.create_experiment_dir(plan.experiment.id)
+    Runner(workspace, plan, ExecutionOptions(isolation="inline"),
+           root=str(tmp_path)).execute()
+    analysis = analyse(plan, workspace.load_runs(plan.experiment.id))
+
+    assert "No treatment condition" not in analysis.headline
+    assert "proposed" in analysis.headline
+    assert "0.5" in analysis.headline
+    assert "no baseline to compare against" in analysis.headline

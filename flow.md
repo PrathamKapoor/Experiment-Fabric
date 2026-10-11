@@ -150,7 +150,10 @@ vars). Hardware is included only when `policy.include_hardware`. A
 determinism replicate is never cacheable, because its whole purpose is to
 execute again (`cache.py:102`). The `source_digest` now combines the
 entrypoint file digest with a project-root snapshot (`D-015`), so editing
-any imported module invalidates cached results.
+any imported module invalidates cached results. The exclusions (`D-016`) cover
+`bundle/`, `.egg-info`, `.local`, `.coverage`, `graph.html`, `variant.yaml`,
+`benchmarks/`, `demo-bundle/`, and `paper/` to prevent generated artifacts
+from continuously changing the fingerprint.
 
 **FAILURE CLASSIFICATION** — `fabric/execution/failures.py`. `classify()`
 orders its patterns so the first match wins: OOM, TIMEOUT, NAN, DIVERGENCE,

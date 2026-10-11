@@ -545,3 +545,16 @@ Identifiers are `D-NNN` and are never reused.
 - Regression test: verified by changing a helper file and observing that the
   next experiment does not reuse the old cached result.
 - Files: `fabric/execution/adapters.py`.
+
+---
+
+### D-016: Cache identity exclusions must cover experiment artifacts
+
+- Date / work area / commit: 2026-10-12, `fabric/execution/adapters.py`, `d3d71e0`
+- Context: The `entrypoint_digest()` snapshot (`D-015`) excluded `.fabric`, `.git`, `build`, `dist`, etc., but missed `bundle/`, `variant.yaml`, `graph.html`, `benchmarks/`, `.coverage`, `.local`, and `.egg-info`. Any experiment that produced these artifacts (e.g., `fabric export`, `fabric graph --out`, benchmark definitions) changed the workspace snapshot, which changed the algorithm identity, which caused `RegistryError` conflicts on subsequent `fabric run`, `fabric certify`, `fabric status`, or `fabric plan` calls.
+- Verified root cause: Running the full `test_end_to_end.py` suite reproduced the failure: after `fabric export --out bundle`, the workspace snapshot included `bundle/README.md` and its artifacts, producing a different `source_digest` (e.g., `sha256:e6b923...` -> `sha256:5ed5a45...`). The registry rejected the incoming algorithm as a version conflict.
+- Decision: Expanded exclusions to `bundle`, `.egg-info`, `.local`, `.coverage`, `graph.html`, `variant.yaml`, `benchmarks/`, `demo-bundle`, and `paper`. This keeps the fingerprint focused on source and specification files rather than generated outputs.
+- Why exclusions rather than a different root: Changing `source_root` to the repository root (rather than the workspace root) would break temporary workspace setups and would miss specification-level files like `experiment.yaml`. Comprehensive exclusions preserve the design intent of `D-015`.
+- Consequences: All 15 `test_failed_evidence.py` tests pass. The full `test_end_to_end.py` module passes (30 tests). The `test_diff.py` benchmark-change test passes. Registry conflicts no longer occur when running the complete experiment lifecycle multiple times in the same workspace.
+- Remaining limitation: A workspace that contains non-standard user files (e.g., custom helper directories not under `.fabric`) will still include them in the snapshot. This is by design: any file that could contain source changes should affect identity. If false misses become excessive, exclusions can be expanded further.
+- Files: `fabric/execution/adapters.py`.

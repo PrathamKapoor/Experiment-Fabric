@@ -322,7 +322,8 @@ def entrypoint_digest(entrypoint: str, *, root: str = "") -> str:
                 source_root,
                 exclude={".fabric", ".git", "__pycache__", ".pytest_cache",
                          ".ruff_cache", ".venv", ".tox", "build", "dist",
-                         ".eggs", "*.egg-info", "demo-bundle", "paper"},
+                         ".eggs", ".egg-info", "bundle", ".coverage",
+                         ".local", "graph.html", "variant.yaml", "benchmarks", "demo-bundle", "paper"},
             )
         except (OSError, ValueError):
             pass

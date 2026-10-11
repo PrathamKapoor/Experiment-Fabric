@@ -29,6 +29,7 @@ from fabric.core.diff import OUTCOME as OUTCOME_CATEGORIES
 from fabric.core.diff import diff_experiments
 from fabric.core.entities import Algorithm, Dataset, Model, Role, Run, RunStatus
 from fabric.core.graph import ExperimentGraph
+from fabric.core.outcome import outcome_of
 from fabric.core.provenance import build_provenance, explain, find_metric_node, impact
 from fabric.core.registry import Registry, RegistryError
 from fabric.core.spec import ExperimentSpec, SpecError
@@ -468,6 +469,17 @@ def cmd_run(args: argparse.Namespace) -> int:
     console.echo("")
     console.note(f"analyse it with:  fabric analyze {plan.experiment.id}")
     console.note(f"report it with:   fabric report {plan.experiment.id} --format html")
+
+    # An exit code of zero means "this command did what it was asked". A run
+    # in which nothing succeeded did not, and a CI pipeline or wrapper script
+    # reading the code would otherwise treat an empty experiment as a finished
+    # one. Partial failure is *not* an error here: the user asked for the runs
+    # to be attempted, they were, and the failures are recorded as data --
+    # `fabric analyze` reports them as a finding.
+    outcome = outcome_of(workspace.load_runs(plan.experiment.id))
+    if not outcome.has_evidence:
+        console.error("no run succeeded: this experiment produced no evidence")
+        return 1
     return 0
 
 
@@ -1116,7 +1128,7 @@ def cmd_certify(args: argparse.Namespace) -> int:
     workspace.write(experiment_id, "certificate.json", certificate.to_dict())
     if args.json:
         print(json_dumps(certificate.to_dict()))
-        return 0
+        return 0 if certificate.verdict != "FAIL" else 1
     console.echo("")
     console.echo(certificate.render())
     console.echo("")

@@ -47,8 +47,11 @@ import os
 import threading
 import time
 import traceback
+from collections.abc import Sequence
 from typing import Any
 
+from fabric.core.entities import Run
+from fabric.core.outcome import describe, outcome_of
 from fabric.core.store import Workspace
 from fabric.execution.cache import CachePolicy
 from fabric.execution.runner import ExecutionOptions, Runner
@@ -118,8 +121,34 @@ class Worker(threading.Thread):
                                   "traceback": traceback.format_exc()}},
             )
         else:
-            self.store.finish(job.id, SUCCEEDED,
-                              message=result.get("message", ""), result=result)
+            # The execution itself returned; whether that counts as a
+            # successful *job* depends on whether anything ran successfully.
+            # A job in which every run timed out, crashed or was invalid must
+            # not be reported as succeeded -- that is the same false success
+            # the CLI used to exit zero on, in a place nobody was watching.
+            state, note = self._job_state(job, result)
+            if state == SUCCEEDED:
+                self.store.finish(job.id, SUCCEEDED,
+                                  message=result.get("message", ""), result=result)
+            else:
+                self.store.finish(job.id, FAILED,
+                                  message=note or "the job produced no usable evidence",
+                                  result={**result, "outcome": note})
+
+    def _job_state(self, job: Job, result: dict[str, Any]) -> tuple[str, str]:
+        """The job's terminal state, judged by what it actually produced.
+
+        A reproduction is judged by its own comparison verdict, because the
+        original experiment's records say nothing about whether the rerun
+        matched. An execution is judged by the persisted run records rather
+        than by the counters in the result, so the queue cannot disagree with
+        the evidence it is reporting on.
+        """
+        if job.kind == "reproduce":
+            if result.get("passed"):
+                return SUCCEEDED, str(result.get("verdict", "reproduced"))
+            return FAILED, f"reproduction verdict: {result.get('verdict', 'unknown')}"
+        return job_outcome(self.workspace.load_runs(job.experiment_id))
 
     def _run_experiment(self, job: Job) -> dict[str, Any]:
         if not self.execute:
@@ -202,6 +231,22 @@ also serving HTTP. The cap is the server's, and it applies to the
 specification as well as to the request. The command line has no such cap,
 because there the author is the person running the experiment.
 """
+
+
+def job_outcome(runs: Sequence[Run]) -> tuple[str, str]:
+    """Whether a finished job should be recorded as succeeded or failed.
+
+    Returns ``(state, detail)`` where ``state`` is ``"succeeded"`` or
+    ``"failed"``. Delegating to :mod:`fabric.core.outcome` keeps the queue,
+    the command line and the certificate saying the same thing about the
+    same runs -- they used to disagree, and the queue was the one nobody
+    looked at.
+
+    A job whose runs were all *skipped* as already complete still has the
+    earlier records to judge, so it is not special-cased here.
+    """
+    outcome = outcome_of(runs)
+    return (SUCCEEDED if outcome.has_evidence else FAILED), describe(runs, outcome)
 
 
 def _options_from(spec: Any, payload: dict[str, Any]) -> ExecutionOptions:

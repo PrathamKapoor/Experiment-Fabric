@@ -400,3 +400,95 @@ Identifiers are `D-NNN` and are never reused.
   `test_jobs_left_running_by_a_crash_are_requeued`.
 - Files: `fabric/server/jobs.py`, `fabric/server/worker.py`,
   `docs/deployment.md`.
+---
+
+### D-013: One authoritative answer to "did this experiment produce evidence?"
+
+- Date / work area / commit: 2026-10-11, `fabric/core/outcome.py`, uncommitted
+- Context: Fabric answers "did this experiment produce evidence?" in five
+  places -- `cmd_run`, `cmd_certify`, the certificate issuer, the integrity
+  checks and the job queue -- and each answered independently. All five
+  agreed on the one answer that mattered least: they all reported an
+  experiment in which *every run failed* as a success.
+- Observed symptom, reproduced before the fix: an experiment whose entrypoint
+  raised on every one of its 8 runs produced
+
+      fabric run      exit 0   "ok 0 completed, 8 failed"
+      fabric certify  exit 0   VERDICT PASS WITH GAPS
+      integrity       pass    "All 1 declared metrics were produced by every arm"
+      certificate     provenance  complete
+                        -> "8 runs recorded (8 failed); every successful run
+                            carries its environment, hardware and code identity"
+      fabric report   exit 0
+
+  Every line of that is false. Three of them are false because of
+  `all()` over an empty or wholly-excluded set:
+
+  - `certificate.py:302` computed `all(... for r in runs if r.succeeded)`.
+    With no successful runs the generator is empty and `all([])` is `True`.
+  - `integrity/checks.py:307` counted only arms that had succeeded
+    (`if c.successful and not c.series(...)`), so arms that produced
+    nothing were excluded from the completeness test rather than counted
+    as incomplete.
+  - `cmd_run` returned a literal `0` and `cmd_certify` returned `0` unless
+    the verdict was already `FAIL`, which a total failure never produced.
+
+- Decision: a single classifier, `fabric.core.outcome.outcome_of()`, is now
+  the only place that decides. It distinguishes four states -- `no_runs`,
+  `total_failure`, `partial`, `complete` -- and exposes `has_evidence`,
+  which is true for `partial` as well as `complete`. Every layer calls it:
+
+  | Layer | Before | After |
+  |---|---|---|
+  | `fabric run` exit code | always `0` | `1` when there is no evidence |
+  | `fabric certify` exit code | `0` unless the verdict was `FAIL` | follows the verdict, which is now `FAIL` |
+  | `certificate` `provenance` | `complete` via `all([])` | `failed`, with a sentence saying nothing ran |
+  | `integrity` `metrics.complete` | `pass` via an excluded empty set | `metrics.absent` warn, distinct from `metrics.missing` |
+  | job queue terminal state | `succeeded` whenever execution returned | `failed` when no run succeeded |
+
+- Why `partial` still counts as evidence: some measurements exist, and the
+  user asked for the runs to be attempted. Failing them would train users to
+  ignore the exit code, and `fabric analyze` already reports partial failure
+  as a finding and a limitation. The failures stay in the record either way;
+  `test_a_failed_run_is_never_silently_dropped` pins that.
+- Why `no_runs` is separate from `total_failure`: "you have not run this
+  yet" and "you ran it and nothing worked" call for different user actions,
+  but neither is success.
+- Alternatives considered: (a) leaving exit codes alone and only fixing the
+  certificate -- rejected, because the CI failure mode is the exit code,
+  not the printed verdict. (b) A new public verdict string such as
+  `NO EVIDENCE` -- rejected; `FAIL` already expresses it, and the
+  certificate's existing check vocabulary (`verified` / `incomplete` /
+  `unverified` / `failed`) is expressive enough. Adding a verdict would
+  break every consumer for no gain. (c) Reusing `metrics.missing` for the
+  empty case -- rejected, because "some arms produced the metric and some
+  did not" and "no arm produced anything" call for different remedies, and
+  conflating them would hide the difference.
+- Consequences: an all-failed experiment now exits `1` from `run` and
+  `certify`, certifies as `FAIL`, and reports `metrics.absent`. Diagnostic
+  reports, the failure analysis and the run records are all still produced
+  and still readable -- `test_a_diagnostic_report_is_still_producible` pins
+  that, because refusing to analyse a failure would hide it.
+  Verified before and after on a disposable failing entrypoint:
+
+      before: run=0 certify=0 VERDICT PASS WITH GAPS  provenance complete
+      after : run=1 certify=1 VERDICT FAIL             provenance failed
+
+- Compatibility: `fabric run` and `fabric certify` return `1` where they
+  returned `0`. Any wrapper that treated "exit 0" as "the experiment
+  produced a result" was previously reading a false signal and is now
+  correct. Successful and partially failed experiments are unaffected.
+  `certify --json` also gained the verdict-derived exit code it previously
+  lacked.
+- Regression tests: `tests/test_failed_evidence.py`, 15 tests. Eight assert
+  the corrected behaviour and were confirmed to fail before the change; the
+  other seven pin the cases that must not change, including that an
+  *inconclusive* result from valid runs is not an execution failure.
+- Remaining limitation: a run that succeeds while producing nothing
+  measurable is caught downstream as `invalid_output` and so becomes a
+  failed run, but a run that returns a single plausible number for the wrong
+  arm is not detectable by Fabric and is out of scope.
+- Files: `fabric/core/outcome.py`, `fabric/cli/main.py`,
+  `fabric/reporting/certificate.py`, `fabric/integrity/checks.py`,
+  `fabric/server/worker.py`, `tests/test_failed_evidence.py`,
+  `tests/evidence.py`.

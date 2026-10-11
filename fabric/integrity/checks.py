@@ -301,14 +301,35 @@ def check_baseline_effort(results: ResultSet, report: IntegrityReport) -> None:
 
 
 def check_metric_completeness(results: ResultSet, report: IntegrityReport) -> None:
-    """Confirm every declared metric was actually produced."""
-    missing: dict[str, list[str]] = {}
+    """Confirm every declared metric was actually produced.
+
+    An arm that produced nothing has not produced the metric either. The
+    previous form of this check skipped such arms entirely, so an experiment
+    in which *every* run failed reported that all declared metrics "were
+    produced by every arm" -- a statement about zero measurements.
+    """
+    absent: dict[str, list[str]] = {}
     for spec in results.metrics:
-        absent = [c.name for c in results.conditions.values()
-                  if c.successful and not c.series(spec.name)]
-        if absent:
-            missing[spec.name] = absent
-    if not missing:
+        missing = [c.name for c in results.conditions.values()
+                   if not c.series(spec.name)]
+        if missing:
+            absent[spec.name] = missing
+
+    arms_with_evidence = [c for c in results.conditions.values() if c.successful]
+    if not arms_with_evidence:
+        report.add(Finding(
+            "metrics.absent", WARN,
+            f"No arm produced any of the {len(results.metrics)} declared metrics",
+            "An experiment in which nothing ran has no measurements to assess. "
+            "This is an execution failure, not a result.",
+            "Run 'fabric run' and check the failure analysis before drawing any "
+            "conclusion from this experiment.",
+            {"metrics": [m.name for m in results.metrics],
+             "arms": [c.name for c in results.conditions.values()]},
+        ))
+        return
+
+    if not absent:
         report.add(Finding(
             "metrics.complete", PASS,
             f"All {len(results.metrics)} declared metrics were produced by every arm",
@@ -316,11 +337,11 @@ def check_metric_completeness(results: ResultSet, report: IntegrityReport) -> No
         return
     report.add(Finding(
         "metrics.missing", WARN,
-        f"{len(missing)} declared metric(s) were not produced by every arm",
+        f"{len(absent)} declared metric(s) were not produced by every arm",
         "A metric reported for some conditions and not others cannot be compared across "
         "them, and its absence may not be random.",
         "Have every entrypoint record every declared metric.",
-        {"missing": {k: v[:8] for k, v in missing.items()}},
+        {"missing": {k: v[:8] for k, v in absent.items()}},
     ))
 
 

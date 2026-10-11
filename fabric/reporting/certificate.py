@@ -19,6 +19,7 @@ from typing import Any
 from fabric import __version__
 from fabric.analysis.engine import ExperimentAnalysis
 from fabric.core.entities import Role, Run, RunStatus
+from fabric.core.outcome import describe
 from fabric.core.registry import Registry
 from fabric.execution.planner import ExperimentPlan
 from fabric.util.hashing import content_id, file_digest
@@ -299,15 +300,28 @@ def issue(
 
     # -- provenance --------------------------------------------------------
     failed = sum(1 for r in runs if r.status == RunStatus.FAILED)
-    complete = all(r.environment_id and r.hardware_id and r.algorithm_id
-                   for r in runs if r.succeeded)
-    certificate.checks.append(Check(
-        "provenance", COMPLETE if complete else INCOMPLETE,
-        f"{len(runs)} runs recorded ({failed} failed); every successful run carries its "
-        "environment, hardware and code identity"
-        if complete else "some runs are missing environment, hardware or code identity",
-        {"runs": len(runs), "failed": failed},
-    ))
+    successful = [r for r in runs if r.succeeded]
+    # `all()` over an empty sequence is True, so an experiment in which
+    # nothing succeeded would otherwise certify that "every successful run
+    # carries its environment, hardware and code identity" -- a statement
+    # about zero runs. Guarded explicitly: no evidence is a failed check.
+    if not successful:
+        certificate.checks.append(Check(
+            "provenance", FAILED,
+            describe(runs) + "; there is nothing to trace",
+            {"runs": len(runs), "failed": failed, "succeeded": 0},
+        ))
+    else:
+        complete = all(r.environment_id and r.hardware_id and r.algorithm_id
+                       for r in successful)
+        certificate.checks.append(Check(
+            "provenance", COMPLETE if complete else INCOMPLETE,
+            f"{len(runs)} runs recorded ({failed} failed); "
+            + ("every successful run carries its environment, hardware and code identity"
+               if complete else
+               "some successful runs are missing environment, hardware or code identity"),
+            {"runs": len(runs), "failed": failed, "succeeded": len(successful)},
+        ))
 
     # -- determinism and reproducibility ----------------------------------
     if analysis.determinism.tested:

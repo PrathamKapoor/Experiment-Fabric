@@ -17,6 +17,12 @@ experiment:
   treatment_name: full-agent
   tags: [agents, retrieval, ablation]
 
+# The task, its metrics, the zero-shot floor and the rules a claim on this
+# task has to satisfy come from the benchmark definition. Its digest is
+# part of this experiment's identity, so a change to the benchmark makes
+# every experiment that used the old one provably a different experiment.
+benchmark: agent-qa@v1
+
 dataset:
   name: agent-benchmark
   version: v1
@@ -57,12 +63,6 @@ seeds:
   values: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 
 baselines:
-  - name: zero-shot
-    description: The model alone, no scaffolding.
-    algorithm:
-      name: zero-shot
-      entrypoint: python:examples.agent_pipeline.pipeline:zero_shot
-      commit: auto
   - name: retrieval-only
     description: Retrieval with no reranking - the simplest RAG setup.
     algorithm:
@@ -89,25 +89,9 @@ ablations:
     remove: [planning, verification]
     description: The two most expensive components together.
 
-metrics:
-  - name: accuracy
-    direction: maximize
-    primary: true
-    tolerance: 0.01
-    description: Fraction of the 400 questions answered correctly.
-  - name: f1
-    direction: maximize
-    tolerance: 0.01
-  - name: latency_ms
-    direction: minimize
-    unit: ms
-    tolerance: 5.0
-  - name: robustness
-    direction: maximize
-    tolerance: 0.015
-    description: Accuracy under a distribution shift toward harder questions.
-  - name: abstention_rate
-    direction: minimize
+# Every metric on this task is defined by agent-qa@v1. Nothing is repeated
+# here, so there is no second place for the definitions to drift.
+metrics: []
 
 analysis:
   primary_metric: accuracy

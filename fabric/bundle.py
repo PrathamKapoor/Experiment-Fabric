@@ -26,12 +26,14 @@ manifest, so a file that changed after export is detectable.
 from __future__ import annotations
 
 import os
+import platform
 import shutil
 import time
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import Any
 
+from fabric import __version__
 from fabric.core.entities import Run
 from fabric.core.store import Workspace
 from fabric.execution.planner import ExperimentPlan
@@ -146,6 +148,16 @@ class BundleManifest:
     def to_dict(self) -> dict[str, Any]:
         return {
             "bundle_version": self.version,
+            # An alias for the same number. "Which schema is this" is the
+            # question a reader of an unfamiliar bundle actually asks, and
+            # they should not have to know Fabric's word for it.
+            "schema_version": self.version,
+            # Which Fabric wrote it, and on which Python. Provenance about
+            # the bundle rather than about the experiment, but a bundle
+            # that cannot say what produced it is a poor reproduction
+            # package.
+            "fabric_version": __version__,
+            "python_version": platform.python_version(),
             "experiment_id": self.experiment_id,
             "name": self.name,
             "research_question": self.research_question,

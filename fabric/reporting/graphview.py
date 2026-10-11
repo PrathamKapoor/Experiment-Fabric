@@ -30,6 +30,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from fabric.core.graph import ExperimentGraph, Node
+from fabric.util.jsonio import dumps as json_dumps
 
 # Kind -> (fill token, short label). Colours reuse the validated chart
 # palette; shape and position carry the meaning, colour reinforces it.
@@ -160,7 +161,7 @@ def _embed_json(payload: Any) -> str:
     that can start a tag or an entity keeps the payload valid JSON while
     making that impossible.
     """
-    escaped = json.dumps(payload)
+    escaped = json_dumps(payload, indent=None)
     for character, sequence in (
         ("<", "\\u003c"),
         (">", "\\u003e"),

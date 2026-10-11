@@ -20,6 +20,7 @@ from fabric.analysis.ablation import AblationAnalysis, analyse_ablations
 from fabric.analysis.baseline import BaselineAnalysis, analyse_baselines, cost_effectiveness
 from fabric.analysis.determinism import DeterminismReport, analyse_determinism
 from fabric.analysis.failure import FailureAnalysis, analyse_failures
+from fabric.analysis.reference import ReferenceAnalysis, analyse_references
 from fabric.analysis.reproducibility import ReproducibilityProfile, analyse_reproducibility
 from fabric.analysis.results import ResultSet
 from fabric.analysis.sweep import SweepAnalysis, analyse_sweep
@@ -41,6 +42,7 @@ class ExperimentAnalysis:
     hypothesis: str = ""
     primary_metric: str = ""
     alpha: float = 0.05
+    confidence_level: float = 0.95
     correction: str = "holm"
     spec_digest: str = ""
     analysis_version: str = ANALYSIS_VERSION
@@ -50,6 +52,7 @@ class ExperimentAnalysis:
     baselines: BaselineAnalysis = field(default_factory=BaselineAnalysis)
     ablations: AblationAnalysis = field(default_factory=AblationAnalysis)
     sweep: SweepAnalysis = field(default_factory=SweepAnalysis)
+    references: ReferenceAnalysis = field(default_factory=ReferenceAnalysis)
     failures: FailureAnalysis = field(default_factory=FailureAnalysis)
     determinism: DeterminismReport = field(default_factory=DeterminismReport)
     reproducibility: ReproducibilityProfile = field(default_factory=ReproducibilityProfile)
@@ -68,6 +71,7 @@ class ExperimentAnalysis:
             "hypothesis": self.hypothesis,
             "primary_metric": self.primary_metric,
             "alpha": self.alpha,
+            "confidence_level": self.confidence_level,
             "correction": self.correction,
             "spec_digest": self.spec_digest,
             "analysis_version": self.analysis_version,
@@ -77,6 +81,7 @@ class ExperimentAnalysis:
             "limitations": self.limitations,
             "conditions": self.results.to_dict()["conditions"] if self.results else [],
             "baselines": self.baselines.to_dict(),
+            "references": self.references.to_dict(),
             "ablations": self.ablations.to_dict(self.results.metrics if self.results else ()),
             "sweep": self.sweep.to_dict(),
             "failures": self.failures.to_dict(),
@@ -105,6 +110,7 @@ def analyse(plan: ExperimentPlan, runs: list[Run], *,
         hypothesis=spec.hypothesis,
         primary_metric=primary,
         alpha=analysis_spec.alpha,
+        confidence_level=analysis_spec.confidence_level,
         correction=analysis_spec.correction,
         spec_digest=spec.digest,
         results=results,
@@ -113,15 +119,25 @@ def analyse(plan: ExperimentPlan, runs: list[Run], *,
     analysis.baselines = analyse_baselines(
         results, metrics=metrics, alpha=analysis_spec.alpha,
         correction=analysis_spec.correction, paired_policy=analysis_spec.paired,
+        confidence_level=analysis_spec.confidence_level,
         bootstrap_resamples=analysis_spec.bootstrap_resamples,
         bootstrap_seed=analysis_spec.bootstrap_seed,
+        permutation_resamples=analysis_spec.permutation_resamples,
+        permutation_seed=analysis_spec.permutation_seed,
         omnibus=analysis_spec.omnibus,
     )
     analysis.ablations = analyse_ablations(
         results, metrics=metrics, alpha=analysis_spec.alpha,
         correction=analysis_spec.correction,
+        confidence_level=analysis_spec.confidence_level,
         bootstrap_resamples=analysis_spec.bootstrap_resamples,
         bootstrap_seed=analysis_spec.bootstrap_seed,
+        permutation_resamples=analysis_spec.permutation_resamples,
+        permutation_seed=analysis_spec.permutation_seed,
+    )
+    analysis.references = analyse_references(
+        results, spec.baselines, metrics=metrics,
+        confidence_level=analysis_spec.confidence_level,
     )
     analysis.sweep = analyse_sweep(results, metrics=metrics, alpha=analysis_spec.alpha)
     analysis.failures = analyse_failures(results)
@@ -132,6 +148,7 @@ def analyse(plan: ExperimentPlan, runs: list[Run], *,
     analysis.reproducibility = analyse_reproducibility(
         results, metric=primary, metrics=metrics,
         determinism=analysis.determinism, alpha=analysis_spec.alpha,
+        confidence_level=analysis_spec.confidence_level,
         reference_name=spec.reproducibility.reference_condition,
         decision_baseline=strongest_baseline,
     )
@@ -250,6 +267,21 @@ def _claims(analysis: ExperimentAnalysis) -> list[dict[str, Any]]:
             "supported": significant,
         })
 
+    for reference in analysis.references.comparisons:
+        claims.append({
+            "kind": "reference",
+            "statement": reference.describe(),
+            "verdict": reference.verdict,
+            "metric": reference.metric,
+            "condition": reference.condition,
+            "published": reference.published,
+            "observed": reference.observed.mean,
+            "difference": reference.difference,
+            "source": reference.source,
+            "evidence": "published scalar, not an independent run",
+            "supported": reference.verdict == "consistent",
+        })
+
     for axis in analysis.reproducibility.measured:
         claims.append({
             "kind": "reproducibility",
@@ -354,6 +386,23 @@ def _limitations(analysis: ExperimentAnalysis) -> list[str]:
                 f"{axis.interval.format() if axis.interval else ''} straddles that "
                 "boundary. More runs on that axis would resolve it."
             )
+
+    for entry in analysis.references.missing:
+        limitations.append(
+            f"A published {entry['metric']} of {entry['published']:g} was cited for "
+            f"'{entry['condition']}' but never reproduced here ({entry['reason']}). "
+            "Citing a number is not the same as measuring it, and nothing in this "
+            "report verifies it."
+        )
+    for reference in analysis.references.diverging:
+        limitations.append(
+            f"The observed {reference.metric} for '{reference.condition}' differs from "
+            f"the published {reference.published:g} by {reference.difference:+.4f}"
+            + (f", {reference.noise_multiple:.1f}x the seed-to-seed spread"
+               if reference.noise_multiple == reference.noise_multiple else "")
+            + ". The cause is not established by this experiment: it could be method, "
+            "data version, implementation, hardware, or the original protocol."
+        )
 
     for finding in analysis.integrity.failures:
         limitations.append(f"Integrity check failed: {finding.title}. {finding.detail}")

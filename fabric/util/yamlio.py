@@ -375,10 +375,14 @@ def loads_yaml(text: str) -> Any:
     """Parse a YAML document from a string.
 
     Uses PyYAML when it is installed and the bundled parser otherwise, then
-    canonicalises the result so the two cannot disagree.
+    canonicalises the result so the two cannot disagree. Parse failures raise
+    :class:`YamlError` whichever parser ran, so callers need one error surface.
     """
     if _pyyaml is not None:
-        return _canonicalise(_pyyaml.safe_load(text))
+        try:
+            return _canonicalise(_pyyaml.safe_load(text))
+        except _pyyaml.YAMLError as exc:
+            raise YamlError(str(exc)) from exc
     reader = _Reader(text)
     head = reader.peek()
     if head is None:

@@ -16,6 +16,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import Any
 
+from fabric import __version__
 from fabric.analysis.engine import ExperimentAnalysis
 from fabric.core.entities import Role, Run, RunStatus
 from fabric.core.registry import Registry
@@ -93,6 +94,12 @@ class Certificate:
         data = self.payload()
         data["certificate_id"] = self.certificate_id
         data["issued_at"] = self.issued_at
+        # Deliberately outside payload(): who issued a certificate and when
+        # is provenance *about* the attestation, not part of what is being
+        # attested. Folding it in would make the identifier change whenever
+        # Fabric was upgraded, and every certificate issued by an older
+        # version would stop verifying for no scientific reason.
+        data["fabric_version"] = __version__
         data["notes"] = self.notes
         return data
 

@@ -267,16 +267,66 @@ Declared before the runs, and applied unchanged afterwards.
 analysis:
   primary_metric: accuracy
   alpha: 0.05
+  confidence_level: 0.95    # defaults to 1 - alpha
   correction: holm          # none | bonferroni | holm | benjamini-hochberg | sidak
   paired: auto              # auto | always | never
   bootstrap_resamples: 5000
   bootstrap_seed: 12345
   permutation_resamples: 10000
+  permutation_seed: 12345
   omnibus: true             # ANOVA gate before pairwise tests
 ```
 
+| Field | Type | Default | Meaning |
+|---|---|---|---|
+| `primary_metric` | metric name | the metric marked `primary`, else the first | The one the headline, the reproducibility axes and the decision-stability estimate are read on. Must be one of `metrics`. |
+| `alpha` | `0 < x < 1` | `0.05` | The error rate the *decision* accepts. Drives every verdict. |
+| `confidence_level` | `0 < x < 1` | `1 - alpha` | The width of every reported **interval**. |
+| `correction` | enum | `holm` | Multiplicity correction within each metric's family. |
+| `paired` | enum | `auto` | `auto` pairs by seed where the seed sets match. |
+| `bootstrap_resamples` | `>= 1` | `5000` | Resamples for the BCa interval on a difference. |
+| `bootstrap_seed` | int | `12345` | Makes that interval reproducible. |
+| `permutation_resamples` | `>= 1` | `10000` | Budget for a permutation test. |
+| `permutation_seed` | int | `12345` | Makes a sampled permutation p-value reproducible. |
+| `omnibus` | bool | `true` | Run an ANOVA across all arms before the pairwise tests. |
+
 Fabric chooses the *test* itself, from the structure of the data, and
 records why. See [`docs/statistics.md`](statistics.md).
+
+### `alpha` and `confidence_level` are not the same knob
+
+They answer different questions, so Fabric keeps them apart. Alpha is the
+error rate the decision accepts; the confidence level is how wide an
+interval the reader is shown. A study may quite reasonably test at 0.05
+and report 99% intervals, and this is how:
+
+```yaml
+analysis:
+  alpha: 0.05
+  confidence_level: 0.99
+```
+
+Every interval in the report, the CLI and the JSON then carries
+`"level": 0.99` and is correspondingly wider; every verdict is still
+decided at 0.05. Omit `confidence_level` and it follows alpha, which is
+the conventional pairing.
+
+### `permutation_resamples` decides how the null is explored
+
+Not merely how long it takes. Fabric enumerates the permutation
+distribution exactly when the budget can afford it and samples when it
+cannot, so raising this value can promote a test from Monte-Carlo to
+exact:
+
+```
+permutation_resamples: 200     ->  Monte-Carlo label shuffling, 200 resamples, seed 12345
+permutation_resamples: 20000   ->  exact enumeration over 12870 label assignments
+```
+
+Which one ran is recorded in `decision.parameters` and in the test's
+`method_detail`, so a p-value is never anonymous. A sampled p-value uses
+the `(r+1)/(B+1)` convention and therefore can never be reported as
+exactly zero.
 
 ---
 
@@ -327,11 +377,48 @@ execution:
   retries: 0                # only infrastructure failures are retried
   continue_on_failure: true
   determinism_replicates: 0
+  energy_watts: 65          # optional; see below
 ```
+
+| Field | Type | Default | Meaning |
+|---|---|---|---|
+| `max_workers` | `>= 1` | `1` | Runs executed concurrently. |
+| `timeout_seconds` | `>= 0` | `0` (none) | A run exceeding this is killed and classified as a timeout. |
+| `isolation` | `process` \| `inline` | `process` | See below. |
+| `cache` | bool | `true` | Reuse a previous run whose every input matches. |
+| `retries` | `>= 0` | `0` | Retries, and only for infrastructure failures. |
+| `continue_on_failure` | bool | `true` | A failed run does not abandon the experiment. |
+| `determinism_replicates` | `>= 0` | `0` | Extra identical runs, to test whether the pipeline is deterministic at all. |
+| `energy_watts` | `> 0` | unset | Declared average power draw. See below. |
 
 `process` runs each execution in a fresh interpreter, so a segfault costs
 one run rather than the sweep. `inline` is faster and appropriate for
 lightweight pure-Python experiments.
+
+### `energy_watts`: an estimate, labelled as one
+
+Fabric cannot measure power. There is no portable way to read a machine's
+draw, and inventing a figure from CPU time would be worse than reporting
+nothing. So energy is reported **only** when you declare what the machine
+draws, and everything derived from it is labelled an estimate:
+
+```yaml
+execution:
+  energy_watts: 65        # or: fabric run spec.yaml --energy-watts 65
+```
+
+```
+Energy    0.83 Wh -- ESTIMATED, not measured: estimated: declared 65 W x wall time
+```
+
+Without it the report says `not measured -- no energy_watts was declared,
+and Fabric will not invent one`, and `energy_joules` is `null` rather than
+a plausible-looking number nobody stood behind. The declared wattage
+travels with the estimate in every run record, so a reader can check the
+assumption instead of trusting the product of it.
+
+The same rule governs cost: `--gpu-cost` and `--cpu-cost` produce an
+estimate from a declared hourly price, and the report says `ESTIMATED`.
 
 ---
 

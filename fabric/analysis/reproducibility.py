@@ -574,6 +574,7 @@ def analyse_reproducibility(
     metrics: Sequence[MetricSpec] = (),
     determinism: DeterminismReport | None = None,
     alpha: float = 0.05,
+    confidence_level: float | None = None,
     reference_name: str = "",
     decision_baseline: str = "",
 ) -> ReproducibilityProfile:
@@ -581,6 +582,7 @@ def analyse_reproducibility(
     profile = ReproducibilityProfile(metric=metric, determinism=determinism)
     spec = results.metric_spec(metric)
     tolerance = spec.tolerance
+    level = 1 - alpha if confidence_level is None else float(confidence_level)
 
     reference = (
         results.conditions.get(reference_name)
@@ -594,7 +596,7 @@ def analyse_reproducibility(
     seed_noise = stdev(reference_values) if len(reference_values) > 1 else 0.0
     profile.seed = _seed_reference(
         results, reference, metric, reference_values, seed_noise,
-        decision_baseline=decision_baseline, alpha=alpha,
+        decision_baseline=decision_baseline, alpha=alpha, level=level,
     )
 
     grouped: dict[str, list[ConditionResults]] = {}
@@ -607,7 +609,8 @@ def analyse_reproducibility(
         for condition in sorted(grouped.get(axis, []), key=lambda c: c.name):
             row = _compare_axis(
                 axis=axis, metric=metric, reference=reference, perturbed=condition,
-                results=results, seed_noise=seed_noise, tolerance=tolerance, alpha=alpha,
+                results=results, seed_noise=seed_noise, tolerance=tolerance,
+                alpha=alpha, level=level,
             )
             if row is not None:
                 profile.axes.append(row)
@@ -632,7 +635,8 @@ def analyse_reproducibility(
 
 def _seed_reference(results: ResultSet, reference: ConditionResults, metric: str,
                     values: Sequence[float], seed_noise: float, *,
-                    decision_baseline: str, alpha: float) -> SeedReference:
+                    decision_baseline: str, alpha: float,
+                    level: float = 0.95) -> SeedReference:
     row = SeedReference(
         metric=metric,
         condition=reference.name,
@@ -640,7 +644,7 @@ def _seed_reference(results: ResultSet, reference: ConditionResults, metric: str
         mean=mean(values) if values else math.nan,
         std=seed_noise,
         cv=(seed_noise / abs(mean(values))) if values and mean(values) else math.nan,
-        interval=t_interval(values, 1 - alpha) if len(values) > 1 else None,
+        interval=t_interval(values, level) if len(values) > 1 else None,
     )
     if len(values) < 3:
         row.warnings.append(
@@ -674,6 +678,7 @@ def _compare_axis(
     seed_noise: float,
     tolerance: float | None,
     alpha: float,
+    level: float = 0.95,
 ) -> AxisStability | None:
     reference_values = reference.values(metric)
     perturbed_values = perturbed.values(metric)
@@ -689,8 +694,8 @@ def _compare_axis(
     delta = cliffs_delta(left, right)
     calibration = null_calibration(left, right, observed=delta.value)
     difference = mean(left) - mean(right)
-    interval = (paired_interval(left, right, 1 - alpha) if paired
-                else welch_interval(left, right, 1 - alpha))
+    interval = (paired_interval(left, right, level) if paired
+                else welch_interval(left, right, level))
     equivalence = (
         tost_equivalence(left, right, tolerance, paired=paired, alpha=alpha)
         if tolerance else None

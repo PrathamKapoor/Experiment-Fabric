@@ -20,6 +20,13 @@ from collections.abc import Mapping, Sequence
 from dataclasses import asdict, dataclass, field
 from typing import Any
 
+from fabric.core.benchmark import (
+    BenchmarkSpec,
+    ConstraintResult,
+    check_constraints,
+)
+from fabric.core.benchmark import apply as apply_benchmark
+from fabric.core.benchmark import resolve as resolve_benchmark
 from fabric.core.entities import MetricSpec, metric_specs
 from fabric.util.hashing import full_digest
 from fabric.util.yamlio import load_yaml, loads_yaml
@@ -470,7 +477,15 @@ class AnalysisSpec:
     bootstrap_resamples: int = 5000
     bootstrap_seed: int = 12345
     permutation_resamples: int = 10000
+    permutation_seed: int = 12345
     confidence_level: float = 0.95
+    """Width of every reported interval. Defaults to ``1 - alpha``.
+
+    Kept separate from alpha because they answer different questions: alpha
+    is the error rate the decision accepts, the confidence level is how
+    wide an interval the reader is shown. Declaring 0.99 here reports 99%
+    intervals while still testing at alpha.
+    """
     omnibus: bool = True
 
     def to_dict(self) -> dict[str, Any]:
@@ -490,6 +505,27 @@ class AnalysisSpec:
         paired = str(data.get("paired", "auto")).lower()
         if paired not in ("auto", "always", "never"):
             raise SpecError("'paired' must be auto, always, or never", path)
+        confidence_level = float(data.get("confidence_level", 1 - alpha))
+        if not 0 < confidence_level < 1:
+            raise SpecError(
+                f"confidence_level must lie strictly between 0 and 1, "
+                f"received {confidence_level!r}",
+                f"{path}.confidence_level",
+            )
+        permutation_resamples = int(data.get("permutation_resamples", 10000))
+        if permutation_resamples < 1:
+            raise SpecError(
+                f"permutation_resamples must be at least 1, "
+                f"received {permutation_resamples!r}",
+                f"{path}.permutation_resamples",
+            )
+        bootstrap_resamples = int(data.get("bootstrap_resamples", 5000))
+        if bootstrap_resamples < 1:
+            raise SpecError(
+                f"bootstrap_resamples must be at least 1, "
+                f"received {bootstrap_resamples!r}",
+                f"{path}.bootstrap_resamples",
+            )
         primary = str(data.get("primary_metric", "") or "")
         if primary and metrics and primary not in {m.name for m in metrics}:
             raise SpecError(
@@ -504,10 +540,11 @@ class AnalysisSpec:
             alpha=alpha,
             correction=correction,
             paired=paired,
-            bootstrap_resamples=int(data.get("bootstrap_resamples", 5000)),
+            bootstrap_resamples=bootstrap_resamples,
             bootstrap_seed=int(data.get("bootstrap_seed", 12345)),
-            permutation_resamples=int(data.get("permutation_resamples", 10000)),
-            confidence_level=float(data.get("confidence_level", 1 - alpha)),
+            permutation_resamples=permutation_resamples,
+            permutation_seed=int(data.get("permutation_seed", 12345)),
+            confidence_level=confidence_level,
             omnibus=bool(data.get("omnibus", True)),
         )
 
@@ -523,6 +560,14 @@ class ExecutionSpec:
     isolation: str = "process"
     continue_on_failure: bool = True
     determinism_replicates: int = 0
+    energy_watts: float | None = None
+    """Average power draw of the machine, in watts, if the user knows it.
+
+    Fabric has no way to measure power, so it will not report energy unless
+    this is declared -- and when it is, every figure derived from it is
+    labelled an estimate, never a measurement. The honest reading of
+    ``energy_joules`` is "this wattage multiplied by the wall time".
+    """
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -540,6 +585,15 @@ class ExecutionSpec:
         workers = int(data.get("max_workers", 1))
         if workers < 1:
             raise SpecError("'max_workers' must be at least 1", path)
+        watts = data.get("energy_watts")
+        if watts is not None:
+            watts = float(watts)
+            if watts <= 0:
+                raise SpecError(
+                    f"'energy_watts' must be a positive average power draw in watts, "
+                    f"received {watts!r}; omit it entirely if you do not know it",
+                    f"{path}.energy_watts",
+                )
         return ExecutionSpec(
             max_workers=workers,
             timeout_seconds=float(data.get("timeout_seconds", 0) or 0),
@@ -548,6 +602,7 @@ class ExecutionSpec:
             isolation=isolation,
             continue_on_failure=bool(data.get("continue_on_failure", True)),
             determinism_replicates=int(data.get("determinism_replicates", 0)),
+            energy_watts=watts,
         )
 
 
@@ -659,6 +714,15 @@ class ExperimentSpec:
     hypothesis: str = ""
     description: str = ""
     tags: tuple[str, ...] = ()
+    benchmark: BenchmarkSpec | None = None
+    """The benchmark this experiment claims to evaluate on, if any.
+
+    Its digest is part of this specification's identity, so an experiment
+    cannot claim a benchmark and then be compared against one that has
+    since changed underneath it.
+    """
+    benchmark_notes: tuple[str, ...] = ()
+    """What the benchmark contributed, for the report to state plainly."""
     dataset: EntityRef | None = None
     model: EntityRef | None = None
     algorithm: EntityRef | None = None
@@ -700,6 +764,11 @@ class ExperimentSpec:
             "hypothesis": self.hypothesis,
             "description": self.description,
             "tags": list(self.tags),
+            "benchmark": (
+                {"ref": self.benchmark.ref, "digest": self.benchmark.digest,
+                 "schema_version": self.benchmark.schema_version}
+                if self.benchmark else None
+            ),
             "dataset": self.dataset.to_dict() if self.dataset else None,
             "model": self.model.to_dict() if self.model else None,
             "algorithm": self.algorithm.to_dict() if self.algorithm else None,
@@ -761,6 +830,17 @@ class ExperimentSpec:
             raise SpecError("the specification must be a mapping at the top level")
         raw = dict(data)
 
+        # A benchmark contributes its metrics, dataset, baselines and
+        # constraints before any of them are parsed, so every section below
+        # stays the single authority on its own shape.
+        benchmark: BenchmarkSpec | None = None
+        benchmark_notes: tuple[str, ...] = ()
+        if raw.get("benchmark") is not None:
+            benchmark = resolve_benchmark(raw["benchmark"], spec_path=source_path)
+            application = apply_benchmark(benchmark, raw)
+            raw = application.data
+            benchmark_notes = tuple(application.contributed)
+
         experiment = raw.get("experiment")
         if isinstance(experiment, str):
             header: dict[str, Any] = {"name": experiment}
@@ -816,6 +896,8 @@ class ExperimentSpec:
 
         spec = ExperimentSpec(
             name=name,
+            benchmark=benchmark,
+            benchmark_notes=benchmark_notes,
             research_question=research_question,
             hypothesis=str(header.get("hypothesis") or raw.get("hypothesis") or ""),
             description=str(header.get("description") or raw.get("description") or ""),
@@ -909,13 +991,35 @@ class ExperimentSpec:
                     "difference but not for practical equivalence. Reproduction checks "
                     "need a tolerance."
                 )
+
+        # Benchmark constraints are advisory, deliberately. Section 20 of
+        # the design: Fabric's job is to make a weak design visible, not
+        # to forbid research someone has a reason to do. The report and
+        # the integrity section repeat these, so an unmet constraint is
+        # hard to miss and still possible to override.
+        for result in self.benchmark_constraints:
+            if not result.satisfied:
+                advisories.append(
+                    f"benchmark {self.benchmark.ref if self.benchmark else ''} "
+                    f"constraint '{result.kind}' is not met: {result.detail}"
+                    + (f" ({result.reason})" if result.reason else "")
+                )
         return advisories
+
+    @property
+    def benchmark_constraints(self) -> list[ConstraintResult]:
+        """Every rule the claimed benchmark imposes, and whether it holds."""
+        if self.benchmark is None:
+            return []
+        return check_constraints(self.benchmark, self)
 
     def summary_lines(self) -> list[str]:
         """Human-readable one-line-per-fact summary used by the CLI."""
         configs = len(self.configurations)
         return [
             f"experiment      {self.name}",
+            *([f"benchmark       {self.benchmark.ref} "
+               f"(digest {self.benchmark.digest[:19]})"] if self.benchmark else []),
             f"question        {self.research_question}",
             f"metrics         {', '.join(m.name for m in self.metrics)} (primary: {self.primary_metric})",
             f"configurations  {configs}",

@@ -194,6 +194,25 @@ def _config_label(config: Mapping[str, Any], swept_names: Sequence[str]) -> str:
 # --------------------------------------------------------------------------
 
 
+def _tree_size(path: str) -> int:
+    """Total bytes under a path, without reading any of them.
+
+    Size is metadata, never identity -- two datasets can share a byte count
+    and share nothing else. It is here so a report can say how much data
+    produced a number, and so a bundle can warn before copying a corpus.
+    """
+    if os.path.isfile(path):
+        return os.path.getsize(path)
+    total = 0
+    for directory, _subdirs, files in os.walk(path):
+        for name in sorted(files):
+            try:
+                total += os.path.getsize(os.path.join(directory, name))
+            except OSError:  # pragma: no cover - a file vanishing mid-walk
+                continue
+    return total
+
+
 def _resolve_dataset(ref: EntityRef | None, registry: Registry, *, root: str) -> Dataset | None:
     if ref is None:
         return None
@@ -211,15 +230,19 @@ def _resolve_dataset(ref: EntityRef | None, registry: Registry, *, root: str) ->
             schema=dict(inline.pop("schema", {}) or {}),
             splits=dict(inline.pop("splits", {}) or {}),
             n_examples=inline.pop("n_examples", None),
+            size_bytes=inline.pop("size_bytes", None),
             license=str(inline.pop("license", "")),
             notes=str(inline.pop("notes", "")),
+            parent=str(inline.pop("parent", "")),
             local_path=os.path.join(root, path) if path and not os.path.isabs(path) else str(path),
         )
-        if dataset.local_path and not dataset.digest:
+        if dataset.local_path and os.path.exists(dataset.local_path):
             from fabric.util.hashing import tree_digest
 
-            if os.path.exists(dataset.local_path):
+            if not dataset.digest:
                 dataset = dataset.with_(digest=tree_digest(dataset.local_path))
+            if dataset.size_bytes is None:
+                dataset = dataset.with_(size_bytes=_tree_size(dataset.local_path))
         return registry.register_dataset(dataset)
     try:
         return registry.find("dataset", ref.name, ref.version)
@@ -245,6 +268,8 @@ def _resolve_model(ref: EntityRef | None, registry: Registry) -> Model | None:
             tokenizer=str(inline.pop("tokenizer", "")),
             parameters=inline.pop("parameters", None),
             provider=str(inline.pop("provider", "")),
+            repository=str(inline.pop("repository", "")),
+            checkpoint=str(inline.pop("checkpoint", "")),
             config=dict(inline.pop("config", {}) or {}),
         )
         return registry.register_model(model)

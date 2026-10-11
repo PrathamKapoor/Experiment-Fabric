@@ -18,12 +18,14 @@ from collections.abc import Sequence
 from typing import Any
 
 from fabric.analysis.engine import ExperimentAnalysis
+from fabric.analysis.reference import CAVEAT as REFERENCE_CAVEAT
 from fabric.core.entities import MetricSpec, Role, Run
 from fabric.core.graph import ExperimentGraph
 from fabric.environments.capture import describe as describe_environment
 from fabric.environments.hardware import describe as describe_hardware
 from fabric.execution.planner import ExperimentPlan
 from fabric.reporting.document import (
+    Bullets,
     Callout,
     Chart,
     Code,
@@ -33,6 +35,16 @@ from fabric.reporting.document import (
     Paragraph,
     Section,
 )
+
+
+def _level(analysis: ExperimentAnalysis) -> str:
+    """The declared confidence level as a label, e.g. ``95%``.
+
+    Read from the specification rather than derived from alpha: a study is
+    free to test at 0.05 and report 99% intervals, and this is the one
+    place that decision is turned into text.
+    """
+    return f"{analysis.confidence_level * 100:.10g}%"
 
 
 def _num(value: Any, digits: int = 4) -> str:
@@ -103,6 +115,7 @@ def build_report(
     _setup_section(document, analysis, plan, runs, environment, hardware)
     _results_section(document, analysis, metrics, primary)
     _statistics_section(document, analysis, metrics, primary)
+    _reference_section(document, analysis)
     _ablation_section(document, analysis, metrics, primary)
     _sweep_section(document, analysis, primary)
     _cost_section(document, analysis, primary)
@@ -138,7 +151,10 @@ def _summary_section(document: Document, analysis: ExperimentAnalysis,
         ("Conditions", str(len(plan.conditions))),
         ("Seeds", str(len(plan.spec.seeds.values))),
         ("Primary metric", analysis.primary_metric),
-        ("Significance level", f"{analysis.alpha} with {analysis.correction} correction"),
+        ("Significance level", f"alpha={analysis.alpha} with "
+                               f"{analysis.correction} correction"),
+        ("Confidence level", f"{_level(analysis)}, applied to every interval "
+                             "in this report"),
         ("Specification digest", analysis.spec_digest[:31]),
     ], caption="At a glance"))
 
@@ -186,6 +202,60 @@ def _setup_section(document: Document, analysis: ExperimentAnalysis,
                    environment: Any, hardware: Any) -> None:
     section = document.section("Experimental setup")
     section.summary = "Exactly what was run, and on what."
+
+    benchmark = plan.spec.benchmark
+    if benchmark is not None:
+        sub = section.subsection("Benchmark")
+        sub.paragraph(
+            f"This experiment claims **{benchmark.ref}**. The metrics below, their "
+            "directions and their tolerances come from that definition rather than "
+            "from this specification, which is what makes the numbers comparable "
+            "with other results reported on it. The definition's digest is part of "
+            "this experiment's identity, so a benchmark that changes produces a "
+            "different experiment rather than a silently different meaning."
+        )
+        sub.add(KeyValues([
+            ("Benchmark", benchmark.ref),
+            ("Definition digest", benchmark.digest),
+            ("Schema version", benchmark.schema_version),
+            ("Description", " ".join(benchmark.description.split()) or "not declared"),
+            ("Licence", benchmark.license or "not declared"),
+            ("Citation", " ".join(benchmark.citation.split()) or "not declared"),
+        ], caption="The benchmark this result is reported on"))
+        if benchmark.tasks:
+            sub.table(
+                ["Task", "Dataset", "Metrics", "Description"],
+                [[t.name, t.dataset or "-", ", ".join(t.metrics) or "all",
+                  t.description] for t in benchmark.tasks],
+                caption="Tasks the benchmark defines",
+                aligns=["left", "left", "left", "left"],
+            )
+        constraints = plan.spec.benchmark_constraints
+        if constraints:
+            sub.table(
+                ["Constraint", "Met", "Detail", "Why the benchmark asks"],
+                [[c.kind, "yes" if c.satisfied else "NO", c.detail,
+                  " ".join(c.reason.split()) or "-"] for c in constraints],
+                caption=f"Whether this experiment met the rules of {benchmark.ref}",
+                aligns=["left", "left", "left", "left"],
+                note="Constraints are the benchmark authors' conditions for a result "
+                     "on it to be comparable. Fabric reports them and does not "
+                     "enforce them: a study may have a reason to run below the bar, "
+                     "and should say so where it cites the benchmark.",
+            )
+            unmet = [c for c in constraints if not c.satisfied]
+            if unmet:
+                sub.add(Callout(
+                    "warn", "Not fully conforming",
+                    f"{len(unmet)} of {len(constraints)} constraints are unmet: "
+                    + "; ".join(c.detail for c in unmet)
+                    + f". The results below stand on their own, but calling them "
+                    f"'{benchmark.name} results' claims a comparability this design "
+                    "does not have.",
+                ))
+        if plan.spec.benchmark_notes:
+            sub.paragraph("What the benchmark contributed to this specification:")
+            sub.add(Bullets(list(plan.spec.benchmark_notes)))
 
     if plan.dataset:
         dataset = plan.dataset
@@ -327,14 +397,14 @@ def _results_section(document: Document, analysis: ExperimentAnalysis,
             continue
         from fabric.statistics.confidence import t_interval
 
-        interval = t_interval(values, 1 - analysis.alpha)
+        interval = t_interval(values, analysis.confidence_level)
         interval_rows.append([
             condition.name, _num(interval.point), interval.format(),
             _num(condition.summary(primary).std), str(len(values)),
         ])
     if interval_rows:
         section.table(
-            ["Condition", "Mean", f"{round((1 - analysis.alpha) * 100)}% interval",
+            ["Condition", "Mean", f"{_level(analysis)} interval",
              "SD", "n"],
             interval_rows,
             caption=f"Confidence intervals on the mean {primary}",
@@ -400,7 +470,7 @@ def _statistics_section(document: Document, analysis: ExperimentAnalysis,
             ])
         subsection.table(
             ["Baseline", "Treatment", "Baseline mean", "Difference",
-             f"{round((1 - analysis.alpha) * 100)}% CI", "Test", "p", "adjusted p",
+             f"{_level(analysis)} CI", "Test", "p", "adjusted p",
              "Effect size", "Verdict"],
             rows,
             caption=f"Treatment versus each baseline on {spec.name}",
@@ -421,7 +491,7 @@ def _statistics_section(document: Document, analysis: ExperimentAnalysis,
                 {"rows": forest_rows,
                  "title": f"Difference in {spec.name} against each baseline"},
                 caption=f"Estimated difference in {spec.name} with "
-                        f"{round((1 - analysis.alpha) * 100)}% intervals. "
+                        f"{_level(analysis)} intervals. "
                         "An interval crossing zero means the difference is unresolved.",
                 alt=f"Forest plot of {len(forest_rows)} comparisons on {spec.name}.",
             ))
@@ -485,6 +555,74 @@ def _test_rationale(section: Section, comparisons: Sequence[Any]) -> None:
                    else "equivalence not established (which is not the same as a "
                         "difference having been shown).")
             )
+
+
+# --------------------------------------------------------------------------
+# 4b. published reference values
+# --------------------------------------------------------------------------
+
+
+def _reference_section(document: Document, analysis: ExperimentAnalysis) -> None:
+    """Published numbers, kept visibly separate from measured ones.
+
+    This section exists because the two are constantly conflated. A number
+    from a paper and a number from a run look identical in a table, and
+    only one of them has a distribution behind it.
+    """
+    references = analysis.references
+    if not references:
+        return
+    section = document.section("Published reference values")
+    section.summary = "Numbers cited from elsewhere, and how the runs here compare."
+    section.add(Callout(
+        "info", "These are citations, not runs",
+        REFERENCE_CAVEAT,
+    ))
+
+    if references.comparisons:
+        rows = []
+        for item in references.comparisons:
+            rows.append([
+                item.condition,
+                item.metric,
+                _num(item.published),
+                _num(item.observed.mean),
+                item.interval.format() if item.interval else "-",
+                _num(item.difference),
+                f"{item.relative_pct:+.2f}%" if item.relative_pct == item.relative_pct else "-",
+                f"{item.noise_multiple:.2f}x" if item.noise_multiple == item.noise_multiple else "-",
+                item.verdict,
+                item.source or "not cited",
+            ])
+        section.table(
+            ["Arm", "Metric", "Published", "Observed mean", "Observed interval",
+             "Gap", "Relative", "In seed noise", "Verdict", "Source"],
+            rows,
+            caption="Observed distributions against the values their sources reported",
+            aligns=["left", "left", "right", "right", "left", "right", "right",
+                    "right", "left", "left"],
+            note="No hypothesis test is reported here. The published column is a "
+                 "single scalar whose own uncertainty is unknown, so a p-value "
+                 "against it would carry more authority than the comparison "
+                 "deserves. 'Consistent' means the gap is inside the metric's "
+                 "declared tolerance, or failing that inside the observed "
+                 "interval; 'diverges' means it is not.",
+        )
+        for item in references.comparisons:
+            level = {"consistent": "good", "diverges": "warn"}.get(item.verdict, "info")
+            section.add(Callout(level, f"{item.condition} / {item.metric}",
+                                item.describe()))
+
+    if references.missing:
+        section.table(
+            ["Arm", "Metric", "Published", "Why it was not reproduced", "Source"],
+            [[m["condition"], m["metric"], _num(m["published"]), m["reason"],
+              m.get("source") or "not cited"]
+             for m in references.missing],
+            caption="Reference values carried through the report without being reproduced",
+            note="A cited number that no run reproduced is evidence about the "
+                 "literature, not about this experiment.",
+        )
 
 
 # --------------------------------------------------------------------------
@@ -621,10 +759,17 @@ def _sweep_section(document: Document, analysis: ExperimentAnalysis,
 
 def _cost_section(document: Document, analysis: ExperimentAnalysis,
                   primary: str) -> None:
-    if not analysis.cost:
+    totals = analysis.resources or {}
+    if not analysis.cost and not totals.get("runs"):
         return
     section = document.section("Cost of the result")
     section.summary = "What each condition's quality cost in compute."
+
+    if totals.get("runs"):
+        _resource_totals(section, totals)
+
+    if not analysis.cost:
+        return
     section.paragraph(
         "Accuracy without cost is half a comparison. The table below puts the "
         "quality of each condition beside the compute it took to get it."
@@ -662,6 +807,52 @@ def _cost_section(document: Document, analysis: ExperimentAnalysis,
                     "to earn its position with height.",
             alt=f"Scatter plot of {primary} against compute for {len(points)} conditions.",
         ))
+
+
+def _resource_totals(section: Section, totals: dict[str, Any]) -> None:
+    """Totals across every run, with each figure's provenance beside it.
+
+    Section 24 of the design: a resource number without its source is a
+    liability. Wall and CPU time are read from the clock; energy is
+    arithmetic on a wattage the user declared, and says so in the same row
+    rather than in a footnote nobody reads.
+    """
+    rows: list[tuple[str, str]] = [
+        ("Runs measured", str(totals.get("runs", 0))),
+        ("Wall time", f"{_duration(totals.get('wall_seconds', 0.0))} "
+                      f"(measured: perf_counter, summed over runs)"),
+        ("CPU time", f"{_duration(totals.get('cpu_seconds', 0.0))} "
+                     f"(measured: process_time)"),
+    ]
+    if totals.get("gpu_seconds"):
+        rows.append(("GPU time", f"{_duration(totals['gpu_seconds'])} "
+                                 "(attributed: wall time while --track-gpu was on, "
+                                 "not a utilisation measurement)"))
+    peak = totals.get("peak_rss_bytes") or 0
+    if peak:
+        rows.append(("Peak memory", f"{peak / (1024 ** 2):.1f} MiB "
+                                    "(measured: peak RSS of the worst run)"))
+    energy = totals.get("energy_joules")
+    if energy is not None:
+        rows.append((
+            "Energy",
+            f"{energy / 3600.0:.2f} Wh -- ESTIMATED, not measured: "
+            + str(totals.get("energy_source", "")),
+        ))
+    else:
+        rows.append(("Energy", "not measured -- no energy_watts was declared, and "
+                               "Fabric will not invent one"))
+    cost = totals.get("cost_usd")
+    rows.append((
+        "Cost",
+        f"${cost:.2f} -- ESTIMATED from the declared hourly price x wall time"
+        if cost is not None else
+        "not priced -- no --gpu-cost or --cpu-cost was given",
+    ))
+    section.add(KeyValues(
+        list(rows),
+        caption="Resource totals, each labelled with where the number came from",
+    ))
 
 
 # --------------------------------------------------------------------------

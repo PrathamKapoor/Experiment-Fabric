@@ -92,6 +92,18 @@ class Entity:
     #: required fields without tripping dataclass default ordering.
     id_prefix: ClassVar[str] = ""
 
+    #: Identity fields added after the entity was first released.
+    #:
+    #: These count towards identity when they carry a value and vanish
+    #: from it when they do not, so adding one never re-identifies an
+    #: entity that does not use it. Without this rule, giving ``Model`` a
+    #: ``checkpoint`` field would change the identifier of every model
+    #: already in every registry -- silently invalidating caches and
+    #: breaking the comparison of results recorded before the upgrade
+    #: against results recorded after it, which is the exact failure this
+    #: project exists to catch.
+    identity_extensions: ClassVar[frozenset[str]] = frozenset()
+
     def identity_payload(self) -> dict[str, Any]:
         """The fields that define this entity's identity.
 
@@ -99,7 +111,12 @@ class Entity:
         are excluded so that identity survives being moved between
         machines.
         """
-        payload = {k: v for k, v in asdict(self).items() if k not in self._excluded_fields()}
+        excluded = self._excluded_fields()
+        extensions = type(self).identity_extensions
+        payload = {
+            k: v for k, v in asdict(self).items()
+            if k not in excluded and not (k in extensions and not v)
+        }
         payload["__kind__"] = type(self).__name__
         return payload
 
@@ -117,6 +134,10 @@ class Entity:
         return frozenset({
             "registered_at", "local_path", "id", "dirty",
             "description", "notes", "source", "preprocessing", "license",
+            # Lineage and location: they say where a thing came from, not
+            # which thing it is. A dataset does not become a different
+            # dataset because someone recorded its parent afterwards.
+            "parent", "repository", "size_bytes",
         })
 
     @property
@@ -170,8 +191,17 @@ class Dataset(Entity):
     schema: dict[str, Any] = field(default_factory=dict)
     splits: dict[str, dict[str, Any]] = field(default_factory=dict)
     n_examples: int | None = None
+    size_bytes: int | None = None
     license: str = ""
     notes: str = ""
+    parent: str = ""
+    """The dataset this one was derived from, as an id or ``name@version``.
+
+    Lineage, not identity: a filtered v2 is a different dataset from the v1
+    it came from, and saying where it came from must not make it a third
+    thing. Recording it is what lets ``fabric impact`` follow a data change
+    forward through every version built on it.
+    """
     local_path: str = ""
     registered_at: float = 0.0
     id_prefix: ClassVar[str] = "ds-"
@@ -217,10 +247,20 @@ class Model(Entity):
     tokenizer: str = ""
     parameters: int | None = None
     provider: str = ""
+    repository: str = ""
+    """Where the weights came from: a hub reference, a URL, a bucket key."""
+    checkpoint: str = ""
+    """Which checkpoint within that source, when a model has several.
+
+    Part of identity when there is no weights digest, because "step 40000"
+    and "step 80000" of the same run are not the same model. When there is
+    a digest the digest already settles it.
+    """
     config: dict[str, Any] = field(default_factory=dict)
     local_path: str = ""
     registered_at: float = 0.0
     id_prefix: ClassVar[str] = "mdl-"
+    identity_extensions: ClassVar[frozenset[str]] = frozenset({"checkpoint"})
 
     @property
     def ref(self) -> str:
@@ -239,6 +279,8 @@ class Model(Entity):
                 "tokenizer": self.tokenizer,
                 "config": self.config,
             }
+        # Without weights to hash, the checkpoint is what separates two
+        # snapshots of the same training run, so it counts here.
         return super().identity_payload()
 
 
@@ -487,6 +529,17 @@ class Resources:
     peak_rss_bytes: int = 0
     gpu_memory_bytes: int = 0
     energy_joules: float | None = None
+    """Estimated, never measured: ``energy_watts * wall_seconds``.
+
+    ``None`` means no wattage was declared, and the report says "not
+    measured" rather than printing a number nobody stood behind.
+    """
+    energy_watts: float | None = None
+    """The declared average power draw the estimate above was derived from.
+
+    Carried alongside the joules so a reader can see the assumption
+    instead of having to trust the product of it.
+    """
     cost_usd: float | None = None
 
     def to_dict(self) -> dict[str, Any]:

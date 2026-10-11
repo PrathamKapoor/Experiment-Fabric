@@ -26,6 +26,12 @@ from fabric.statistics.power import DetectableEffect, minimum_detectable_effect
 from fabric.statistics.selection import Decision, run_selected, select_test
 
 
+def _level_label(level: float) -> str:
+    """``0.95`` -> ``95%``, ``0.995`` -> ``99.5%``: no trailing zeroes."""
+    percent = level * 100
+    return f"{percent:.10g}%"
+
+
 @dataclass(frozen=True)
 class Comparison:
     """A treatment measured against a baseline on one metric."""
@@ -47,6 +53,15 @@ class Comparison:
     adjusted_p: float | None = None
     correction_method: str = ""
     alpha: float = 0.05
+    confidence_level: float = 0.95
+    """Width of every interval here, which need not be ``1 - alpha``.
+
+    Separating them is deliberate.  Alpha is the error rate the *decision*
+    is willing to accept; the confidence level is how wide an interval the
+    *reader* is shown.  A study can quite reasonably test at 0.05 and
+    report 99% intervals, and `analysis.confidence_level` in the
+    specification is what sets this.
+    """
     group: str = "main"
 
     # -- convenience -------------------------------------------------------
@@ -113,7 +128,8 @@ class Comparison:
             f"{self.treatment} scored {t_mean:.{digits}f} against {self.baseline}'s "
             f"{b_mean:.{digits}f} on {self.metric} "
             f"({n} replications each, {self.difference:+.{digits}f} "
-            f"{self.difference_interval.format(digits)} at {round((1 - self.alpha) * 100)}% confidence)"
+            f"{self.difference_interval.format(digits)} at "
+            f"{_level_label(self.confidence_level)} confidence)"
         )
         p_label = "adjusted p" if self.adjusted_p is not None else "p"
         p_text = "n/a" if self.effective_p != self.effective_p else f"{self.effective_p:.4f}"
@@ -158,6 +174,7 @@ class Comparison:
             "higher_is_better": self.higher_is_better,
             "paired": self.paired,
             "alpha": self.alpha,
+            "confidence_level": self.confidence_level,
             "treatment_summary": self.treatment_summary.to_dict(include_values=include_values),
             "baseline_summary": self.baseline_summary.to_dict(include_values=include_values),
             "decision": self.decision.to_dict(),
@@ -184,9 +201,12 @@ def compare(
     higher_is_better: bool = True,
     paired: bool | None = None,
     alpha: float = 0.05,
+    confidence_level: float | None = None,
     tolerance: float | None = None,
     bootstrap_resamples: int = 5000,
     bootstrap_seed: int = 12345,
+    permutation_resamples: int = 10000,
+    permutation_seed: int = 12345,
     group: str = "main",
 ) -> Comparison:
     """Compare two sets of replications on one metric.
@@ -194,25 +214,36 @@ def compare(
     ``paired=None`` means "decide from the shapes": equal-length samples
     are assumed to come from a shared seed set, which is how Fabric
     generates them.  Callers that know better should say so explicitly.
+
+    ``confidence_level=None`` means ``1 - alpha``, which is the
+    conventional pairing; pass it explicitly to widen or narrow every
+    interval here independently of the decision threshold.
     """
     treatment_values = [float(v) for v in treatment_values]
     baseline_values = [float(v) for v in baseline_values]
     if paired is None:
         paired = len(treatment_values) == len(baseline_values) and len(treatment_values) > 1
+    level = 1 - alpha if confidence_level is None else float(confidence_level)
+    if not 0 < level < 1:
+        raise ValueError(f"confidence_level must lie strictly between 0 and 1, got {level!r}")
 
-    decision = select_test(treatment_values, baseline_values, paired=paired, alpha=alpha)
+    decision = select_test(
+        treatment_values, baseline_values, paired=paired, alpha=alpha,
+        permutation_resamples=permutation_resamples,
+        permutation_seed=permutation_seed,
+    )
     test = run_selected(decision, treatment_values, baseline_values, alpha=alpha)
 
     if paired and len(treatment_values) == len(baseline_values) and len(treatment_values) > 1:
-        difference_interval = paired_interval(treatment_values, baseline_values, 1 - alpha)
+        difference_interval = paired_interval(treatment_values, baseline_values, level)
     else:
-        difference_interval = welch_interval(treatment_values, baseline_values, 1 - alpha)
+        difference_interval = welch_interval(treatment_values, baseline_values, level)
 
     boot: Interval | None = None
     if len(treatment_values) >= 3 and len(baseline_values) >= 3:
         boot = bootstrap_difference_interval(
             treatment_values, baseline_values, paired=paired,
-            level=1 - alpha, n_resamples=bootstrap_resamples, seed=bootstrap_seed,
+            level=level, n_resamples=bootstrap_resamples, seed=bootstrap_seed,
         )
 
     equivalence = None
@@ -222,7 +253,7 @@ def compare(
 
     effects = tuple(all_effect_sizes(
         treatment_values, baseline_values, paired=paired,
-        higher_is_better=higher_is_better, level=1 - alpha,
+        higher_is_better=higher_is_better, level=level,
     ))
 
     detectable = minimum_detectable_effect(
@@ -259,5 +290,6 @@ def compare(
         equivalence=equivalence,
         detectable=detectable,
         alpha=alpha,
+        confidence_level=level,
         group=group,
     )

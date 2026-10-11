@@ -1,0 +1,154 @@
+# Experiment Fabric as a service.
+#
+#   docker compose up --build
+#   open http://localhost:8080
+#
+# What you get: the HTTP API, the web interface, a persistent workspace,
+# and a worker that will *not* run submitted code until you say so.
+#
+# ---------------------------------------------------------------------------
+# READ THIS BEFORE SETTING FABRIC_EXECUTE=1
+# ---------------------------------------------------------------------------
+# Running an experiment means importing and calling the Python an uploaded
+# specification names. With execution on, "anyone who can POST to this
+# server" and "anyone who can run code in this container" are the same set
+# of people.
+#
+# The container is a boundary, not a sandbox. It helps -- unprivileged
+# user, read-only root filesystem, no new privileges, dropped capabilities,
+# a writable volume and nothing else -- and none of that stops submitted
+# code from reading the workspace or opening an outbound connection. The
+# `internal-network` profile below closes the second hole; there is no
+# profile that closes the first, because the worker needs the workspace.
+#
+# docs/deployment.md has the full threat model. The short version: turn
+# this on for people you would give a shell to, and no further.
+# ---------------------------------------------------------------------------
+
+services:
+  fabric:
+    build:
+      context: .
+      target: server
+    image: experiment-fabric:local
+    container_name: fabric
+    ports:
+      # Bound to localhost deliberately. Change to "8080:8080" only behind
+      # a reverse proxy that terminates TLS and handles authentication --
+      # Fabric has neither.
+      - "127.0.0.1:8080:8080"
+    volumes:
+      # The evidence. It has to outlive the container, or the project's
+      # central claim is false inside its own deployment.
+      - fabric-workspace:/data
+      # Benchmark definitions, read-only: a running server has no business
+      # rewriting the contract its results are reported against.
+      - ./benchmarks:/work/benchmarks:ro
+    environment:
+      FABRIC_WORKSPACE: /data
+      FABRIC_BENCHMARK_PATH: /work/benchmarks
+      FABRIC_NO_COLOR: "1"
+      PYTHONUNBUFFERED: "1"
+    command:
+      - fabric
+      - serve
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8080"
+      - --workspace
+      - /data
+      - --workers
+      - "2"
+    restart: unless-stopped
+
+    # Defence in depth. None of this is a sandbox; all of it narrows the
+    # blast radius if something goes wrong.
+    read_only: true
+    tmpfs:
+      - /tmp:size=256m
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    pids_limit: 512
+    mem_limit: 2g
+
+    healthcheck:
+      test: ["CMD", "python", "-c",
+             "import sys,urllib.request,json;\
+              b=json.load(urllib.request.urlopen('http://127.0.0.1:8080/health',timeout=4));\
+              sys.exit(0 if b.get('status')=='ok' else 1)"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # The same image with execution switched on and the network cut off.
+  #
+  #   docker compose --profile execute up --build
+  #
+  # `internal: true` on the network means submitted code cannot reach the
+  # internet or the host. It still has the workspace, and it is still the
+  # same user inside the container. This is the strongest posture Fabric
+  # offers out of the box, and it is still not a sandbox.
+  fabric-execute:
+    profiles: ["execute"]
+    build:
+      context: .
+      target: server
+    image: experiment-fabric:local
+    container_name: fabric-execute
+    ports:
+      - "127.0.0.1:8081:8080"
+    volumes:
+      - fabric-workspace-execute:/data
+      - ./benchmarks:/work/benchmarks:ro
+    environment:
+      FABRIC_WORKSPACE: /data
+      FABRIC_BENCHMARK_PATH: /work/benchmarks
+      FABRIC_NO_COLOR: "1"
+      PYTHONUNBUFFERED: "1"
+    command:
+      - fabric
+      - serve
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8080"
+      - --workspace
+      - /data
+      - --workers
+      - "2"
+      - --execute
+      - --i-understand
+    networks:
+      - isolated
+    read_only: true
+    tmpfs:
+      - /tmp:size=512m
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    pids_limit: 512
+    mem_limit: 4g
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c",
+             "import sys,urllib.request,json;\
+              b=json.load(urllib.request.urlopen('http://127.0.0.1:8080/health',timeout=4));\
+              sys.exit(0 if b.get('status')=='ok' else 1)"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  fabric-workspace:
+  fabric-workspace-execute:
+
+networks:
+  isolated:
+    # No route out. Submitted code can talk to nothing beyond this network.
+    internal: true

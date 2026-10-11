@@ -353,6 +353,45 @@ def check_replication_depth(results: ResultSet, report: IntegrityReport) -> None
         ))
 
 
+def check_benchmark_conformance(plan: ExperimentPlan, report: IntegrityReport) -> None:
+    """Whether the experiment met the rules of the benchmark it claims.
+
+    An experiment that says ``benchmark: agent-qa@v1`` is making a claim
+    about comparability, and that claim is only worth something if the
+    benchmark's own conditions were met. An unmet constraint is a warning
+    rather than a failure: the benchmark's authors set a bar, but they are
+    not the authority on whether this particular study had a reason to run
+    below it. What Fabric will not do is let the claim pass unremarked.
+    """
+    benchmark = plan.spec.benchmark
+    if benchmark is None:
+        return
+    results = plan.spec.benchmark_constraints
+    unmet = [r for r in results if not r.satisfied]
+    if not unmet:
+        report.add(Finding(
+            "benchmark.conforms", PASS,
+            f"Experiment conforms to {benchmark.ref}",
+            f"All {len(results)} constraint(s) the benchmark imposes are satisfied, so "
+            f"this result is comparable with others reported on {benchmark.ref} at "
+            f"digest {benchmark.digest[:23]}.",
+            evidence={"benchmark": benchmark.ref, "digest": benchmark.digest,
+                      "constraints": [r.to_dict() for r in results]},
+        ))
+        return
+    report.add(Finding(
+        "benchmark.constraints_unmet", WARN,
+        f"{len(unmet)} of {len(results)} {benchmark.ref} constraints are not met",
+        "; ".join(f"{r.kind}: {r.detail}" for r in unmet)
+        + ". Results are still valid on their own terms, but describing them as "
+        f"'evaluated on {benchmark.name}' claims a comparability this design does "
+        "not have.",
+        "Meet the constraint, or state the deviation where the benchmark is cited.",
+        {"benchmark": benchmark.ref, "digest": benchmark.digest,
+         "unmet": [r.to_dict() for r in unmet]},
+    ))
+
+
 # --------------------------------------------------------------------------
 # entry point
 # --------------------------------------------------------------------------
@@ -373,6 +412,7 @@ def run_checks(plan: ExperimentPlan, results: ResultSet, *,
     check_metric_completeness(results, report)
     check_replication_depth(results, report)
     check_analysis_frozen(plan, stored_spec_digest, report)
+    check_benchmark_conformance(plan, report)
     if settings.freeze_baselines:
         check_baseline_effort(results, report)
     return report

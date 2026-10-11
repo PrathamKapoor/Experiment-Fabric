@@ -146,6 +146,7 @@ class ResourceMonitor:
             peak_rss_bytes=rss,
             gpu_memory_bytes=gpu_memory,
             energy_joules=energy,
+            energy_watts=self.energy_watts,
             cost_usd=cost,
         )
 
@@ -159,6 +160,7 @@ def aggregate(resources: list[Resources]) -> dict[str, Any]:
     total_gpu = sum(r.gpu_seconds for r in resources)
     costs = [r.cost_usd for r in resources if r.cost_usd is not None]
     energies = [r.energy_joules for r in resources if r.energy_joules is not None]
+    watts = sorted({r.energy_watts for r in resources if r.energy_watts is not None})
     return {
         "runs": len(resources),
         "wall_seconds": total_wall,
@@ -169,5 +171,10 @@ def aggregate(resources: list[Resources]) -> dict[str, Any]:
         "peak_rss_bytes": max((r.peak_rss_bytes for r in resources), default=0),
         "cost_usd": sum(costs) if costs else None,
         "energy_joules": sum(energies) if energies else None,
+        "energy_source": (
+            "estimated: declared " + "/".join(f"{w:g}" for w in watts) + " W x wall time"
+            if energies else "not measured: no energy_watts was declared"
+        ),
+        "energy_watts": watts[0] if len(watts) == 1 else (watts or None),
         "mean_wall_seconds": total_wall / len(resources),
     }

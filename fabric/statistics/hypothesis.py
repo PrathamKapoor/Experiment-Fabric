@@ -473,12 +473,22 @@ def mann_whitney_u(a: Sequence[float], b: Sequence[float], *,
     )
 
 
-def _wilcoxon_exact_counts(n: int) -> list[int]:
-    """Counts of signed-rank sums for ``n`` pairs."""
-    total = n * (n + 1) // 2
+def _wilcoxon_exact_distribution(rank_values: Sequence[float]) -> list[int]:
+    """Counts of sign assignments giving each attainable positive rank sum.
+
+    ``rank_values`` are the average ranks of the nonzero absolute
+    differences.  Average ranks are always multiples of 0.5, so the sums
+    are tracked doubled as integers.  Enumerating over the *actual* rank
+    values rather than ``1..n`` means tied differences are handled by
+    conditioning on the observed tie pattern: the p-value is exact for
+    the data at hand instead of an approximation that pretties over the
+    ties.
+    """
+    scaled = sorted(int(round(2.0 * v)) for v in rank_values)
+    total = sum(scaled)
     counts = [0] * (total + 1)
     counts[0] = 1
-    for rank in range(1, n + 1):
+    for rank in scaled:
         for s in range(total, rank - 1, -1):
             counts[s] += counts[s - rank]
     return counts
@@ -502,17 +512,24 @@ def wilcoxon_signed_rank(a: Sequence[float], b: Sequence[float], *,
     w = min(w_plus, w_minus)
     has_ties = len(set(abs(d) for d in nonzero)) != n
 
-    exact = n <= _EXACT_LIMIT and not has_ties
+    # Ranks are multiples of 0.5, so doubling maps the signed-rank sums to
+    # integers and the exact distribution covers tied data as well.
+    plus2 = int(round(2.0 * w_plus))
+    minus2 = int(round(2.0 * w_minus))
+    w2 = min(plus2, minus2)
+    exact = n <= _EXACT_LIMIT
     if exact:
-        counts = _wilcoxon_exact_counts(n)
+        counts = _wilcoxon_exact_distribution(ranks)
         total = float(sum(counts))
         if alternative == "two-sided":
-            p = min(1.0, 2.0 * sum(counts[: int(w) + 1]) / total)
+            p = min(1.0, 2.0 * sum(counts[: w2 + 1]) / total)
         elif alternative == "greater":
-            p = sum(counts[: int(w_minus) + 1]) / total
+            p = sum(counts[: minus2 + 1]) / total
         else:
-            p = sum(counts[: int(w_plus) + 1]) / total
-        detail = "exact null distribution by dynamic programming"
+            p = sum(counts[: plus2 + 1]) / total
+        detail = ("exact null distribution by dynamic programming, conditioned "
+                  "on the observed tie pattern" if has_ties else
+                  "exact null distribution by dynamic programming")
         z = math.nan
     else:
         mu_w = n * (n + 1) / 4.0

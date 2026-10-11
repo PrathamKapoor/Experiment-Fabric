@@ -166,8 +166,11 @@ def analyse_ablations(
     metrics: Sequence[MetricSpec],
     alpha: float = 0.05,
     correction: str = "holm",
+    confidence_level: float | None = None,
     bootstrap_resamples: int = 5000,
     bootstrap_seed: int = 12345,
+    permutation_resamples: int = 10000,
+    permutation_seed: int = 12345,
     reference_name: str = "",
 ) -> AblationAnalysis:
     """Measure the contribution of every ablated component."""
@@ -202,9 +205,12 @@ def analyse_ablations(
                 higher_is_better=spec.direction.sign >= 0,
                 paired=results.can_pair(ablation.name, reference.name, spec.name),
                 alpha=alpha,
+                confidence_level=confidence_level,
                 tolerance=spec.tolerance,
                 bootstrap_resamples=bootstrap_resamples,
                 bootstrap_seed=bootstrap_seed,
+                permutation_resamples=permutation_resamples,
+                permutation_seed=permutation_seed,
                 group="ablation",
             )
         analysis.effects.append(effect)

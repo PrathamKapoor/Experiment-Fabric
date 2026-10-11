@@ -15,6 +15,11 @@ experiment:
   treatment_name: logistic-regression
   tags: [text-classification, baselines, ablation]
 
+# The task, its metrics, the majority-class floor and the rules a claim on
+# this task has to satisfy all come from the benchmark definition, whose
+# digest is part of this experiment's identity.
+benchmark: sentiment-small@v1
+
 dataset:
   name: sentiment
   version: v1
@@ -64,13 +69,6 @@ baselines:
       name: naive-bayes
       entrypoint: python:examples.text_classification.model:naive_bayes
       commit: auto
-  - name: majority-class
-    description: Always predict the most common training label.
-    algorithm:
-      name: majority-class
-      entrypoint: python:examples.text_classification.model:majority
-      commit: auto
-
 ablations:
   - name: remove_bigrams
     remove: [bigrams]
@@ -79,18 +77,9 @@ ablations:
     remove: [lowercasing]
     description: Does case folding matter at all here?
 
+# accuracy, f1 and train_seconds are defined by sentiment-small@v1 and are
+# not repeated here. Only the metric this experiment adds appears below.
 metrics:
-  - name: accuracy
-    direction: maximize
-    primary: true
-    tolerance: 0.01
-  - name: f1
-    direction: maximize
-    tolerance: 0.01
-  - name: train_seconds
-    direction: minimize
-    unit: s
-    tolerance: 0.5
   - name: vocabulary_size
     direction: minimize
     description: Feature count, as a proxy for model size.

@@ -508,7 +508,7 @@ checks, reporting, certificates, bundles and reproduction.
 | Every documented command works | `scripts/smoke.sh` asserts the output of each one |
 | It runs real ML | `examples/torch_mlp/` trains with PyTorch autograd |
 | The wheel installs clean | built and run in an empty virtualenv, with `fabric benchmarks` resolving the definitions that ship inside the package |
-| Bundles reproduce | `fabric reproduce` on an exported bundle, and across Python versions in CI |
+| Bundles reproduce | `fabric reproduce` on an exported bundle, and across Python versions in CI. Re-verified here in a **fresh environment**: a wheel-only virtualenv, run → export → verify → reproduce. `INTACT`, then `PASS` — accuracy, f1 and vocabulary_size reproduce exactly, and `train_seconds` differs by 0.158 s while still passing its own declared 0.5 s tolerance |
 | The container reproduces | CI builds the image and runs `scripts/container_check.sh` inside it |
 | The server refuses what a page drove it to do | a cross-origin `POST` is refused; the isolation and worker caps are covered by tests over a real socket |
 

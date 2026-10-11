@@ -345,6 +345,7 @@ forbidden, because a tool that refuses to run teaches people to bypass it:
 | every documented command works | `bash scripts/smoke.sh` | all 35 checks passed |
 | statistics are correct | `tests/test_statistics_against_reference.py` | 68 cases vs SciPy 1.17.1 and enumeration |
 | the wheel installs and works | `uv build`, install into an empty venv, `fabric benchmarks` | 3 definitions resolve |
+| **reproduction in a fresh environment** | wheel-only venv → `fabric init` → run → export → verify → reproduce | `INTACT`, then `PASS`: accuracy, f1 and vocabulary_size exact; `train_seconds` differs by 0.158 s and still passes its own 0.5 s tolerance |
 | an experiment runs end to end | `fabric run examples/agent_pipeline/experiment.yaml` | 120 runs in 2.3 s |
 | analysis is coherent | `fabric analyze` | 12 arms, 3 baselines, 7 limitations |
 | a bundle reproduces | `fabric reproduce bundle` | PASS, every metric exact |

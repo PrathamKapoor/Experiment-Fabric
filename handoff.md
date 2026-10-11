@@ -232,6 +232,7 @@ short version:
 | `fabric analyze EXP-4607d0cd00` | 12 arms, 3 baselines, 7 limitations |
 | `fabric certify` / `export` / `verify` | `INTACT`; tampering → `MODIFIED`, file named |
 | `fabric reproduce bundle` | `PASS`, all five metrics exact |
+| **fresh-environment reproduction** | wheel-only venv, no source tree: `init` → `run` → `export` → `verify` → `reproduce`. `INTACT`, then `PASS` — accuracy/f1/vocabulary_size exact, `train_seconds` +0.158 s within its 0.5 s tolerance. This is the strongest reproduction evidence here: a different installation, not a rerun in the same one |
 | `fabric why --metric accuracy --seed 3` | full lineage to dataset digest |
 | `fabric report --format all` | md, html, tex, json + 22 LaTeX snippets |
 | `fabric serve` + real HTTP | 21 routes; UI served; traversal 403/404 |

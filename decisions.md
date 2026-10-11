@@ -492,3 +492,56 @@ Identifiers are `D-NNN` and are never reused.
   `fabric/reporting/certificate.py`, `fabric/integrity/checks.py`,
   `fabric/server/worker.py`, `tests/test_failed_evidence.py`,
   `tests/evidence.py`.
+---
+
+### D-014: Reject unexpected Host values before routing
+
+- Date / work area / commit: 2026-10-11, `fabric/server/app.py`, committed
+- Context: The server binds to `127.0.0.1` by default, but `GET /health` with
+  `Host: evil.example` returned 200. Without an explicit allowed-host policy,
+  a malicious page could attempt a DNS-rebinding attack against the local
+  service, especially when `--execute` is enabled.
+- Decision: Every request checks the `Host` header before routing. The hostname
+  (port stripped) must be `localhost`, `127.0.0.1`, `[::1]`, `::1`, any `127.*`
+  loopback, or a value that resolves to loopback. Requests with missing,
+  empty, or unexpected Host values receive `400` with an explanation instead
+  of being processed.
+- Why refuse rather than ignore: allowing arbitrary Host values makes the
+  missing-validation gap invisible; refusing it produces a clear, testable
+  boundary that appears in server logs and API responses.
+- Consequences: Legitimate loopback usage continues to work (`localhost`,
+  `127.0.0.1`, ports included). Cross-origin `POST` refusal (`D-009`) now
+  operates on requests that have already passed the host check, so the two
+  controls are independent layers.
+- Regression tests: `tests/test_server.py`, `test_an_invalid_host_is_refused`,
+  `test_localhost_and_loopback_hosts_are_allowed`.
+- Files: `fabric/server/app.py`, `tests/test_server.py`.
+- Remaining limitation: IPv6 loopback addresses beyond `[::1]` are accepted
+  by the `127.*` and `[::1]` rules; broader IPv6 ranges are not explicitly
+  handled but are unlikely in practice for this deployment mode.
+
+---
+
+### D-015: Cache identity includes the project source snapshot
+
+- Date / work area / commit: 2026-10-11, `fabric/execution/adapters.py`, committed
+- Context: The previous cache fingerprint (`entrypoint_digest`) hashed only
+  the entrypoint file. Changing an imported helper module (e.g., from `0.80`
+  to `0.95`) did not change the digest, so the cache served stale results
+  while the provenance records showed no code change.
+- Decision: `entrypoint_digest` now combines the entrypoint file digest with
+  a `tree_digest` of the project root, excluding artifact directories
+  (`.fabric`, `build`, `dist`, `.git`, etc.). Any change to any source file
+  in the workspace invalidates the cache.
+- Why a broad snapshot: perfect static dependency tracking (parsing all
+  imports, tracking dynamic imports, resolving package versions) is complex
+  and still incomplete. A broader but understandable fingerprint is safer than
+  an incomplete precise one, because the failure mode of a broad fingerprint
+  is a false miss (re-running unnecessarily) rather than a false hit (stale
+  data presented as fresh).
+- Consequences: Cache reuse is now conservative. Existing caches that were
+  built before this change will naturally miss, which is the correct behaviour
+  when source identity rules have tightened.
+- Regression test: verified by changing a helper file and observing that the
+  next experiment does not reuse the old cached result.
+- Files: `fabric/execution/adapters.py`.

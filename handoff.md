@@ -390,3 +390,19 @@ serving user.
    a decision entry and a discussion, not an import.
 7. Prefer a bad result reported honestly to a good result obtained by
    adjusting a threshold. The project's value depends on it.
+
+---
+
+## Appendix: Updates from this session (2026-10-11)
+
+- `D-014`: Added explicit `Host` header validation (`fabric/server/app.py`).
+  Requests with unexpected Host values receive `400` before routing.
+- `D-015`: Expanded `entrypoint_digest` (`fabric/execution/adapters.py`) to
+  include a `tree_digest` of the project root, so imported module changes
+  invalidate the cache.
+- Committed previous uncommitted fixes: process-tree timeout (`D-013`
+  continuation), retry limits (`MAX_RETRIES=3` in spec), and adapter updates.
+- Added regression tests: `tests/test_server.py` (Host refusal and allowed
+  hosts), `tests/test_process_timeout.py` (timeout bounds descendants).
+- Verified full suite passes (`tests/` exit 0) and package builds cleanly.
+- `paper/` files remain uncommitted per repository rules.

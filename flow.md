@@ -148,7 +148,9 @@ ablated components, and an environment key (python version, git commit, git
 dirty flag, numerically-relevant package versions, accelerator runtime, env
 vars). Hardware is included only when `policy.include_hardware`. A
 determinism replicate is never cacheable, because its whole purpose is to
-execute again (`cache.py:102`).
+execute again (`cache.py:102`). The `source_digest` now combines the
+entrypoint file digest with a project-root snapshot (`D-015`), so editing
+any imported module invalidates cached results.
 
 **FAILURE CLASSIFICATION** — `fabric/execution/failures.py`. `classify()`
 orders its patterns so the first match wins: OOM, TIMEOUT, NAN, DIVERGENCE,
@@ -266,6 +268,7 @@ sandbox".
 ```
 HTTP request
   -> urlparse + unquote (before routing, so %2f is already a separator)
+  -> _host_refusal()            unexpected Host values refused (400)     D-014
   -> _cross_origin_refusal()      POST only, 403 on a cross-origin drive   D-009
   -> body size check              1 MiB, drained then refused with 413
   -> dispatch(): first route whose method and pattern match

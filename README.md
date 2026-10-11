@@ -210,6 +210,41 @@ distinguishable from noise.
 All three predictions wrong: the proposed method is *behind* the
 baseline, lowercasing matters and bigrams do not.
 
+That block is real output from `fabric run` and `fabric analyze` on the
+shipped example, and the same numbers appear in
+[`paper/results/bundles/sentiment-classifier/report.md`](paper/results/bundles/sentiment-classifier/report.md).
+
+Note the second row: `naive-bayes` at adjusted p = 0.0542, with a
+confidence interval that crosses zero, is reported as **undecided** — not as
+a loss, and not as a win. The tool is not being agreeable; it is declining
+to say something the evidence does not support. Run it yourself:
+
+```bash
+python examples/text_classification/make_data.py
+fabric run examples/text_classification/experiment.yaml
+fabric analyze <EXP>          # the table above, computed from your own runs
+```
+
+---
+
+## Ninety seconds, end to end
+
+If you would rather see everything at once than set it up by hand:
+
+```bash
+bash scripts/demo.sh          # or ./demo.sh
+```
+
+Twenty steps in a temporary workspace — plan without running, run both
+example experiments, analyse them, trace one number to its dataset digest,
+export a graph you can click, diff two experiments, render four report
+formats, issue a certificate, **tamper with the bundle and watch verification
+catch it**, then restore and reproduce. Nothing it writes touches anything
+you own; the workspace is deleted on exit.
+
+It works with no arguments, no network and no GPU. On Windows, invoke it
+with Git Bash rather than `bash`, which resolves to WSL.
+
 **`torch_mlp`** predicted batch normalisation would carry the gain. Over
 ten seeds of real training, none of the four components — batchnorm,
 dropout, weight decay, cosine schedule — is detectable at all, while the

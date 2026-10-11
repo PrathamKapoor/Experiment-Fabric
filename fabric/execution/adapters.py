@@ -30,14 +30,14 @@ import json
 import os
 import random
 import shlex
-import subprocess
 import sys
 import time
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
-from fabric.util.hashing import file_digest
+from fabric.execution.process import run_bounded
+from fabric.util.hashing import file_digest, tree_digest
 from fabric.util.jsonio import write_json
 
 
@@ -284,8 +284,12 @@ def entrypoint_digest(entrypoint: str, *, root: str = "") -> str:
     Included in the cache key so that editing the method invalidates
     cached results instead of silently reusing them -- the failure mode
     that makes experiment caches untrustworthy.
+
+    The fingerprint also covers the project source tree so that a change
+    to any imported module or dependency is visible to the cache.
     """
     scheme, target = parse_entrypoint(entrypoint)
+    file_digest_value = ""
     try:
         if scheme == "python":
             module_name, _, _ = target.rpartition(":")
@@ -293,20 +297,40 @@ def entrypoint_digest(entrypoint: str, *, root: str = "") -> str:
                 sys.path.insert(0, root)
             spec = importlib.util.find_spec(module_name)
             if spec and spec.origin and os.path.isfile(spec.origin):
-                return file_digest(spec.origin)
+                file_digest_value = file_digest(spec.origin)
         elif scheme == "script":
             path_part, _, _ = target.rpartition(":")
             path = path_part if os.path.isabs(path_part) else os.path.join(root or os.getcwd(), path_part)
             if os.path.isfile(path):
-                return file_digest(path)
+                file_digest_value = file_digest(path)
         else:
             first = shlex.split(target, posix=os.name != "nt")[0] if target else ""
             candidate = first if os.path.isabs(first) else os.path.join(root or os.getcwd(), first)
             if os.path.isfile(candidate):
-                return file_digest(candidate)
+                file_digest_value = file_digest(candidate)
     except (OSError, ValueError, ImportError):
-        return ""
-    return ""
+        pass
+
+    # A broader source snapshot captures changes to imported modules that
+    # the entrypoint file digest alone misses. The exclusions keep the
+    # fingerprint focused on source rather than artifacts.
+    snapshot = ""
+    source_root = root or os.getcwd()
+    if source_root and os.path.isdir(source_root):
+        try:
+            snapshot = tree_digest(
+                source_root,
+                exclude={".fabric", ".git", "__pycache__", ".pytest_cache",
+                         ".ruff_cache", ".venv", ".tox", "build", "dist",
+                         ".eggs", "*.egg-info", "demo-bundle", "paper"},
+            )
+        except (OSError, ValueError):
+            pass
+    if file_digest_value and snapshot:
+        return f"{file_digest_value}:{snapshot}"
+    if file_digest_value:
+        return file_digest_value
+    return snapshot or ""
 
 
 # --------------------------------------------------------------------------
@@ -367,16 +391,14 @@ def call_command(command: str, context: RunContext, *, root: str = "",
         environment.update({str(k): str(v) for k, v in env_overlay.items()})
 
     started = time.time()
-    try:
-        completed = subprocess.run(
-            formatted, shell=True, cwd=root or os.getcwd(), env=environment,
-            capture_output=True, text=True,
-            timeout=timeout if timeout and timeout > 0 else None,
-        )
-    except subprocess.TimeoutExpired as exc:
+    completed = run_bounded(
+        formatted, shell=True, cwd=root or os.getcwd(), env=environment,
+        timeout=timeout,
+    )
+    if completed.timed_out:
         raise TimeoutError(
             f"command exceeded the {timeout:g}s timeout after {time.time() - started:.1f}s"
-        ) from exc
+        )
 
     metrics: dict[str, float] = {}
     if os.path.exists(metrics_path):

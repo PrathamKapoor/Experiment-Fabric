@@ -26,6 +26,7 @@ is the one that matters:
 
 from __future__ import annotations
 
+import os
 import time
 from collections.abc import Sequence
 from dataclasses import dataclass, field
@@ -33,6 +34,7 @@ from typing import Any
 
 from fabric.analysis.results import ResultSet
 from fabric.core.entities import Environment, Hardware, Run
+from fabric.core.store import Workspace
 from fabric.environments.fingerprint import (
     Difference,
     environment_diff,
@@ -46,6 +48,10 @@ PASS = "PASS"
 PASS_WITH_DEVIATION = "PASS WITH DEVIATION"
 INCONCLUSIVE = "INCONCLUSIVE"
 FAIL = "FAIL"
+
+
+class ReproductionError(Exception):
+    """There is nothing to reproduce, or the target cannot be read."""
 
 
 @dataclass
@@ -344,3 +350,160 @@ def _paired_by_seed(original: ResultSet, reproduced: ResultSet,
     left = set(original[condition].series(metric))
     right = set(reproduced[condition].series(metric))
     return bool(left) and left == right
+
+
+# --------------------------------------------------------------------------
+# the workflow
+# --------------------------------------------------------------------------
+
+
+@dataclass
+class ReproductionRun:
+    """A reproduction that has been executed and compared."""
+
+    plan: ExperimentPlan
+    report: ReproductionReport
+    execution: Any
+    source: str
+    original_runs: list[Run]
+    reproduced_runs: list[Run]
+
+    @property
+    def verdict(self) -> str:
+        return self.report.verdict
+
+    @property
+    def succeeded(self) -> bool:
+        """Whether the reproduction is one a caller should treat as a pass."""
+        return self.report.verdict in (PASS, PASS_WITH_DEVIATION)
+
+    def to_dict(self) -> dict[str, Any]:
+        return self.report.to_dict()
+
+
+def load_original(workspace: Workspace, target: str) -> tuple[
+        str, str, list[Run], Any, Any]:
+    """Find what is being reproduced: a bundle, or an experiment in the workspace.
+
+    Returns ``(specification path, label, original runs, environment,
+    hardware)``. Kept separate from the execution below so that a caller
+    that already has the runs -- the server, which has them in memory --
+    does not have to go through the filesystem twice.
+    """
+    from fabric import bundle as bundle_module
+    from fabric.core.registry import Registry, RegistryError, _rebuild
+
+    if os.path.isdir(target) and os.path.isfile(os.path.join(target, "manifest.json")):
+        loaded = bundle_module.load(target)
+        runs = [Run.from_dict(r) for r in loaded["results"].get("runs", [])]
+
+        def rebuild(data: Any, kind: str) -> Any:
+            if not data:
+                return None
+            try:
+                return _rebuild(kind, data)
+            except (TypeError, KeyError):
+                return None
+
+        return (
+            loaded["spec_path"],
+            f"bundle {os.path.basename(os.path.abspath(target))}",
+            runs,
+            rebuild(loaded["manifest"].get("environment"), "environment"),
+            rebuild(loaded["manifest"].get("hardware"), "hardware"),
+        )
+
+    experiment_id = workspace.resolve_experiment(target)
+    spec_path = os.path.join(workspace.experiment_dir(experiment_id), "experiment.yaml")
+    runs = workspace.load_runs(experiment_id)
+    registry = Registry(workspace)
+
+    def first(kind: str, ids: Sequence[str]) -> Any:
+        for entity_id in ids:
+            if not entity_id:
+                continue
+            try:
+                return registry.get(kind, entity_id)
+            except RegistryError:
+                continue
+        return None
+
+    return (
+        spec_path,
+        experiment_id,
+        runs,
+        first("environment", [r.environment_id for r in runs]),
+        first("hardware", [r.hardware_id for r in runs]),
+    )
+
+
+def reproduce(
+    workspace: Workspace,
+    target: str,
+    *,
+    max_workers: int = 0,
+    conditions: Sequence[str] = (),
+    on_progress: Any = None,
+    root: str = "",
+) -> ReproductionRun:
+    """Re-execute an experiment or bundle and compare it to the original.
+
+    This is the one implementation. ``fabric reproduce`` and
+    ``POST /experiments/{id}/reproduce`` both call it, so the two cannot
+    diverge -- which matters more here than almost anywhere else, because
+    a reproduction that behaves differently depending on how it was
+    launched is not a reproduction.
+    """
+    from fabric.core.spec import ExperimentSpec
+    from fabric.execution.cache import CachePolicy
+    from fabric.execution.planner import plan_experiment
+    from fabric.execution.runner import ExecutionOptions, Runner
+
+    spec_path, label, original_runs, environment, hardware = load_original(
+        workspace, target)
+    if not original_runs:
+        raise ReproductionError(f"{label} has no recorded runs to reproduce")
+
+    spec = ExperimentSpec.from_file(spec_path)
+    plan = plan_experiment(spec, workspace, root=root or workspace.root)
+
+    options = ExecutionOptions(
+        max_workers=max_workers or spec.execution.max_workers,
+        timeout_seconds=spec.execution.timeout_seconds,
+        isolation=spec.execution.isolation,
+        # A reproduction that reads its answer from the cache has
+        # reproduced nothing.
+        cache=CachePolicy(enabled=False),
+        energy_watts=spec.execution.energy_watts,
+        rerun=True,
+    )
+    workspace.create_experiment_dir(plan.experiment.id)
+    # Read fully and close before writing. The source is often the very file
+    # being written, and on Windows os.replace onto a file the caller still
+    # holds open fails with "Access is denied" -- deterministically, not as a
+    # race -- so the handle must not outlive the read.
+    with open(spec_path, encoding="utf-8") as handle:
+        specification = handle.read()
+    workspace.write_text(plan.experiment.id, "experiment.yaml", specification)
+    runner = Runner(workspace, plan, options, root=root or workspace.root)
+    execution = runner.execute(list(plan.runs), on_progress=on_progress)
+
+    reproduced_runs = workspace.load_runs(plan.experiment.id)
+    report = compare_runs(
+        plan, original_runs, reproduced_runs,
+        original_environment=environment,
+        reproduced_environment=execution.environment,
+        original_hardware=hardware,
+        reproduced_hardware=execution.hardware,
+        alpha=spec.analysis.alpha,
+        conditions=tuple(conditions),
+    )
+    workspace.write(plan.experiment.id, "reproduction.json", report.to_dict())
+    return ReproductionRun(
+        plan=plan,
+        report=report,
+        execution=execution,
+        source=label,
+        original_runs=list(original_runs),
+        reproduced_runs=list(reproduced_runs),
+    )

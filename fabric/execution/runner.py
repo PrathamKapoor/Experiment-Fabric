@@ -17,7 +17,6 @@ from __future__ import annotations
 import concurrent.futures
 import os
 import shutil
-import subprocess
 import sys
 import tempfile
 import time
@@ -53,6 +52,7 @@ from fabric.execution.adapters import (
 )
 from fabric.execution.cache import CachePolicy, cache_key, is_cacheable
 from fabric.execution.planner import ExperimentPlan
+from fabric.execution.process import run_bounded
 from fabric.execution.resources import ResourceMonitor
 from fabric.util.hashing import file_digest
 from fabric.util.jsonio import atomic_write_text, read_json, write_json
@@ -315,7 +315,14 @@ class Runner:
         except EntrypointError as exc:
             failure = Failure(FailureClass.INVALID_OUTPUT, str(exc),
                               traceback.format_exc()[-4000:])
-        except BaseException as exc:
+        except (KeyboardInterrupt, SystemExit):
+            # An interrupt is the user asking to stop, not a failed run.
+            # Recording it as data would let the sweep continue past a
+            # Ctrl-C and report a tidy summary for an aborted experiment.
+            # The run is left unrecorded rather than marked failed, so a
+            # resumed experiment re-attempts exactly this run.
+            raise
+        except Exception as exc:
             failure = failure_module.from_exception(exc, traceback_text=traceback.format_exc())
 
         finished = time.time()
@@ -419,17 +426,17 @@ class Runner:
             existing_path = environment.get("PYTHONPATH", "")
             parts = [p for p in (fabric_root, self.root, existing_path) if p]
             environment["PYTHONPATH"] = os.pathsep.join(parts)
+            timeout = self.options.timeout_seconds
 
             try:
-                completed = subprocess.run(
+                completed = run_bounded(
                     [sys.executable, "-m", "fabric.execution.worker", request_path],
-                    cwd=self.root, env=environment, capture_output=True, text=True,
-                    timeout=self.options.timeout_seconds if self.options.timeout_seconds > 0 else None,
+                    cwd=self.root, env=environment, timeout=timeout,
                 )
-            except subprocess.TimeoutExpired as exc:
-                raise TimeoutError(
-                    f"run exceeded the {self.options.timeout_seconds:g}s timeout"
-                ) from exc
+            except OSError:
+                raise
+            if completed.timed_out:
+                raise TimeoutError(f"run exceeded the {timeout:g}s timeout")
 
             payload = read_json(result_path)
             if payload is None:

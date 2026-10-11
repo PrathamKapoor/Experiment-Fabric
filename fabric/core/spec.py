@@ -235,6 +235,12 @@ class SweepPlan:
 
 __spec_version__ = "1"
 
+#: Ceiling on `execution.retries`. Every retry re-runs the whole entrypoint,
+#: so the value multiplies the cost of every run in the experiment. Three is
+#: enough for the transient network and dependency problems the retry loop
+#: exists for, and small enough that a mistake cannot multiply a sweep.
+MAX_RETRIES = 3
+
 
 def expand_configurations(parameters: Sequence[Parameter], plan: SweepPlan) -> list[dict[str, Any]]:
     """Materialise the configuration grid.
@@ -555,6 +561,15 @@ class ExecutionSpec:
 
     max_workers: int = 1
     timeout_seconds: float = 0.0
+    """Per-run deadline in seconds. ``0`` means no limit.
+
+    The default is deliberately no limit rather than a small one: Fabric runs
+    real training, and a default that silently killed a legitimate overnight
+    run would be worse than an explicit one. Unbounded execution is therefore
+    an *explicit* choice -- a specification that wants a bound must say so --
+    and the server, which executes specifications it did not write, imposes
+    its own instead of trusting the document.
+    """
     cache: bool = True
     retries: int = 0
     isolation: str = "process"
@@ -594,11 +609,35 @@ class ExecutionSpec:
                     f"received {watts!r}; omit it entirely if you do not know it",
                     f"{path}.energy_watts",
                 )
+        timeout = float(data.get("timeout_seconds", 0) or 0)
+        if timeout < 0:
+            # A negative value used to be stored and then silently mean
+            # "no timeout", because every consumer tests `if timeout > 0`.
+            # That is the worst shape for a safety limit: a typo removes the
+            # bound instead of being rejected.
+            raise SpecError(
+                f"'timeout_seconds' must be zero (no limit) or a positive number "
+                f"of seconds, received {timeout!r}",
+                f"{path}.timeout_seconds",
+            )
+        retries = int(data.get("retries", 0))
+        if retries < 0:
+            raise SpecError(
+                f"'retries' must be zero or more, received {retries!r}",
+                f"{path}.retries",
+            )
+        if retries > MAX_RETRIES:
+            raise SpecError(
+                f"'retries' must be at most {MAX_RETRIES}, received {retries!r}; "
+                "each retry re-runs the whole entrypoint, so a large value multiplies "
+                "the cost of every run in the experiment",
+                f"{path}.retries",
+            )
         return ExecutionSpec(
             max_workers=workers,
-            timeout_seconds=float(data.get("timeout_seconds", 0) or 0),
+            timeout_seconds=timeout,
             cache=bool(data.get("cache", True)),
-            retries=int(data.get("retries", 0)),
+            retries=retries,
             isolation=isolation,
             continue_on_failure=bool(data.get("continue_on_failure", True)),
             determinism_replicates=int(data.get("determinism_replicates", 0)),

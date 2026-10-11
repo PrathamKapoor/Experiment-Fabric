@@ -94,6 +94,77 @@ def test_a_configuration_change_is_reported_as_material(pair):
     assert scale[0].material is True
 
 
+SWEEP = """
+experiment:
+  name: {name}
+research_question: does a later swept value matter?
+algorithm:
+  name: method
+  entrypoint: python:tests.helpers:ablatable
+metrics:
+  - name: accuracy
+    direction: maximize
+configuration:
+  scale: {scale}
+seeds:
+  values: [1, 2, 3]
+execution:
+  isolation: inline
+"""
+
+
+def test_a_change_to_a_later_swept_value_is_reported(tmp_path):
+    """The reference configuration cannot reveal a change to a later value.
+
+    ``expand_configurations`` puts the first declared value of each swept
+    parameter first, so configurations[0] is identical here while the sweep
+    itself changed from [1.0, 2.0] to [1.0, 9.0] -- and n_configurations is
+    unchanged too. Comparing only the reference configuration, which is all
+    this module used to do, calls these two experiments identical.
+    """
+    left = ExperimentSpec.from_yaml(SWEEP.format(name="left", scale="[1.0, 2.0]"))
+    right = ExperimentSpec.from_yaml(SWEEP.format(name="right", scale="[1.0, 9.0]"))
+    assert left.configurations[0] == right.configurations[0]
+
+    root = str(tmp_path)
+    workspace = Workspace.initialise(root, force=True)
+    result = diff_plans(plan_experiment(left, workspace, root=root),
+                        plan_experiment(right, workspace, root=root))
+    assert not result.identical
+    swept = [d for d in result.for_category("configuration")
+             if d.field == "swept configurations"]
+    assert len(swept) == 1
+    assert swept[0].left == [{"scale": 2.0}]
+    assert swept[0].right == [{"scale": 9.0}]
+    assert swept[0].material is True
+
+
+def test_two_specifications_with_the_same_sweep_are_identical(tmp_path):
+    """The set comparison must not report a difference where there is none."""
+    left = ExperimentSpec.from_yaml(SWEEP.format(name="left", scale="[1.0, 2.0]"))
+    right = ExperimentSpec.from_yaml(SWEEP.format(name="right", scale="[1.0, 2.0]"))
+    root = str(tmp_path)
+    workspace = Workspace.initialise(root, force=True)
+    result = diff_plans(plan_experiment(left, workspace, root=root),
+                        plan_experiment(right, workspace, root=root))
+    assert not [d for d in result.for_category("configuration")
+                if d.field == "swept configurations"]
+
+
+def test_an_added_configuration_is_reported(tmp_path):
+    left = ExperimentSpec.from_yaml(SWEEP.format(name="left", scale="1.0"))
+    right = ExperimentSpec.from_yaml(SWEEP.format(name="right", scale="[1.0, 2.0]"))
+    root = str(tmp_path)
+    workspace = Workspace.initialise(root, force=True)
+    result = diff_plans(plan_experiment(left, workspace, root=root),
+                        plan_experiment(right, workspace, root=root))
+    swept = [d for d in result.for_category("configuration")
+             if d.field == "swept configurations"]
+    assert len(swept) == 1
+    assert swept[0].left == []
+    assert swept[0].right == [{"scale": 2.0}]
+
+
 def test_an_analysis_setting_is_reported_but_not_as_material(pair):
     (left_plan, left_runs, left_analysis), (right_plan, right_runs, right_analysis) = pair
     result = diff_experiments(left_plan, left_runs, left_analysis,

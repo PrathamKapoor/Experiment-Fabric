@@ -48,12 +48,24 @@ execution:
 """
 
 
-def request(url, *, method="GET", data=None, content_type="application/json"):
-    """One HTTP call, returning ``(status, headers, parsed body)``."""
+SAME_ORIGIN = {"Sec-Fetch-Site": "same-origin"}
+
+
+def request(url, *, method="GET", data=None, content_type="application/json",
+            headers=SAME_ORIGIN):
+    """One HTTP call, returning ``(status, headers, parsed body)``.
+
+    Requests carry ``Sec-Fetch-Site: same-origin`` by default, because that
+    is what Fabric's own interface sends. The cross-origin tests replace it.
+    """
     payload = data.encode("utf-8") if isinstance(data, str) else data
     req = urllib.request.Request(url, data=payload, method=method)
     if payload is not None:
         req.add_header("Content-Type", content_type)
+    for key, value in (headers or {}).items():
+        if value is None:
+            continue
+        req.add_header(key, value)
     try:
         with urllib.request.urlopen(req, timeout=30) as response:
             body = response.read().decode("utf-8")
@@ -276,7 +288,76 @@ def test_the_experiment_is_complete_afterwards(executing, executed):
     experiment_id, _job = executed
     body = request(f"{executing.url}/experiments/{experiment_id}")[2]
     assert body["status"] == "completed"
-    assert body["runs"]["completed"] == 18
+
+
+def test_a_submitted_spec_cannot_choose_to_run_in_the_server_process():
+    """``isolation: inline`` would run submitted code here, not in a worker.
+
+    Every other execution mode gets a crash boundary and a timeout. Inline
+    execution has neither, so one submitted specification could stop the
+    service serving for the rest of its life -- and the server's own
+    docstring promises the opposite. The server decides this, not the
+    specification, because the specification arrived over the network.
+    """
+    from fabric.core.spec import ExperimentSpec
+    from fabric.server.worker import _options_from
+
+    inline = ExperimentSpec.from_yaml(SPEC)
+    assert inline.execution.isolation == "inline"
+    assert _options_from(inline, {}).isolation == "process"
+
+    process = ExperimentSpec.from_yaml(SPEC.replace(
+        "  isolation: inline", "  isolation: process"))
+    assert _options_from(process, {}).isolation == "process"
+
+
+def test_a_submitted_spec_cannot_ask_for_an_unbounded_thread_pool():
+    """The worker cap belongs to the server, not to the specification.
+
+    A specification is data. Letting it choose the size of the executor
+    that also serves HTTP is a denial of service with a YAML payload.
+    """
+    from fabric.core.spec import ExperimentSpec
+    from fabric.server.worker import MAX_SERVER_WORKERS, _options_from
+
+    greedy = ExperimentSpec.from_yaml(
+        SPEC.replace("execution:", "execution:\n  max_workers: 100000"))
+    assert greedy.execution.max_workers == 100000
+    assert _options_from(greedy, {}).max_workers == MAX_SERVER_WORKERS
+
+    assert _options_from(greedy, {"max_workers": 99999}).max_workers == MAX_SERVER_WORKERS
+    # The specification may still ask for fewer than the cap.
+    assert _options_from(greedy, {"max_workers": 2}).max_workers == 2
+    assert _options_from(
+        ExperimentSpec.from_yaml(SPEC), {}).max_workers <= MAX_SERVER_WORKERS
+
+
+def test_an_over_eager_worker_count_is_reported_rather_than_obeyed(executing):
+    """A huge ask is accepted as a job and clamped, not honoured.
+
+    The point is that the request is not an error: the run is legitimate
+    work, and the only thing refused is the unbounded executor.
+    """
+    status, _headers, created = request(
+        f"{executing.url}/experiments", method="POST",
+        data=SPEC.replace("execution:", "execution:\n  max_workers: 5000"),
+        content_type="text/yaml")
+    assert status == 201, created
+    experiment_id = created["experiment_id"]
+
+    status, _headers, queued = request(
+        f"{executing.url}/experiments/{experiment_id}/run", method="POST",
+        data=json.dumps({"max_workers": 5000}))
+    assert status == 202, queued
+    job_id = queued["job"]["id"]
+
+    def finished():
+        job = request(f"{executing.url}/jobs/{job_id}")[2]
+        return job if job["state"] in ("succeeded", "failed") else None
+
+    job = wait_for(finished, timeout=180)
+    assert job["state"] == "succeeded", job
+    assert job["result"]["completed"] == 18
 
 
 def test_every_run_is_listed_with_its_seed_and_metrics(executing, executed):
@@ -467,6 +548,79 @@ def test_responses_carry_the_headers_that_keep_a_browser_honest(read_only):
 
 
 # --------------------------------------------------------------------------
+# cross-origin writes
+# --------------------------------------------------------------------------
+
+
+def test_a_page_cannot_queue_a_specification_of_its_own(read_only):
+    """Binding to 127.0.0.1 is not a boundary against a browser.
+
+    Any page the researcher opens can POST here, and a plain form needs no
+    preflight, so without this check a drive-by page supplies a
+    specification and queues it. With ``--execute`` that is code execution
+    on this machine from a page nobody suspects.
+    """
+    status, _headers, body = request(
+        f"{read_only.url}/experiments", method="POST", data=SPEC,
+        content_type="text/yaml", headers={"Sec-Fetch-Site": "cross-site"})
+    assert status == 403, body
+    assert "cross-origin" in body["error"]
+
+
+@pytest.mark.parametrize("site", ["cross-site", "same-site", "none"])
+def test_sec_fetch_site_is_honoured_whenever_the_browser_sends_it(read_only, site):
+    if site == "none":          # a direct navigation; not a page driving us
+        assert request(f"{read_only.url}/experiments", method="POST", data=SPEC,
+                       content_type="text/yaml",
+                       headers={"Sec-Fetch-Site": site})[0] == 201
+        return
+    status, _headers, body = request(
+        f"{read_only.url}/experiments", method="POST", data=SPEC,
+        content_type="text/yaml", headers={"Sec-Fetch-Site": site})
+    assert status == 403, body
+
+
+def test_a_cross_origin_header_is_refused_when_sec_fetch_is_absent(read_only):
+    """Older clients send Origin and Referer but no Sec-Fetch-Site."""
+    host = read_only.url.split("//", 1)[1]
+    status, _headers, body = request(
+        f"{read_only.url}/experiments", method="POST", data=SPEC,
+        content_type="text/yaml",
+        headers={"Origin": "http://evil.example", "Referer": None})
+    assert status == 403, body
+
+    status, _headers, body = request(
+        f"{read_only.url}/experiments", method="POST", data=SPEC,
+        content_type="text/yaml",
+        headers={"Referer": "http://evil.example/page",
+                 "Sec-Fetch-Site": None})
+    assert status == 403, body
+
+    # ...and the same host is allowed, so a genuine client still works.
+    status, _headers, body = request(
+        f"{read_only.url}/experiments", method="POST", data=SPEC,
+        content_type="text/yaml",
+        headers={"Origin": f"http://{host}", "Sec-Fetch-Site": None})
+    assert status == 201, body
+
+
+def test_a_post_with_no_provenance_headers_at_all_is_refused(read_only):
+    """Silently accepting an unattributable write is the dangerous default."""
+    status, _headers, body = request(
+        f"{read_only.url}/experiments", method="POST", data=SPEC,
+        content_type="text/yaml", headers={})
+    assert status == 403, body
+
+
+def test_reads_are_never_refused(read_only, submitted):
+    """Only state-changing requests are restricted; browsing must keep working."""
+    assert request(f"{read_only.url}/experiments")[0] == 200
+    assert request(f"{read_only.url}/experiments/{submitted}")[0] == 200
+    assert request(f"{read_only.url}/health",
+                   headers={"Sec-Fetch-Site": "cross-site"})[0] == 200
+
+
+# --------------------------------------------------------------------------
 # the job store on its own
 # --------------------------------------------------------------------------
 
@@ -512,13 +666,73 @@ def test_a_queued_job_can_be_cancelled_and_a_running_one_cannot(tmp_path):
 
 
 def test_jobs_left_running_by_a_crash_are_requeued(tmp_path):
+    """An identity with no pid cannot be judged, so it is left alone.
+
+    Sweeping an unparseable identity would duplicate a job that a live
+    sibling is running; refusing to sweep it means a crashed worker keeps
+    its job, which is visible in the queue rather than silent.
+    """
     store = JobStore(str(tmp_path / "jobs.sqlite3"))
     store.enqueue("run", "EXP-1")
     store.claim("worker-that-died")
     assert store.counts()[RUNNING] == 1
 
-    assert store.requeue_running() == 1
+    assert store.requeue_running() == 0
+    assert store.requeue_running(stale_after=0.0) == 1
     assert store.counts()[QUEUED] == 1
+    assert store.counts()[RUNNING] == 0
+
+
+def test_starting_a_second_server_does_not_steal_a_running_job(tmp_path):
+    """docs/deployment.md recommends sharing one SQLite file between servers.
+
+    An unscoped recovery sweep would make the second server requeue the
+    first server's live job, and two workers would then execute the same
+    runs into the same run directory at the same time. Recovery has to be
+    scoped to the workers that died.
+    """
+    path = str(tmp_path / "jobs.sqlite3")
+    store = JobStore(path)
+    store.enqueue("run", "EXP-1")
+    store.enqueue("run", "EXP-2")
+    # This process is alive, so its job must survive another process starting.
+    store.claim(f"worker-1@{os.getpid()}")
+    assert store.counts()[RUNNING] == 1
+
+    assert JobStore(path).requeue_running() == 0
+    assert store.counts()[RUNNING] == 1, "a live job was stolen"
+    assert JobStore(path).requeue_running() == 0
+
+
+def test_a_job_whose_process_died_is_recovered(tmp_path):
+    """The crash case recovery exists for, decided by process liveness."""
+    import subprocess
+    import sys
+
+    dead = subprocess.Popen([sys.executable, "-c", "pass"])
+    pid = dead.pid
+    dead.wait()
+
+    path = str(tmp_path / "jobs.sqlite3")
+    store = JobStore(path)
+    store.enqueue("run", "EXP-1")
+    store.claim(f"worker-1@{pid}")
+    assert store.counts()[RUNNING] == 1
+
+    assert JobStore(path).requeue_running() == 1
+    assert store.counts()[RUNNING] == 0
+    assert store.counts()[QUEUED] == 1
+
+
+def test_a_stale_job_can_be_recovered_by_age(tmp_path):
+    """Liveness cannot see a worker that is alive but wedged."""
+    path = str(tmp_path / "jobs.sqlite3")
+    store = JobStore(path)
+    store.enqueue("run", "EXP-1")
+    store.claim(f"worker-1@{os.getpid()}")
+    assert store.requeue_running(stale_after=3600) == 0
+    assert store.counts()[RUNNING] == 1
+    assert store.requeue_running(stale_after=0.0) == 1
     assert store.counts()[RUNNING] == 0
 
 

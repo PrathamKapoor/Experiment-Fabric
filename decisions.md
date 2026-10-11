@@ -256,3 +256,147 @@ Identifiers are `D-NNN` and are never reused.
   `test_two_specifications_with_the_same_sweep_are_identical` guards against
   over-reporting.
 - Files: `fabric/core/diff.py`, `tests/test_diff.py`.
+
+---
+
+### D-009: Refuse state-changing HTTP requests that a web page initiated
+
+- Date / work area / commit: 2026-10-11, `fabric/server/app.py`, uncommitted
+- Context: `fabric serve` binds `127.0.0.1` and has no authentication. There
+  was no check on where a request came from.
+- Why it matters: binding to loopback is not a trust boundary against a
+  browser. Any page the researcher visits can POST to
+  `http://127.0.0.1:8080/experiments`, and a plain HTML form needs no
+  preflight. On a server started with `--execute` that is a drive-by page
+  supplying its own specification and queuing it — code execution on the
+  researcher's machine, with no user action beyond visiting a page. The
+  reachability is `--execute`-gated, which limits it; it does not remove it.
+- Decision: every `POST` is refused unless `Sec-Fetch-Site` says
+  `same-origin`/`none`, or, when that header is absent, `Origin`/`Referer`
+  matches the `Host` header. A `POST` carrying neither is refused rather
+  than allowed. Reads are never restricted.
+- Why refuse rather than allow on missing headers: an API client can always
+  send `Origin`. One that cannot should be the command line, which does not
+  go through HTTP at all. Defaulting open would make the absent-header case
+  the dangerous one.
+- Alternatives considered: (a) requiring `Content-Type: application/json`,
+  which forces a preflight — rejected as a single point of failure; an
+  attacker who finds a form-post gap walks straight through it. (b) a CSRF
+  token — rejected as unnecessary complexity for a local trusted tool, and
+  it would have to be threaded through the whole interface. (c) refusing to
+  bind anything but loopback — already the default, and demonstrably not
+  sufficient.
+- Consequences: `Sec-Fetch-Site` alone is honoured when present, so the
+  check holds even against a client that forges `Origin`. The refusal
+  response does not read the body, so a refused `POST` cannot be used to tie
+  up a connection.
+- Files: `fabric/server/app.py`, `docs/deployment.md`,
+  `tests/test_server.py`.
+- Regression tests: `test_a_page_cannot_queue_a_specification_of_its_own`,
+  `test_sec_fetch_site_is_honoured_whenever_the_browser_sends_it`,
+  `test_a_cross_origin_header_is_refused_when_sec_fetch_is_absent`,
+  `test_a_post_with_no_provenance_headers_at_all_is_refused`,
+  `test_reads_are_never_refused`. The four refusal tests were confirmed to
+  fail without the change.
+
+---
+
+### D-010: The server, not the specification, decides where submitted code runs
+
+- Date / work area / commit: 2026-10-11, `fabric/server/worker.py`,
+  `fabric/server/worker.py` docstring, `docs/deployment.md`, uncommitted
+- Context: `_options_from()` copied `spec.execution.isolation` straight
+  through, and a specification may declare `isolation: inline`, which runs
+  the entrypoint by importing it **in the current process**.
+- Why it matters: the module's own docstring claimed "each run goes through
+  the same subprocess isolation the command line uses", and
+  `docs/deployment.md` claimed "each run is a subprocess". Neither was true
+  for a submitted specification. Inline execution has no crash boundary and
+  no timeout, so one submitted specification can permanently stop a
+  long-lived server serving — a strictly worse failure than the one a
+  subprocess contains.
+- Decision: the server forces `isolation="process"` regardless of what the
+  specification asks for. A *user-specified* run at the command line is
+  untouched: this is a property of arriving over the network, not a
+  restriction on the tool.
+- Alternatives considered: rejecting submissions that declare `inline` —
+  rejected, because the submitted specification is frequently a copy of one
+  the author legitimately runs inline locally, and refusing it would break a
+  workflow that is otherwise fine.
+- Consequences: the documented claims become true. A run that expected
+  inline execution takes marginally longer to start.
+- Regression test: `tests/test_server.py`,
+  `test_a_submitted_spec_cannot_choose_to_run_in_the_server_process`.
+- Files: `fabric/server/worker.py`, `docs/deployment.md`.
+
+---
+
+### D-011: The server caps its own worker count
+
+- Date / work area / commit: 2026-10-11, `fabric/server/worker.py`, uncommitted
+- Context: `_options_from()` clamped the *request* to the specification's
+  `execution.max_workers`, and the specification validated only
+  `max_workers >= 1`. A specification declaring `max_workers: 100000`
+  therefore built a `ThreadPoolExecutor` with 100,000 threads inside the
+  process that also serves HTTP.
+- Decision: `MAX_SERVER_WORKERS = 8`, applied to the specification as well
+  as the request. The command line is unchanged — there, the author is the
+  person running the experiment and owns the consequence.
+- Alternatives considered: (a) refusing the submission — rejected, the run
+  is legitimate work and only the executor size is unreasonable.
+  (b) making the bound configurable — deferred; 8 is a default, not a
+  promise, and a flag would need the same justification as any other
+  unbounded setting.
+- Why 8: a seed-level experiment is not I/O-bound on the server; its
+  parallelism matters because each run is a subprocess. Eight concurrent
+  subprocesses is already far past what one machine's cores use.
+- Regression tests: `tests/test_server.py`,
+  `test_a_submitted_spec_cannot_ask_for_an_unbounded_thread_pool` and
+  `test_an_over_eager_worker_count_is_reported_rather_than_obeyed`, the
+  latter confirming a clamped run still completes all 18 runs.
+- Files: `fabric/server/worker.py`, `docs/deployment.md`.
+
+---
+
+### D-012: Crash recovery is scoped by worker liveness
+
+- Date / work area / commit: 2026-10-11, `fabric/server/jobs.py`,
+  `fabric/server/worker.py`, uncommitted
+- Context: `WorkerPool.start()` called `requeue_running()`, which swept
+  every `RUNNING` row unconditionally. `docs/deployment.md` recommends
+  several worker processes sharing one SQLite file — under which starting a
+  second process requeued the first process's *live* jobs. Two workers then
+  executed the same runs into the same `runs/<id>/run.json` concurrently,
+  which is exactly the corruption `JobStore.cancel()`'s docstring says it
+  avoids.
+- Decision: the sweep requeues a job only when the process that claimed it
+  is gone. Worker identities are already written `worker-<n>@<pid>`, so
+  liveness is a pid check. `stale_after` is available for the case liveness
+  cannot see — a worker that is alive but wedged.
+- A critical constraint: `os.kill(pid, 0)` is **not** safe on Windows.
+  There, any signal other than the two console-control events is delivered
+  by unconditionally calling `TerminateProcess`, so the naive POSIX liveness
+  probe would kill the sibling process this check exists to protect.
+  Windows is asked through `OpenProcess` + `GetExitCodeProcess`, which only
+  read state. Verified directly: with a bare `OpenProcess` and no exit-code
+  check, a process that had already exited still returned a plausible
+  handle; the exit code is what distinguishes `STILL_ACTIVE` (259) from
+  gone.
+- Alternatives considered: (a) matching on worker *slot* (`worker-1` in any
+  process) — rejected after testing, because two concurrent servers both
+  use slot `worker-1` and would steal each other's jobs, which is the bug
+  being fixed. (b) a heartbeat column — rejected as more machinery than a
+  pid check needs, given the identity already carries one.
+- Consequences: a crashed server's jobs are still recovered on restart
+  (verified by a test that spawns a process, waits for it, and asserts the
+  sweep requeues its job). A live sibling's jobs are not. An identity with
+  no parseable pid is left alone, so an unfamiliar format cannot cause
+  duplication — at the cost of a crashed worker keeping its job, which is
+  visible in the queue rather than silent.
+- Regression tests: `tests/test_server.py`,
+  `test_starting_a_second_server_does_not_steal_a_running_job`,
+  `test_a_job_whose_process_died_is_recovered`,
+  `test_a_stale_job_can_be_recovered_by_age`,
+  `test_jobs_left_running_by_a_crash_are_requeued`.
+- Files: `fabric/server/jobs.py`, `fabric/server/worker.py`,
+  `docs/deployment.md`.

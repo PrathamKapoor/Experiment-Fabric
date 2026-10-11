@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en" data-theme="auto">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Experiment Fabric</title>
+<link rel="stylesheet" href="/ui/app.css">
+</head>
+<body>
+<header class="bar">
+  <a class="brand" href="#/">Experiment&nbsp;Fabric</a>
+  <nav id="crumbs" class="crumbs"></nav>
+  <span class="spacer"></span>
+  <span id="health" class="health" title="server health">&middot;&middot;&middot;</span>
+</header>
+
+<main id="view" class="view" aria-live="polite">
+  <p class="muted">Loading&hellip;</p>
+</main>
+
+<footer class="foot">
+  <span id="footnote" class="muted"></span>
+</footer>
+
+<template id="tpl-empty">
+  <div class="empty">
+    <h2></h2>
+    <p class="muted"></p>
+  </div>
+</template>
+
+<script src="/ui/app.js"></script>
+</body>
+</html>

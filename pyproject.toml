@@ -61,7 +61,17 @@ Issues = "https://github.com/pratham/experiment-fabric/issues"
 include = ["fabric*"]
 
 [tool.setuptools.package-data]
-fabric = ["py.typed"]
+# The interface is plain HTML, CSS and JavaScript with no build step, so it
+# ships as data inside the wheel rather than as a separate artefact.
+fabric = [
+    "py.typed",
+    "server/ui/*.html",
+    "server/ui/*.css",
+    "server/ui/*.js",
+    # The benchmark definitions that ship with Fabric, so `fabric benchmarks`
+    # resolves them from an installed wheel and not only from a checkout.
+    "benchmarks/*.yaml",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -30,8 +30,14 @@ python examples/text_classification/make_data.py >/dev/null
 
 cd "$WORK"
 cp -r "$ROOT/examples" .
+# The shipped examples declare `benchmark: <name>@<version>`, and the
+# definitions those names resolve against live in benchmarks/. Without this
+# the first real command fails with "no benchmark named 'agent-qa@v1' was
+# found" and the smoke test never reaches a single assertion.
+cp -r "$ROOT/benchmarks" .
 export PYTHONPATH="$ROOT"
 export FABRIC_NO_COLOR=1
+export FABRIC_BENCHMARK_PATH="$WORK/benchmarks"
 
 fabric init --quiet
 pass "fabric init"

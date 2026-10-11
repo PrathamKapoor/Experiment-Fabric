@@ -10,7 +10,6 @@ reading its source.
 from __future__ import annotations
 
 import argparse
-import json
 import os
 import sys
 import time
@@ -20,6 +19,14 @@ from typing import Any
 from fabric import __version__
 from fabric.analysis.engine import ExperimentAnalysis, analyse
 from fabric.cli import console
+from fabric.core.benchmark import SEARCH_PATH_VARIABLE as BENCHMARK_PATH_VARIABLE
+from fabric.core.benchmark import BenchmarkError, BenchmarkSpec
+from fabric.core.benchmark import available as benchmarks_available
+from fabric.core.benchmark import resolve as resolve_benchmark
+from fabric.core.benchmark import search_paths as benchmark_search_paths
+from fabric.core.diff import MATERIAL as MATERIAL_CATEGORIES
+from fabric.core.diff import OUTCOME as OUTCOME_CATEGORIES
+from fabric.core.diff import diff_experiments
 from fabric.core.entities import Algorithm, Dataset, Model, Role, Run, RunStatus
 from fabric.core.graph import ExperimentGraph
 from fabric.core.provenance import build_provenance, explain, find_metric_node, impact
@@ -33,6 +40,7 @@ from fabric.execution.planner import ExperimentPlan, PlanError, plan_experiment
 from fabric.execution.runner import ExecutionOptions, Runner
 from fabric.util.hashing import tree_digest
 from fabric.util.jsonio import CorruptRecordError, atomic_write_text, read_json, write_json
+from fabric.util.jsonio import dumps as json_dumps
 
 
 class CommandError(RuntimeError):
@@ -44,9 +52,21 @@ class CommandError(RuntimeError):
 # --------------------------------------------------------------------------
 
 
+#: Environment variable naming the workspace, for containers and CI where
+#: the working directory is not a useful place to put one.
+WORKSPACE_VARIABLE = "FABRIC_WORKSPACE"
+
+
+def _workspace_root(args: argparse.Namespace) -> str:
+    """Where to look for a workspace: the flag, the environment, then here."""
+    return (getattr(args, "workspace", None)
+            or os.environ.get(WORKSPACE_VARIABLE, "").strip()
+            or os.getcwd())
+
+
 def _workspace(args: argparse.Namespace) -> Workspace:
     try:
-        return Workspace.discover(getattr(args, "workspace", None) or os.getcwd())
+        return Workspace.discover(_workspace_root(args))
     except WorkspaceError as exc:
         raise CommandError(str(exc)) from exc
 
@@ -227,6 +247,14 @@ def cmd_registry(args: argparse.Namespace) -> int:
     if args.action == "verify":
         results = registry.verify_all()
         failures = [r for r in results if not r[2]]
+        if args.json:
+            print(json_dumps({
+                "entities": len(results),
+                "failures": [{"kind": k, "id": i, "message": m}
+                             for k, i, ok, m in results if not ok],
+                "ok": not failures,
+            }))
+            return 1 if failures else 0
         console.heading("registry verification")
         console.field("entities", str(len(results)))
         console.field("failures", str(len(failures)))
@@ -237,6 +265,21 @@ def cmd_registry(args: argparse.Namespace) -> int:
         return 1 if failures else 0
 
     entries = registry.index_entries(args.kind)
+    if args.json:
+        # The full record, not the index summary: the point of machine
+        # output here is to answer "which exact dataset version produced
+        # this result", and that needs the digest and the splits, not a
+        # display string.
+        detailed = []
+        for entry in entries:
+            try:
+                stored = registry.get(str(entry.get("kind")), str(entry.get("id")))
+            except RegistryError:
+                detailed.append(dict(entry))
+                continue
+            detailed.append(stored.to_dict())
+        print(json_dumps(detailed))
+        return 0
     if not entries:
         console.note("nothing registered yet")
         return 0
@@ -282,6 +325,22 @@ def _print_plan(plan: ExperimentPlan, *, verbose: bool = False) -> None:
             console.field("model", f"{plan.model.ref}  {plan.model.id}")
         if plan.algorithm:
             console.field("algorithm", f"{plan.algorithm.ref}  {plan.algorithm.entrypoint}")
+
+    benchmark = plan.spec.benchmark
+    if benchmark is not None:
+        console.heading("benchmark")
+        console.field("definition", f"{benchmark.ref}  {benchmark.digest[:23]}")
+        if benchmark.source_path:
+            console.field("defined in", benchmark.source_path)
+        for note in plan.spec.benchmark_notes:
+            console.bullet(note)
+        results = plan.spec.benchmark_constraints
+        if results:
+            console.echo("")
+            console.table(
+                ["constraint", "", "detail"],
+                [[r.kind, "ok" if r.satisfied else "UNMET", r.detail] for r in results],
+            )
 
     if plan.advisories:
         console.heading("advisories")
@@ -337,6 +396,8 @@ def cmd_run(args: argparse.Namespace) -> int:
         track_gpu=args.track_gpu,
         cost_per_gpu_hour=args.gpu_cost,
         cost_per_cpu_hour=args.cpu_cost,
+        energy_watts=(args.energy_watts if args.energy_watts is not None
+                      else execution.energy_watts),
         only=tuple(args.only or ()),
         rerun=args.rerun,
     )
@@ -423,6 +484,9 @@ def _spec_text(path: str) -> str:
 def cmd_ls(args: argparse.Namespace) -> int:
     workspace = _workspace(args)
     experiments = workspace.list_experiments()
+    if args.json:
+        print(json_dumps(_experiment_listing(workspace, experiments[: args.limit])))
+        return 0
     if not experiments:
         console.note("no experiments yet. Create one with 'fabric run experiment.yaml'")
         return 0
@@ -444,11 +508,56 @@ def cmd_ls(args: argparse.Namespace) -> int:
     return 0
 
 
+def _experiment_listing(workspace: Workspace,
+                        entries: Sequence[dict[str, Any]]) -> list[dict[str, Any]]:
+    """One row per experiment, with the status model of section 78."""
+    listing = []
+    for entry in entries:
+        experiment_id = str(entry["id"])
+        runs = workspace.load_runs(experiment_id)
+        completed = sum(1 for r in runs if r.succeeded)
+        failed = sum(1 for r in runs if r.status == RunStatus.FAILED)
+        planned = int(entry.get("runs", len(runs)) or len(runs))
+        listing.append({
+            "experiment_id": experiment_id,
+            "name": entry.get("name", ""),
+            "status": experiment_status(planned, completed, failed),
+            "runs": {"planned": planned, "completed": completed, "failed": failed},
+            "created_at": entry.get("created_at", 0),
+            "spec_digest": entry.get("spec_digest", ""),
+        })
+    return listing
+
+
+def experiment_status(planned: int, completed: int, failed: int) -> str:
+    """The lifecycle state of an experiment, as one word.
+
+    Section 78 asks for explicit states rather than one overloaded field.
+    These five are the ones Fabric can determine from the run records
+    alone; QUEUED, RUNNING and CANCELLED belong to the server, which owns
+    the job lifecycle, and REPRODUCED and VERIFIED are properties of a
+    bundle rather than of an experiment directory.
+    """
+    if planned == 0:
+        return "planned"
+    if completed == 0 and failed == 0:
+        return "planned"
+    if completed + failed < planned:
+        return "partial"
+    if completed == 0:
+        return "failed"
+    return "completed" if failed == 0 else "partial"
+
+
 def cmd_status(args: argparse.Namespace) -> int:
     workspace = _workspace(args)
     experiment_id = _resolve(workspace, args.experiment)
     plan = _stored_plan(workspace, experiment_id)
     runs = {r.id: r for r in workspace.load_runs(experiment_id)}
+
+    if args.json:
+        print(json_dumps(_status_payload(plan, runs, experiment_id)))
+        return 0
 
     console.heading(plan.experiment.name)
     console.field("experiment", experiment_id)
@@ -490,6 +599,41 @@ def cmd_status(args: argparse.Namespace) -> int:
     return 0
 
 
+def _status_payload(plan: ExperimentPlan, runs: dict[str, Run],
+                    experiment_id: str) -> dict[str, Any]:
+    """Progress per condition, in the same shape the API serves."""
+    by_condition: dict[str, dict[str, Any]] = {}
+    for planned in plan.runs:
+        bucket = by_condition.setdefault(planned.condition_name, {
+            "condition": planned.condition_name, "planned": 0,
+            "completed": 0, "failed": 0, "pending": 0,
+        })
+        bucket["planned"] += 1
+        actual = runs.get(planned.id)
+        if actual is None:
+            bucket["pending"] += 1
+        elif actual.succeeded:
+            bucket["completed"] += 1
+        elif actual.status == RunStatus.FAILED:
+            bucket["failed"] += 1
+        else:
+            bucket["pending"] += 1
+
+    completed = sum(b["completed"] for b in by_condition.values())
+    failed = sum(b["failed"] for b in by_condition.values())
+    total = sum(b["planned"] for b in by_condition.values())
+    return {
+        "experiment_id": experiment_id,
+        "name": plan.experiment.name,
+        "research_question": plan.experiment.research_question,
+        "spec_digest": plan.spec.digest,
+        "status": experiment_status(total, completed, failed),
+        "runs": {"planned": total, "completed": completed, "failed": failed,
+                 "pending": total - completed - failed},
+        "conditions": sorted(by_condition.values(), key=lambda b: b["condition"]),
+    }
+
+
 # --------------------------------------------------------------------------
 # analyze
 # --------------------------------------------------------------------------
@@ -501,7 +645,7 @@ def cmd_analyze(args: argparse.Namespace) -> int:
     _plan, _runs, analysis = _cached_analysis(workspace, experiment_id)
 
     if args.json:
-        print(json.dumps(analysis.to_dict(), indent=2, default=str))
+        print(json_dumps(analysis.to_dict()))
         return 0
 
     console.heading(analysis.name)
@@ -531,7 +675,8 @@ def cmd_analyze(args: argparse.Namespace) -> int:
         console.heading("baseline comparisons")
         adjusted = any(c.adjusted_p is not None for c in comparisons)
         console.table(
-            ["baseline", "difference", f"{round((1 - analysis.alpha) * 100)}% CI",
+            ["baseline", "difference",
+             f"{analysis.confidence_level * 100:.10g}% CI",
              "test", "adj. p" if adjusted else "p", "g", "verdict"],
             [[c.baseline, f"{c.difference:+.4f}", c.difference_interval.format(),
               c.test.test, _p(c.effective_p),
@@ -540,6 +685,26 @@ def cmd_analyze(args: argparse.Namespace) -> int:
              for c in comparisons],
             aligns=["left", "right", "left", "left", "right", "right", "left"],
         )
+
+    if analysis.references:
+        console.heading("published reference values")
+        console.note("cited numbers, not runs: described, never tested")
+        if analysis.references.comparisons:
+            console.table(
+                ["arm", "metric", "published", "observed", "gap", "in seed noise",
+                 "verdict"],
+                [[r.condition, r.metric, f"{r.published:.4f}",
+                  f"{r.observed.mean:.4f}", f"{r.difference:+.4f}",
+                  f"{r.noise_multiple:.2f}x" if r.noise_multiple == r.noise_multiple
+                  else "-", r.verdict]
+                 for r in analysis.references.comparisons],
+                aligns=["left", "left", "right", "right", "right", "right", "left"],
+            )
+        for entry in analysis.references.missing:
+            console.bullet(
+                f"{entry['condition']}: published {entry['metric']}="
+                f"{entry['published']:g} was never reproduced ({entry['reason']})"
+            )
 
     ranking = analysis.ablations.ranking(metric)
     if ranking:
@@ -717,7 +882,7 @@ def cmd_why(args: argparse.Namespace) -> int:
 
     explanation = explain(graph, target)
     if args.json:
-        print(json.dumps(explanation.to_dict(), indent=2, default=str))
+        print(json_dumps(explanation.to_dict()))
         return 0
     console.echo("")
     console.echo(explanation.render())
@@ -758,8 +923,7 @@ def cmd_graph(args: argparse.Namespace) -> int:
     elif args.format == "mermaid":
         text = (graph.lineage(args.node) if args.node else graph).to_mermaid()
     else:
-        text = json.dumps((graph.lineage(args.node) if args.node else graph).to_dict(),
-                          indent=2, default=str)
+        text = json_dumps((graph.lineage(args.node) if args.node else graph).to_dict())
 
     if args.out:
         atomic_write_text(args.out, text + "\n")
@@ -785,6 +949,9 @@ def cmd_impact(args: argparse.Namespace) -> int:
         raise CommandError(f"no node {node} in the provenance graph")
 
     result = impact(graph, node)
+    if args.json:
+        print(json_dumps({"experiment_id": experiment_id, "node": node, **result}))
+        return 0
     console.heading("impact")
     console.field("node", f"{result['label']} ({node})")
     console.field("depends on it", str(result["affected"]))
@@ -805,87 +972,49 @@ def cmd_impact(args: argparse.Namespace) -> int:
 
 
 def cmd_reproduce(args: argparse.Namespace) -> int:
-    from fabric import bundle as bundle_module
-    from fabric.reproduce import compare_runs
+    """Re-execute an experiment or a bundle and compare it to the original.
+
+    The workflow itself lives in :func:`fabric.reproduce.reproduce`, which
+    the API calls too. A reproduction that behaved differently depending
+    on whether it was launched from a terminal or over HTTP would be a
+    contradiction in terms, so there is exactly one of it.
+    """
+    from fabric.reproduce import ReproductionError, load_original
+    from fabric.reproduce import reproduce as reproduce_target
 
     workspace = _workspace(args)
-    target = args.target
-
-    if os.path.isdir(target) and os.path.isfile(os.path.join(target, "manifest.json")):
-        loaded = bundle_module.load(target)
-        spec = _load_spec(loaded["spec_path"])
-        original_runs = [Run.from_dict(r) for r in loaded["results"].get("runs", [])]
-        source_label = f"bundle {os.path.basename(target)}"
-        original_environment = _entity_or_none(loaded["manifest"].get("environment"), "environment")
-        original_hardware = _entity_or_none(loaded["manifest"].get("hardware"), "hardware")
-    else:
-        experiment_id = _resolve(workspace, target)
-        plan_spec_path = os.path.join(workspace.experiment_dir(experiment_id),
-                                      "experiment.yaml")
-        spec = _load_spec(plan_spec_path)
-        original_runs = workspace.load_runs(experiment_id)
-        source_label = experiment_id
-        registry = Registry(workspace)
-        original_environment = _first_entity(registry, "environment",
-                                             [r.environment_id for r in original_runs])
-        original_hardware = _first_entity(registry, "hardware",
-                                          [r.hardware_id for r in original_runs])
-
-    if not original_runs:
-        raise CommandError(f"{source_label} has no recorded runs to reproduce")
-
-    plan = _plan(workspace, spec)
-    console.heading("reproducing")
-    console.field("source", source_label)
-    console.field("experiment", plan.experiment.id)
-    console.field("runs", str(len(plan.runs)))
-    console.echo("")
-
-    options = ExecutionOptions(
-        max_workers=args.workers or spec.execution.max_workers,
-        timeout_seconds=spec.execution.timeout_seconds,
-        isolation=spec.execution.isolation,
-        # A reproduction that reads its answer from the cache has
-        # reproduced nothing.
-        cache=CachePolicy(enabled=False),
-        rerun=True,
-    )
-    workspace.create_experiment_dir(plan.experiment.id)
-    runner = Runner(workspace, plan, options, root=workspace.root)
-    progress = console.Progress(len(plan.runs))
-    execution = runner.execute(list(plan.runs),
-                               on_progress=lambda e: progress.advance(
-                                   e.label, failed=e.run.status == RunStatus.FAILED))
-    progress.finish()
-    console.success(execution.summary_line())
-
-    reproduced_runs = workspace.load_runs(plan.experiment.id)
-    report = compare_runs(
-        plan, original_runs, reproduced_runs,
-        original_environment=original_environment,
-        reproduced_environment=execution.environment,
-        original_hardware=original_hardware,
-        reproduced_hardware=execution.hardware,
-        alpha=spec.analysis.alpha,
-        conditions=tuple(args.condition or ()),
-    )
-    console.echo("")
-    console.echo(report.render())
-    workspace.write(plan.experiment.id, "reproduction.json", report.to_dict())
-    if args.json:
-        print(json.dumps(report.to_dict(), indent=2, default=str))
-    return 0 if report.verdict in ("PASS", "PASS WITH DEVIATION") else 1
-
-
-def _entity_or_none(data: Any, kind: str) -> Any:
-    if not data:
-        return None
-    from fabric.core.registry import _rebuild
-
     try:
-        return _rebuild(kind, data)
-    except (TypeError, KeyError):
-        return None
+        _spec_path, label, original_runs, _env, _hw = load_original(
+            workspace, args.target)
+    except (WorkspaceError, ReproductionError) as exc:
+        raise CommandError(str(exc)) from exc
+    if not original_runs:
+        raise CommandError(f"{label} has no recorded runs to reproduce")
+
+    console.heading("reproducing")
+    console.field("source", label)
+    console.field("original runs", str(len(original_runs)))
+    console.echo("")
+
+    progress = console.Progress(len(original_runs))
+    try:
+        result = reproduce_target(
+            workspace, args.target,
+            max_workers=args.workers or 0,
+            conditions=tuple(args.condition or ()),
+            on_progress=lambda e: progress.advance(
+                e.label, failed=e.run.status == RunStatus.FAILED),
+        )
+    except ReproductionError as exc:
+        raise CommandError(str(exc)) from exc
+    progress.finish()
+    console.success(result.execution.summary_line())
+
+    console.echo("")
+    console.echo(result.report.render())
+    if args.json:
+        print(json_dumps(result.report.to_dict()))
+    return 0 if result.succeeded else 1
 
 
 def _first_entity(registry: Registry, kind: str, ids: Sequence[str]) -> Any:
@@ -986,7 +1115,7 @@ def cmd_certify(args: argparse.Namespace) -> int:
                         reproduction=reproduction)
     workspace.write(experiment_id, "certificate.json", certificate.to_dict())
     if args.json:
-        print(json.dumps(certificate.to_dict(), indent=2, default=str))
+        print(json_dumps(certificate.to_dict()))
         return 0
     console.echo("")
     console.echo(certificate.render())
@@ -1031,6 +1160,255 @@ def cmd_export(args: argparse.Namespace) -> int:
     console.echo("")
     console.note(f"verify it with:     fabric verify {destination}")
     console.note(f"reproduce it with:  fabric reproduce {destination}")
+    return 0
+
+
+# --------------------------------------------------------------------------
+# benchmarks
+# --------------------------------------------------------------------------
+
+
+def cmd_benchmarks(args: argparse.Namespace) -> int:
+    """List, show or validate benchmark definitions."""
+    root = os.path.abspath(getattr(args, "root", "") or os.getcwd())
+
+    if args.action == "validate":
+        target = args.name
+        if not target:
+            raise CommandError(
+                "'fabric benchmarks validate' needs a path or a reference, for "
+                "example 'fabric benchmarks validate benchmarks/agent-qa.yaml'"
+            )
+        try:
+            benchmark = (BenchmarkSpec.from_file(target) if os.path.isfile(target)
+                         else resolve_benchmark(target, root=root))
+        except BenchmarkError as exc:
+            raise CommandError(str(exc)) from exc
+        if args.json:
+            print(json_dumps(benchmark.to_dict()))
+            return 0
+        console.success(f"{benchmark.ref} is a valid benchmark definition")
+        console.field("digest", benchmark.digest)
+        console.field("schema", benchmark.schema_version)
+        console.field("metrics", ", ".join(m.name for m in benchmark.metrics))
+        return 0
+
+    if args.action == "show":
+        if not args.name:
+            raise CommandError("'fabric benchmarks show' needs a benchmark reference")
+        try:
+            benchmark = resolve_benchmark(args.name, root=root)
+        except BenchmarkError as exc:
+            raise CommandError(str(exc)) from exc
+        if args.json:
+            print(json_dumps(benchmark.to_dict()))
+            return 0
+        console.heading(benchmark.ref)
+        if benchmark.description:
+            console.echo("  " + " ".join(benchmark.description.split()))
+        console.echo("")
+        console.field("digest", benchmark.digest)
+        console.field("schema", benchmark.schema_version)
+        console.field("defined in", benchmark.source_path or "(in memory)")
+        if benchmark.license:
+            console.field("license", benchmark.license)
+        if benchmark.citation:
+            console.field("cite", " ".join(benchmark.citation.split()))
+
+        if benchmark.tasks:
+            console.heading("tasks")
+            console.table(
+                ["task", "dataset", "metrics", "description"],
+                [[t.name, t.dataset or "-",
+                  ", ".join(t.metrics) or "all", t.description]
+                 for t in benchmark.tasks],
+            )
+        if benchmark.datasets:
+            console.heading("datasets")
+            console.table(
+                ["dataset", "digest / location", "examples", "license"],
+                [[d.ref, d.digest[:23] or d.uri or d.path or "-",
+                  str(d.n_examples or "-"), d.license or "-"]
+                 for d in benchmark.datasets],
+            )
+        console.heading("metrics")
+        console.table(
+            ["metric", "direction", "aggregation", "tolerance", "required", "pinned"],
+            [[m.name + (" (primary)" if m.primary else ""), m.direction,
+              m.aggregation, f"{m.tolerance:g}" if m.tolerance is not None else "-",
+              "yes" if m.required else "no", "yes" if m.pinned else "no"]
+             for m in benchmark.metrics],
+            aligns=["left", "left", "left", "right", "left", "left"],
+        )
+        if benchmark.baselines:
+            console.heading("baselines supplied")
+            for baseline in benchmark.baselines:
+                console.bullet(
+                    f"{baseline.get('name')}: "
+                    + " ".join(str(baseline.get("description", "")).split())
+                )
+        if benchmark.constraints:
+            console.heading("constraints")
+            for constraint in benchmark.constraints:
+                console.bullet(
+                    f"{constraint.kind} = {constraint.value}"
+                    + (" -- " + " ".join(constraint.reason.split())
+                       if constraint.reason else "")
+                )
+        if benchmark.output_schema:
+            console.heading("expected output")
+            for key, kind in sorted(benchmark.output_schema.items()):
+                console.field(key, str(kind))
+        console.echo("")
+        console.note(f"use it with:  benchmark: {benchmark.ref}")
+        return 0
+
+    catalogue = benchmarks_available(root=root)
+    if args.json:
+        print(json_dumps([b.to_dict() for b in catalogue]))
+        return 0
+    console.heading("benchmarks")
+    if not catalogue:
+        console.echo("  none found")
+        console.echo("")
+        for directory in benchmark_search_paths(root=root):
+            console.note(f"searched {directory}")
+        console.note(f"set {BENCHMARK_PATH_VARIABLE} to add more directories")
+        return 0
+    console.table(
+        ["benchmark", "digest", "metrics", "tasks", "constraints"],
+        [[b.ref, b.digest[7:23], ", ".join(m.name for m in b.metrics),
+          str(len(b.tasks)), str(len(b.constraints))]
+         for b in catalogue],
+        aligns=["left", "left", "left", "right", "right"],
+    )
+    console.echo("")
+    console.note("details:  fabric benchmarks show <name>")
+    return 0
+
+
+# --------------------------------------------------------------------------
+# diff
+# --------------------------------------------------------------------------
+
+
+def cmd_diff(args: argparse.Namespace) -> int:
+    """What is different between two experiments."""
+    workspace = _workspace(args)
+    left_id = _resolve(workspace, args.left)
+    right_id = _resolve(workspace, args.right)
+    if left_id == right_id:
+        raise CommandError(
+            f"{args.left} and {args.right} are the same experiment ({left_id})"
+        )
+
+    left_plan, left_runs, left_analysis = _cached_analysis(workspace, left_id)
+    right_plan, right_runs, right_analysis = _cached_analysis(workspace, right_id)
+    result = diff_experiments(left_plan, left_runs, left_analysis,
+                              right_plan, right_runs, right_analysis)
+
+    if args.json:
+        print(json_dumps(result.to_dict()))
+        return 0
+
+    console.heading("experiment diff")
+    console.field("left", f"{left_id}  {result.left_name}")
+    console.field("right", f"{right_id}  {result.right_name}")
+    console.echo("")
+    console.echo("  " + console.paint(result.describe(), "bold"))
+
+    if result.identical:
+        return 0
+
+    for category in result.categories:
+        if args.material and category not in MATERIAL_CATEGORIES:
+            continue
+        if category in MATERIAL_CATEGORIES:
+            label = category
+        elif category in OUTCOME_CATEGORIES:
+            label = category + "  (what changed, not why)"
+        else:
+            label = category + "  (changes how a number is read, not the number)"
+        console.heading(label)
+        console.table(
+            ["field", "left", "right", "note"],
+            [[d.field, _short(d.left), _short(d.right), d.note]
+             for d in result.for_category(category)],
+        )
+    console.echo("")
+    console.note("only the differences that can change a result:  "
+                 f"fabric diff {args.left} {args.right} --material")
+    return 0
+
+
+def _short(value: Any, width: int = 34) -> str:
+    """Render a diff cell without letting one long digest wreck the table."""
+    if value is None:
+        return "-"
+    text = ", ".join(str(v) for v in value) if isinstance(value, list) else str(value)
+    return text if len(text) <= width else text[:width - 3] + "..."
+
+
+# --------------------------------------------------------------------------
+# serve
+# --------------------------------------------------------------------------
+
+
+def cmd_serve(args: argparse.Namespace) -> int:
+    """Run the HTTP API and the interface.
+
+    The import is local on purpose. ``fabric.server`` pulls in
+    ``http.server`` and ``sqlite3``, and there is no reason for someone
+    running an experiment on a laptop to pay for that at startup -- nor
+    for the scientific core to acquire a dependency on the web layer just
+    because both live in the same package.
+    """
+    from fabric.server.app import serve
+
+    # A server pointed at an empty directory should start, not refuse. The
+    # container case is exactly this: a fresh volume mounted at /data, and
+    # a human who would have to exec into the container to run 'fabric
+    # init' before anything worked.
+    root = _workspace_root(args)
+    try:
+        workspace = Workspace.discover(root)
+    except WorkspaceError:
+        if not os.path.isdir(root) or os.listdir(root):
+            raise CommandError(
+                f"no Fabric workspace at or above {root}, and it is not empty "
+                "so one will not be created here. Run 'fabric init' in the "
+                "directory you mean, or pass --workspace *before* the "
+                "subcommand: it is a global option, so "
+                "'fabric serve --workspace X' is rejected."
+            ) from None
+        workspace = Workspace.initialise(root, name=os.path.basename(root) or "fabric")
+        console.note(f"initialised an empty workspace at {workspace.root}")
+
+    if args.execute and not args.i_understand:
+        console.warn(
+            "--execute means this server will import and call the code that any "
+            "submitted specification names, as this user, with no sandbox."
+        )
+        console.warn(
+            "Only run it this way where you would give the same people a shell. "
+            "Pass --i-understand to confirm, and read docs/deployment.md."
+        )
+        return 2
+    try:
+        serve(
+            workspace,
+            host=args.host,
+            port=args.port,
+            execute=args.execute,
+            workers=args.workers,
+            database=args.database or "",
+            serve_ui=not args.no_ui,
+            announce=console.echo,
+        )
+    except OSError as exc:
+        raise CommandError(
+            f"could not listen on {args.host}:{args.port}: {exc}"
+        ) from exc
     return 0
 
 
@@ -1106,7 +1484,9 @@ def build_parser() -> argparse.ArgumentParser:
         epilog="Start with: fabric init, then fabric run experiment.yaml",
     )
     parser.add_argument("--version", action="version", version=f"fabric {__version__}")
-    parser.add_argument("--workspace", help="workspace root (default: search upwards)")
+    parser.add_argument("--workspace",
+                        help="workspace root (default: $FABRIC_WORKSPACE, then "
+                             "search upwards from the working directory)")
     sub = parser.add_subparsers(dest="command", metavar="<command>")
 
     p = sub.add_parser("init", help="create a workspace")
@@ -1145,6 +1525,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("action", nargs="?", default="ls", choices=["ls", "verify"])
     p.add_argument("--kind", choices=["dataset", "model", "algorithm",
                                       "environment", "hardware"])
+    p.add_argument("--json", action="store_true",
+                   help="emit the full stored records, not the display summary")
     p.set_defaults(func=cmd_registry)
 
     p = sub.add_parser("plan", help="expand a specification without running it")
@@ -1168,16 +1550,22 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--track-gpu", action="store_true", help="measure GPU memory and time")
     p.add_argument("--gpu-cost", type=float, help="USD per GPU hour, for cost accounting")
     p.add_argument("--cpu-cost", type=float, help="USD per CPU hour")
+    p.add_argument("--energy-watts", type=float,
+                   help="declared average power draw in watts; energy is then "
+                        "ESTIMATED as watts x wall time and always labelled as "
+                        "such. Overrides execution.energy_watts in the spec")
     p.add_argument("--dry-run", action="store_true", help="show the plan and stop")
     p.add_argument("--verbose", action="store_true")
     p.set_defaults(func=cmd_run)
 
     p = sub.add_parser("ls", help="list experiments")
     p.add_argument("--limit", type=int, default=25)
+    p.add_argument("--json", action="store_true", help="machine-readable output")
     p.set_defaults(func=cmd_ls)
 
     p = sub.add_parser("status", help="show progress of an experiment")
     p.add_argument("experiment")
+    p.add_argument("--json", action="store_true", help="machine-readable output")
     p.set_defaults(func=cmd_status)
 
     p = sub.add_parser("analyze", aliases=["analyse"], help="analyse results")
@@ -1215,6 +1603,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.set_defaults(func=cmd_graph)
 
     p = sub.add_parser("impact", help="show what depends on a node")
+    p.add_argument("--json", action="store_true", help="machine-readable output")
     p.add_argument("experiment")
     p.add_argument("--node", help="node id (default: the dataset)")
     p.set_defaults(func=cmd_impact)
@@ -1241,6 +1630,39 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--no-artifacts", action="store_true",
                    help="omit raw artifacts to keep the bundle small")
     p.set_defaults(func=cmd_export)
+
+    p = sub.add_parser("benchmarks", aliases=["benchmark"],
+                       help="list, show or validate benchmark definitions")
+    p.add_argument("action", nargs="?", default="ls",
+                   choices=["ls", "show", "validate"])
+    p.add_argument("name", nargs="?", help="benchmark reference or path")
+    p.add_argument("--json", action="store_true", help="machine-readable output")
+    p.set_defaults(func=cmd_benchmarks)
+
+    p = sub.add_parser("diff", help="what differs between two experiments")
+    p.add_argument("left")
+    p.add_argument("right")
+    p.add_argument("--material", action="store_true",
+                   help="only differences that can change a measured number")
+    p.add_argument("--json", action="store_true", help="machine-readable output")
+    p.set_defaults(func=cmd_diff)
+
+    p = sub.add_parser("serve", help="run the HTTP API and web interface")
+    p.add_argument("--host", default="127.0.0.1",
+                   help="interface to bind (default: localhost only)")
+    p.add_argument("--port", type=int, default=8080)
+    p.add_argument("--workers", type=int, default=1,
+                   help="how many jobs may run at once")
+    p.add_argument("--execute", action="store_true",
+                   help="allow submitted experiments to actually run. This "
+                        "executes arbitrary code as this user with no sandbox; "
+                        "requires --i-understand")
+    p.add_argument("--i-understand", action="store_true",
+                   help="confirm the --execute security implications")
+    p.add_argument("--database", help="path to the job queue (default: "
+                                      ".fabric/jobs.sqlite3)")
+    p.add_argument("--no-ui", action="store_true", help="serve the API only")
+    p.set_defaults(func=cmd_serve)
 
     p = sub.add_parser("cache", help="inspect or clear the execution cache")
     p.add_argument("action", nargs="?", default="stats", choices=["stats", "clear"])

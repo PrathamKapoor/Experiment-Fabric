@@ -21,7 +21,7 @@ from fabric.core.registry import Registry, RegistryError
 from fabric.core.spec import ExperimentSpec, SpecError
 from fabric.core.store import Workspace, WorkspaceError
 from fabric.util.hashing import canonical_json, content_id, tree_digest
-from fabric.util.jsonio import CorruptRecordError, read_json, write_json
+from fabric.util.jsonio import CorruptRecordError, atomic_write_text, read_json, write_json
 from fabric.util.locking import FileLock
 from fabric.util.yamlio import dump_yaml, loads_yaml
 
@@ -192,6 +192,73 @@ def test_write_json_is_atomic_and_leaves_no_partials(tmp_path):
     write_json(path, {"a": 1})
     assert read_json(path) == {"a": 1}
     assert [p.name for p in (tmp_path / "out").iterdir()] == ["value.json"]
+
+
+def test_a_transient_sharing_violation_does_not_fail_the_reader(tmp_path, monkeypatch):
+    """Windows refuses a rename onto a file a reader holds open.
+
+    The cache index is read by every worker while the runner writes it, so
+    the reader can catch a sharing violation it did nothing wrong about.
+    Retrying is what the writer already does; the reader has to as well, or
+    a working experiment fails for a reason that has nothing to do with it.
+    """
+    path = tmp_path / "index.json"
+    write_json(path, {"a": 1})
+
+    real_open = open
+    state = {"left": 2}
+
+    def flaky_open(file, *args, **kwargs):
+        if str(file) == str(path) and state["left"] > 0:
+            state["left"] -= 1
+            raise PermissionError(13, "Permission denied", str(file))
+        return real_open(file, *args, **kwargs)
+
+    monkeypatch.setattr("fabric.util.jsonio.open", flaky_open, raising=False)
+    monkeypatch.setattr("builtins.open", flaky_open)
+
+    assert read_json(path) == {"a": 1}
+    assert state["left"] == 0, "the reader should have retried through both violations"
+
+
+def test_a_persistent_sharing_violation_is_still_reported(tmp_path, monkeypatch):
+    """Retrying must not turn a real lock into an infinite hang or a silent default."""
+    path = tmp_path / "locked.json"
+    write_json(path, {"a": 1})
+
+    def always_denied(file, *args, **kwargs):
+        if str(file) == str(path):
+            raise PermissionError(13, "Permission denied", str(file))
+        return open(file, *args, **kwargs)
+
+    monkeypatch.setattr("builtins.open", always_denied)
+    monkeypatch.setattr("fabric.util.jsonio.time.sleep", lambda _s: None)
+
+    with pytest.raises(PermissionError):
+        read_json(path)
+
+
+def test_a_missing_file_is_still_a_missing_file_not_a_sharing_violation(tmp_path):
+    assert read_json(tmp_path / "never-written.json", {"fallback": True}) == {"fallback": True}
+
+
+def test_reading_a_file_before_rewriting_it_works(tmp_path):
+    """Copying a specification onto itself must not hold the destination open.
+
+    Windows refuses ``os.replace`` onto a file that still has an open reader
+    handle, and it does so deterministically rather than as a race. A
+    read-and-copy that keeps its handle alive across the write fails every
+    time on Windows and passes everywhere else, which is the worst possible
+    shape for a bug.
+    """
+    path = tmp_path / "experiment.yaml"
+    write_json(path, {"experiment": {"name": "demo"}})
+
+    with open(path, encoding="utf-8") as handle:
+        text = handle.read()
+    atomic_write_text(path, text)   # must be outside the `with`
+
+    assert read_json(path) == {"experiment": {"name": "demo"}}
 
 
 def test_file_lock_is_reentrant_within_a_thread(tmp_path):

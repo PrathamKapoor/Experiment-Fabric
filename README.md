@@ -20,7 +20,12 @@ fabric export EXP-07fd093d8e --out bundle/         # a portable, verifiable arti
 
 No dependencies. Python 3.10-3.14. `pip install experiment-fabric`.
 
-251 tests, verified on Python 3.10, 3.11, 3.12, 3.13 and 3.14; CI runs them on Linux, macOS and Windows, with and without PyYAML installed.
+537 tests. CI runs them on Linux, macOS and Windows across Python 3.10 to
+3.14, with and without PyYAML installed, and adds a bare-install job that
+proves the core still imports with nothing else on the machine. The
+statistics engine is additionally cross-checked against SciPy and against
+brute-force enumeration of the exact null distributions — see
+[`docs/statistics.md`](docs/statistics.md).
 
 ---
 
@@ -365,8 +370,35 @@ edit a certificate and it no longer hashes to its own identifier.
 | `fabric verify <exp\|bundle>` | Re-hash artifacts, entities and certificates. |
 | `fabric certify <exp>` | Issue a reproduction certificate. |
 | `fabric export <exp>` | Write a portable bundle. |
+| `fabric benchmarks\|show\|validate` | The benchmark definitions on the search path. |
+| `fabric diff <a> <b>` | What differs between two experiments, and which of it could move a number. |
+| `fabric serve` | A local HTTP API and browser dashboard over the workspace. |
 | `fabric cache stats\|clear` | Inspect or clear the execution cache. |
 | `fabric doctor` | Show captured environment and hardware. |
+
+`fabric analyze` is also spelled `fabric analyse`. `fabric benchmarks` is also
+spelled `fabric benchmark`.
+
+---
+
+## Looking at it in a browser
+
+```bash
+fabric serve            # http://127.0.0.1:8080
+```
+
+The dashboard reads the same workspace the command line does, so anything it
+shows can be reproduced with the commands above. Execution is **off** unless
+you ask for it:
+
+```bash
+fabric serve --execute --i-understand     # and read docs/deployment.md first
+```
+
+`--i-understand` exists because that flag means "this server will import and
+call whatever code a submitted specification names, as this user, with no
+sandbox". Fabric will not put that behind a flag you can pass without
+reading what it says.
 
 ---
 
@@ -412,13 +444,15 @@ examples/        three runnable experiments; one trains with real PyTorch
 docs/            specification, statistics, reproducibility, related work, architecture
 paper/           the pre-registered study, and a pilot that actually ran
 scripts/         dependency guard, smoke test, container check
-tests/           251 tests, including reference-value checks for every distribution
-.github/         CI: 3 platforms x 4 Python versions, plus container and cross-version reproduction
+tests/           537 tests, including reference-value checks for every distribution
+server/          a local HTTP API and browser dashboard (stdlib only)
+.github/         CI: 3 platforms x 5 Python versions, plus container and cross-version reproduction
 ```
 
 ```bash
-python -m pytest              # 251 tests, ~25s
+python -m pytest              # 537 tests, ~60s
 bash scripts/smoke.sh         # every documented command, output asserted
+bash scripts/demo.sh          # the full walkthrough, on a throwaway workspace
 python paper/run_study.py     # the pilot study, regenerated
 ```
 
@@ -435,21 +469,29 @@ checks, reporting, certificates, bundles and reproduction.
 
 | | Evidence |
 |---|---|
-| 251 tests pass | Python 3.10, 3.11, 3.12, 3.13, 3.14 locally; CI matrix adds Linux and macOS |
+| 537 tests pass | on Python 3.14.7 and 3.11.16 locally; the CI matrix adds Linux, macOS and Python 3.10, 3.12 and 3.13 |
+| The statistics are independently checked | every distribution, test, effect size, interval and correction cross-checked against SciPy 1.17 — see [`docs/statistics.md`](docs/statistics.md) |
 | The core has no dependencies | `scripts/check_no_dependencies.py`, enforced in CI |
 | Both YAML parsers agree | every shipped specification parsed by each and compared |
 | Every documented command works | `scripts/smoke.sh` asserts the output of each one |
 | It runs real ML | `examples/torch_mlp/` trains with PyTorch autograd |
-| The wheel installs clean | built and run in an empty virtualenv |
+| The wheel installs clean | built and run in an empty virtualenv, with `fabric benchmarks` resolving the definitions that ship inside the package |
 | Bundles reproduce | `fabric reproduce` on an exported bundle, and across Python versions in CI |
 | The container reproduces | CI builds the image and runs `scripts/container_check.sh` inside it |
+| The server refuses what a page drove it to do | a cross-origin `POST` is refused; the isolation and worker caps are covered by tests over a real socket |
 
 Deliberately **not** built: distributed orchestration, a cloud GPU
-marketplace, a web UI, Bayesian optimisation, autonomous experiment
-generation, dataset or model hosting. Each would bury the contribution
-under infrastructure that already exists elsewhere — and
-[`docs/related-work.md`](docs/related-work.md) names the tools that do
-those things better.
+marketplace, Bayesian optimisation, autonomous experiment generation, dataset
+or model hosting, multi-tenant authentication. Each would bury the
+contribution under infrastructure that already exists elsewhere — and
+[`docs/related-work.md`](docs/related-work.md) names the tools that do those
+things better.
+
+The web interface that *is* built is deliberately local and unprivileged:
+`fabric serve` binds `127.0.0.1`, refuses state-changing requests a web page
+initiated, and refuses to execute anything unless you pass `--execute` *and*
+`--i-understand`. Its threat model, and the limits it does not claim to
+cover, are in [`docs/deployment.md`](docs/deployment.md).
 
 Known limitations are documented rather than hidden — see the end of
 [`docs/reproducibility.md`](docs/reproducibility.md).

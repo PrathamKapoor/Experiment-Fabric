@@ -182,8 +182,10 @@ rather than confirmatory.
 
 ## What is checked against what
 
-The distributions are verified against published critical-value tables,
-not against another implementation of the same algorithms:
+Two independent references, because neither alone is enough.
+
+**In the test suite**, against published critical-value tables rather than
+another implementation of the same algorithms:
 
 - Student's t at df = 1, 2, 5, 10, 30, 100, 1000 to 1e-6
 - chi-squared and F critical values to 1e-5
@@ -193,6 +195,68 @@ not against another implementation of the same algorithms:
 - the incomplete beta and gamma against closed forms
 
 See `tests/test_statistics.py`.
+
+**Against SciPy 1.17**, in a separate environment, so a passing table cannot
+come from the same assumption written twice:
+
+The expected values live in
+[`../tests/test_statistics_against_reference.py`](../tests/test_statistics_against_reference.py)
+as literals. SciPy is **not** a dependency and that module does not import it
+— the values have to outlive the library that produced them. Where a closed
+form or an exact enumeration exists, the expected value is the enumerated
+one, so the test inherits neither SciPy's code nor its conventions.
+
+| What | Worst observed agreement |
+|---|---|
+| `norm_cdf`, `norm_sf` | 1e-12 relative |
+| `norm_ppf` | 1e-8 relative (a far-tail quantile is the least determined quantity here) |
+| `t_cdf`, `t_ppf`, df 1–1000 | 1e-12 / 1e-8 |
+| `chi2_cdf`, `f_cdf`, `betainc`, `gammainc` | 1e-12 |
+| Welch's and Student's t | statistic, p and df to 1e-10 |
+| paired t | statistic and p to 1e-10 |
+| Mann-Whitney, exact branch | **exact** to 1e-12 against all 252 label assignments |
+| Wilcoxon, exact branch | **exact** to 1e-12 against all 2⁸ sign assignments |
+| one-way ANOVA, chi-squared, Brown–Forsythe | 1e-10 |
+| Cohen's d, Hedges' g, Cliff's delta, Vargha–Delaney A | 1e-12 against their closed forms |
+| t intervals at 80/90/95/99% | both endpoints to 1e-10 |
+| Holm, Bonferroni, Sidak, Benjamini–Hochberg | 1e-5, checked against their definitions by hand |
+
+Four apparent disagreements turned out to be correct behaviour, and are
+recorded because they look like bugs:
+
+- **Anderson–Darling.** Fabric reports `A2*`, the Stephens (1986)
+  modification; SciPy reports unmodified `A²`. They differ by
+  `1 + 0.75/n + 2.25/n²` — confirmed numerically rather than trusted:
+  for the test's sample SciPy's raw value is `0.12059711600456957` and
+  Fabric's is `0.1323553348150151`, a ratio of `1.097499`. Comparing the two
+  numbers directly would fail and would say nothing about either.
+- **Mann-Whitney's statistic.** Fabric reports `min(U₁, U₂)`, which is what
+  the exact two-sided tail needs; SciPy reports `U₁`.
+- **Wilcoxon above n = 20** takes the normal approximation, as does SciPy.
+  Both approximate, and in the far tail the approximation is worth an order
+  of magnitude: for the sample in the test, the exact p-value by enumeration
+  is `1.335e-05`, Fabric reports `1.515e-04`, and SciPy reports `1.413e-04`.
+  Fabric's approximation is further from the truth here. What the test pins
+  is that Fabric reports the approximation it says it reports — the error is
+  the method's, not a defect in it — and that the exact value is computed in
+  the same file so the size of the error is visible rather than asserted.
+- **The Wilson interval** is checked against its closed form rather than
+  SciPy, because SciPy has no Wilson: `binom.interval` is exact and behaves
+  very differently at the boundary.
+
+---
+
+## The family size is the declared one
+
+A comparison whose test could not run is still a comparison somebody
+planned. Fabric corrects against the number of hypotheses **declared**, not
+the number that produced a p-value, so a test that fails to run cannot
+shrink the family and inflate the survivors' significance. Only the ranking
+uses the p-values that exist.
+
+This is not a detail. Three declared baselines at p = 0.020 and 0.030, with
+the third untestable, are **two** rejections when the family shrinks to two
+and **zero** when it does not. See `D-001` in [`../decisions.md`](../decisions.md).
 
 ---
 

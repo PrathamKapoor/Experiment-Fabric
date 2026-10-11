@@ -18,7 +18,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        python: ["3.10", "3.11", "3.12", "3.13"]
+        python: ["3.10", "3.11", "3.12", "3.13", "3.14"]
     steps:
       - uses: actions/checkout@v4
 
@@ -132,6 +132,19 @@ jobs:
         run: |
           docker run --rm experiment-fabric:ci fabric --version
           docker run --rm experiment-fabric:ci python scripts/check_no_dependencies.py
+      # The image's default CMD is `fabric --workspace /data serve ...`.
+      # Nothing else in this job would notice if that command line were
+      # malformed, so the health endpoint is checked here: a container that
+      # exits immediately passes everything else in this job.
+      - name: The default command actually serves
+        run: |
+          docker run -d --name fabric-ci experiment-fabric:ci
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8080/health > /dev/null; then break; fi
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:8080/health | tee /dev/stderr | grep -q '"status": "ok"'
+          docker rm -f fabric-ci
       - name: Run an experiment, export a bundle, reproduce it in the container
         run: |
           mkdir -p "$PWD/out"

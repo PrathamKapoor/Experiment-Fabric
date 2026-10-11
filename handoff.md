@@ -396,13 +396,15 @@ serving user.
 ## Appendix: Updates from this session (2026-10-11)
 
 - `D-014`: Added explicit `Host` header validation (`fabric/server/app.py`).
-  Requests with unexpected Host values receive `400` before routing.
-- `D-015`: Expanded `entrypoint_digest` (`fabric/execution/adapters.py`) to
-  include a `tree_digest` of the project root, so imported module changes
-  invalidate the cache.
-- Committed previous uncommitted fixes: process-tree timeout (`D-013`
-  continuation), retry limits (`MAX_RETRIES=3` in spec), and adapter updates.
-- Added regression tests: `tests/test_server.py` (Host refusal and allowed
-  hosts), `tests/test_process_timeout.py` (timeout bounds descendants).
-- Verified full suite passes (`tests/` exit 0) and package builds cleanly.
+- `D-015`: Expanded `entrypoint_digest` to include `tree_digest` of project root.
+- `D-016`: Expanded exclusions (`bundle`, `.egg-info`, `.local`, `.coverage`,
+  `graph.html`, `variant.yaml`, `benchmarks`, etc.) so generated artifacts do
+  not continuously change the algorithm identity and break registry registration.
+- Committed previous uncommitted fixes: process-tree timeout, retry limits,
+  adapter updates, and exclusions.
+- Verified full suite passes (`tests/` exit 0) — 537 passed, 1 skipped (PyYAML
+  parity). End-to-end module passes all 30 scenarios. Process timeout tests
+  pass (10). Server security tests pass (59). Failed-evidence tests pass (15).
+- `fabric` CLI naming collision remains documented as a limitation; the import
+  namespace and console script are preserved for compatibility.
 - `paper/` files remain uncommitted per repository rules.

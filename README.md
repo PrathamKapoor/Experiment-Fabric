@@ -69,6 +69,8 @@ comparison posts. The full survey, with citations and corrections, is in
 | Failure analysis | partial | classified, attributed, tested |
 | Reproduction certificates | no | content-addressed, tamper-evident |
 | Paper generation | limited | Markdown, HTML, LaTeX, JSON from one model |
+| Statistics checked against an independent reference | no | 68 cases vs SciPy and exact enumeration, in the suite |
+| Refuses a conclusion the evidence cannot support | no | an inconclusive result stays inconclusive, and the report says why |
 
 Two corrections worth making explicitly, because an earlier version of
 this table got them wrong:
@@ -84,6 +86,22 @@ this table got them wrong:
 The honest version of the difference: a tracker records **what happened**.
 Fabric records **what would have to be true for the result to mean what
 you say it means**, and then checks as much of it as it can.
+
+Three of the examples below lose. That is the point of shipping them: a
+tool that only ever confirms its user is not being used to check anything,
+and the failure mode of an experiment tool is not a crash, it is a number
+that looked fine.
+
+### A note on the name
+
+The distribution is `experiment-fabric`, which is unclaimed on PyPI. The
+import package and the console script are both `fabric` — and `fabric` is
+also [the standard Python SSH/deployment tool](https://fabfile.org), which
+installs its own `fabric` command. Installing both means one overwrites the
+other on `PATH`, and `import fabric` resolves to whichever comes first on
+`sys.path`. Nothing here can be done about that without renaming, which
+would be a larger change than it looks; it is worth knowing before you
+install it into an environment that already has the other one.
 
 ---
 
@@ -405,11 +423,25 @@ reading what it says.
 ## Design commitments
 
 **No dependencies in the core.** Specifications, execution, statistics,
-provenance and reporting run on the standard library alone — including the
-incomplete beta and gamma functions behind every p-value, and a bundled
-YAML parser. A tool that measures reproducibility should not itself
-perturb the environment it is measuring. PyYAML is used automatically when
-present.
+provenance, reporting and the server run on the standard library alone —
+including the incomplete beta and gamma functions behind every p-value, and
+a bundled YAML parser. A tool that measures reproducibility should not
+itself perturb the environment it is measuring. PyYAML is used
+automatically when present.
+
+**A declared comparison that could not run still counts.** The
+multiple-comparison family is the one you declared, not the subset that
+happened to produce a p-value. Dropping a test because it failed is
+deleting a comparison after seeing the results — and it is
+anti-conservative in exactly the case that matters, turning *not
+significant* into *significant*. See [`docs/statistics.md`](docs/statistics.md).
+
+**The statistics are checked against something else.** 68 cases compare
+every distribution, test, effect size, interval and correction against
+SciPy 1.17.1 and against brute-force enumeration of the exact null
+distributions. SciPy is not a dependency and is not installed by Fabric;
+the reference values are frozen into the suite as literals, so they
+outlive the library that produced them.
 
 **Framework-agnostic.** The core understands experiments, not neural
 networks. Nothing in `fabric/` imports PyTorch, JAX, NumPy or

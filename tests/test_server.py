@@ -620,6 +620,26 @@ def test_reads_are_never_refused(read_only, submitted):
                    headers={"Sec-Fetch-Site": "cross-site"})[0] == 200
 
 
+def test_an_invalid_host_is_refused(read_only):
+    """Arbitrary external Host values do not reach routing."""
+    status, _headers, body = request(
+        f"{read_only.url}/health",
+        headers={"Host": "evil.example", "Sec-Fetch-Site": "same-origin"},
+    )
+    assert status == 400, body
+    assert "unexpected Host" in body.get("error", "")
+
+
+def test_localhost_and_loopback_hosts_are_allowed(read_only):
+    """Legitimate loopback access is preserved."""
+    for host in ("localhost", "127.0.0.1", "localhost:8080", "127.0.0.1:8080"):
+        status, _headers, body = request(
+            f"{read_only.url}/health",
+            headers={"Host": host, "Sec-Fetch-Site": "same-origin"},
+        )
+        assert status == 200, f"host {host!r} was refused: {body}"
+
+
 # --------------------------------------------------------------------------
 # the job store on its own
 # --------------------------------------------------------------------------

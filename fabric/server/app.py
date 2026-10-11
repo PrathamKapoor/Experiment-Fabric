@@ -440,6 +440,11 @@ class _Handler(BaseHTTPRequestHandler):
             self._refuse(refusal)
             return
 
+        host_refusal = self._host_refusal()
+        if host_refusal is not None:
+            self._respond(400, "application/json; charset=utf-8", json.dumps(host_refusal))
+            return
+
         length = int(self.headers.get("Content-Length") or 0)
         if length > MAX_BODY_BYTES:
             self.close_connection = True
@@ -511,6 +516,41 @@ class _Handler(BaseHTTPRequestHandler):
             return _CSRF_REFUSAL
         if not host and parsed.scheme not in ("http", "https"):
             return _CSRF_REFUSAL
+        return None
+
+    def _host_refusal(self) -> dict[str, object] | None:
+        """Reject unexpected Host values before processing requests.
+
+        The server binds to loopback by default; requests carrying an
+        arbitrary external Host value are refused rather than processed.
+        This limits the reach of DNS-rebinding attacks when the server
+        is accessible from a browser.
+        """
+        host_header = (self.headers.get("Host") or "").strip()
+        if not host_header:
+            return {
+                "error": "missing Host header",
+                "status": 400,
+                "remedy": "Send the Host value matching the server you are contacting.",
+            }
+        # Parse out the port so 127.0.0.1:8080 and localhost:8080 are both allowed.
+        try:
+            parsed_host = urllib.parse.urlparse(f"http://{host_header}")
+            hostname = (parsed_host.hostname or "").lower()
+        except ValueError:
+            hostname = host_header.lower()
+        allowed = {"localhost", "127.0.0.1", "[::1]", "::1", "0:0:0:0:0:0:0:1"}
+        # Any loopback IP starting with 127. is acceptable.
+        if hostname.startswith("127."):
+            allowed.add(hostname)
+        if hostname not in allowed:
+            return {
+                "error": f"unexpected Host value: {host_header!r}",
+                "status": 400,
+                "remedy": ("The server is bound to local loopback. Provide a Host "
+                           "matching localhost or 127.0.0.1, or access it through "
+                           "the Fabric interface itself."),
+            }
         return None
 
     def _refuse(self, refusal: dict[str, object]) -> None:

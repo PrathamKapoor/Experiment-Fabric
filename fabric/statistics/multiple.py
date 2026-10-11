@@ -84,16 +84,39 @@ def adjust(pairs: Sequence[tuple[str, float]], *, method: str = "holm",
     ``pairs`` is a sequence of ``(label, p_value)``.  Entries whose
     p-value is not a number (a test that could not run) are carried
     through unrejected so the family size stays honest.
+
+    The family size is the number of hypotheses *declared*, not the number
+    that produced a usable p-value.  A comparison that could not be
+    evaluated is still a comparison somebody planned, and shrinking the
+    family because a test happened to fail is the same manoeuvre as
+    deleting a comparison after seeing the results -- the selection bias
+    these corrections exist to prevent.  It is anti-conservative in
+    exactly the cases that matter: it turns ``not significant`` into
+    ``significant``.
+
+    Only the *ranking* uses the usable p-values, because an untested
+    hypothesis has no p-value to rank.  This matches the treatment in
+    R's ``p.adjust``, which likewise takes the family size from the
+    declared ``n`` and filters only the working vector.
     """
     if method not in METHODS:
         raise ValueError(f"unknown correction {method!r}; expected one of {METHODS}")
     usable = [(label, p) for label, p in pairs if p == p]  # drops NaN
-    m = len(usable)
+    unusable = tuple(Adjusted(label, p, p, False, 0) for label, p in pairs if p != p)
+    family = len(pairs)
     adjusted: dict[str, float] = {}
     rejected: dict[str, bool] = {}
 
-    if m == 0:
-        return Correction(method, alpha, 0, (), "no usable p-values")
+    rationale = _RATIONALE[method]
+    if unusable:
+        rationale += (
+            f" The family is {family} declared hypotheses but only "
+            f"{len(usable)} produced a p-value; the {len(unusable)} that could not be "
+            "tested still count towards multiplicity."
+        )
+
+    if not usable:
+        return Correction(method, alpha, family, unusable, rationale)
 
     ordered = sorted(usable, key=lambda item: item[1])
 
@@ -103,16 +126,16 @@ def adjust(pairs: Sequence[tuple[str, float]], *, method: str = "holm",
             rejected[label] = p < alpha
     elif method == "bonferroni":
         for label, p in ordered:
-            adjusted[label] = min(1.0, p * m)
+            adjusted[label] = min(1.0, p * family)
             rejected[label] = adjusted[label] < alpha
     elif method == "sidak":
         for label, p in ordered:
-            adjusted[label] = 1.0 - (1.0 - p) ** m
+            adjusted[label] = min(1.0, 1.0 - (1.0 - p) ** family)
             rejected[label] = adjusted[label] < alpha
     elif method == "holm":
         running = 0.0
         for i, (label, p) in enumerate(ordered):
-            value = min(1.0, (m - i) * p)
+            value = min(1.0, (family - i) * p)
             running = max(running, value)  # enforce monotonicity
             adjusted[label] = running
             rejected[label] = running < alpha
@@ -125,9 +148,9 @@ def adjust(pairs: Sequence[tuple[str, float]], *, method: str = "holm",
                 stop = True
     else:  # benjamini-hochberg
         running = 1.0
-        for i in range(m - 1, -1, -1):
+        for i in range(len(ordered) - 1, -1, -1):
             label, p = ordered[i]
-            value = min(1.0, p * m / (i + 1))
+            value = min(1.0, p * family / (i + 1))
             running = min(running, value)  # enforce monotonicity
             adjusted[label] = running
             rejected[label] = running < alpha
@@ -136,7 +159,4 @@ def adjust(pairs: Sequence[tuple[str, float]], *, method: str = "holm",
         Adjusted(label, p, adjusted[label], rejected[label], rank + 1)
         for rank, (label, p) in enumerate(ordered)
     )
-    unusable = tuple(
-        Adjusted(label, p, p, False, 0) for label, p in pairs if p != p
-    )
-    return Correction(method, alpha, m, results + unusable, _RATIONALE[method])
+    return Correction(method, alpha, family, results + unusable, rationale)

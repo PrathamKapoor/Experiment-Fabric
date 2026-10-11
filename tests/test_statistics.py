@@ -301,9 +301,69 @@ def test_benjamini_hochberg_is_less_conservative_than_bonferroni():
 
 
 def test_correction_carries_nan_through_without_rejecting():
+    # The comparison that could not be run is reported, never silently dropped,
+    # and it is never rejected -- there is no p-value to reject.
     correction = adjust([("a", 0.01), ("b", float("nan"))], method="holm")
-    assert correction.family_size == 1
     assert correction.by_label("b").rejected is False
+    assert math.isnan(correction.by_label("b").adjusted_p)
+    # It is still carried in the results so the report can name it.
+    assert len(correction.results) == 2
+
+
+def test_the_family_size_is_the_declared_family_not_the_testable_subset():
+    """A hypothesis that could not be tested is still a hypothesis.
+
+    Dropping it from the family size is the same manoeuvre as deleting a
+    comparison after seeing the results, which is exactly what multiple-
+    comparison control exists to prevent.  See decisions.md D-001.
+    """
+    nan = float("nan")
+    pairs = [("naive-bayes", 0.020), ("majority-class", nan), ("untrained", 0.030)]
+
+    holm = adjust(pairs, method="holm")
+    assert holm.family_size == 3
+    # Ranks 1 and 2 of a three-hypothesis family: 3*0.020 and 2*0.030,
+    # both 0.060, so neither clears alpha=0.05.
+    assert holm.by_label("naive-bayes").adjusted_p == pytest.approx(0.060)
+    assert holm.by_label("untrained").adjusted_p == pytest.approx(0.060)
+    assert not holm.by_label("naive-bayes").rejected
+    assert not holm.by_label("untrained").rejected
+
+    bonferroni = adjust(pairs, method="bonferroni")
+    assert bonferroni.family_size == 3
+    assert bonferroni.by_label("naive-bayes").adjusted_p == pytest.approx(0.060)
+    assert bonferroni.by_label("untrained").adjusted_p == pytest.approx(0.090)
+    assert not bonferroni.by_label("naive-bayes").rejected
+
+    sidak = adjust(pairs, method="sidak")
+    assert sidak.family_size == 3
+    assert sidak.by_label("naive-bayes").adjusted_p == pytest.approx(1 - 0.98 ** 3)
+
+    bh = adjust(pairs, method="benjamini-hochberg")
+    assert bh.family_size == 3
+    # BH step-up over three declared hypotheses: rank 2 gives 0.030*3/2 = 0.045
+    # and rank 1 gives 0.020*3/1 = 0.060, so the running minimum is 0.045.
+    assert bh.by_label("naive-bayes").adjusted_p == pytest.approx(0.045)
+    assert bh.by_label("untrained").adjusted_p == pytest.approx(0.045)
+
+
+def test_an_untested_hypothesis_makes_the_correction_more_conservative():
+    """The same p-values must not become *more* significant as the family shrinks."""
+    p_values = [("a", 0.020), ("b", 0.030)]
+    two = adjust(p_values, method="holm")
+    three = adjust(p_values + [("c", float("nan"))], method="holm")
+    assert three.by_label("a").adjusted_p > two.by_label("a").adjusted_p
+    assert three.by_label("b").adjusted_p > two.by_label("b").adjusted_p
+
+
+def test_a_family_of_only_untestable_hypotheses_reports_all_of_them():
+    nan = float("nan")
+    pairs = [("a", nan), ("b", nan)]
+    for method in ("holm", "bonferroni", "sidak", "benjamini-hochberg", "none"):
+        correction = adjust(pairs, method=method)
+        assert correction.family_size == 2, method
+        assert len(correction.results) == 2, method
+        assert not any(r.rejected for r in correction.results), method
 
 
 # --------------------------------------------------------------------------

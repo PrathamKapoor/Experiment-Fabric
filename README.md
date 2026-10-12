@@ -1,4 +1,4 @@
-# Experiment Fabric
+# Experiment-Fabric
 
 **A provenance-first scientific experimentation platform: it turns
 computational experiments into reproducible, statistically auditable,
@@ -20,7 +20,7 @@ fabric export EXP-07fd093d8e --out bundle/         # a portable, verifiable arti
 
 No dependencies. Python 3.10-3.14. `pip install experiment-fabric`.
 
-537 tests. CI runs them on Linux, macOS and Windows across Python 3.10 to
+533 tests. CI runs them on Linux, macOS and Windows across Python 3.10 to
 3.14, with and without PyYAML installed, and adds a bare-install job that
 proves the core still imports with nothing else on the machine. The
 statistics engine is additionally cross-checked against SciPy and against
@@ -511,13 +511,13 @@ examples/        three runnable experiments; one trains with real PyTorch
 docs/            specification, statistics, reproducibility, related work, architecture
 paper/           the pre-registered study, and a pilot that actually ran
 scripts/         dependency guard, smoke test, container check
-tests/           537 tests, including reference-value checks for every distribution
+tests/           533 tests, including reference-value checks for every distribution
 server/          a local HTTP API and browser dashboard (stdlib only)
 .github/         CI: 3 platforms x 5 Python versions, plus container and cross-version reproduction
 ```
 
 ```bash
-python -m pytest              # 537 tests, ~60s
+python -m pytest              # 533 tests, ~95s
 bash scripts/smoke.sh         # every documented command, output asserted
 bash scripts/demo.sh          # the full walkthrough, on a throwaway workspace
 python paper/run_study.py     # the pilot study, regenerated
@@ -536,7 +536,7 @@ checks, reporting, certificates, bundles and reproduction.
 
 | | Evidence |
 |---|---|
-| 537 tests pass | on Python 3.14.7 and 3.11.16 locally; the CI matrix adds Linux, macOS and Python 3.10, 3.12 and 3.13 |
+| 533 tests pass | on Python 3.11.16 locally; the CI matrix adds Linux, macOS and Python 3.10, 3.12, 3.13 and 3.14 |
 | The statistics are independently checked | every distribution, test, effect size, interval and correction cross-checked against SciPy 1.17 — see [`docs/statistics.md`](docs/statistics.md) |
 | The core has no dependencies | `scripts/check_no_dependencies.py`, enforced in CI |
 | Both YAML parsers agree | every shipped specification parsed by each and compared |

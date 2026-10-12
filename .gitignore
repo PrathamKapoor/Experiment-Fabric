@@ -21,3 +21,17 @@ htmlcov/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Local configuration and credentials.
+# Fabric needs no environment variables to run, so an `.env` file here is
+# either a local experiment's own settings or a mistake -- and the mistake
+# is the expensive one, because it is how a token reaches a public remote.
+.env
+.env.*
+!.env.example
+
+# Runtime stores. `.fabric/` covers the default workspace, but
+# FABRIC_WORKSPACE can point anywhere, and a job queue is local state.
+*.sqlite3
+*.sqlite3-shm
+*.sqlite3-wal

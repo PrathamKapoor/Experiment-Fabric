@@ -798,3 +798,42 @@ Identifiers are `D-NNN` and are never reused.
   `tests/test_result_attribution.py`, three of which were confirmed to fail
   before the fix.
 - Files: `fabric/analysis/results.py`, `tests/test_result_attribution.py`.
+
+---
+
+### D-022: Every arm excludes the specification, not only the treatment
+
+- Date / work area / commit: 2026-10-13, `fabric/execution/planner.py`,
+  `tests/test_baseline_fingerprint.py`
+- Context: D-017 excluded the specification from an algorithm's source
+  fingerprint, because it is hashed separately as `spec_digest`. The
+  exclusion was threaded into `plan_experiment` and passed to the
+  *treatment* algorithm only.
+- Verified root cause: found by running the documented fresh-user workflow
+  against a wheel installed into a clean virtualenv, from a workspace outside
+  the source checkout. `plan`, `run`, `analyze`, `report`, `certify`,
+  `export` and `verify` all exited 0; `reproduce` exited 2:
+
+      error b@v1 is already registered as alg-5aa36ae83f40343e, but the
+      incoming algorithm has different contents (alg-9b4ed47eb43cdc29)
+
+  `b` is the **baseline**, sharing the treatment's entrypoint. Both arms hash
+  the same file, so the only thing that could differ is the exclusion list --
+  and `_resolve_algorithm` had three call sites: the treatment passed
+  `spec_paths`, the baseline (line 454) and the implementation-perturbation
+  arm (line 625) did not. By the time `reproduce` ran, the bundle's copy of
+  the specification sat inside the snapshot root and changed the baseline's
+  fingerprint, while the treatment's stayed put.
+- Decision: `plan_experiment` passes the exclusion list to all three call
+  sites. `_build_perturbations` gained an `exclude_from_digest` parameter to
+  carry it across the function boundary, because the perturbation arm is
+  resolved inside a helper rather than in `plan_experiment`.
+- Why this escaped the existing suite: every test that exercised baselines
+  re-planned a specification with an unchanged file. The bug needs the spec
+  to be *re-serialised* between planning and re-planning, which is what
+  `export` does and what an in-memory test does not.
+- Consequences: the full fresh-user workflow is green end to end (24/24
+  checks, including `reproduce` and tampering detection). Two regression
+  tests; the first was confirmed to fail against the previous planner.
+- Files: `fabric/execution/planner.py`,
+  `tests/test_baseline_fingerprint.py`.

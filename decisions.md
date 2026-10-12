@@ -749,3 +749,52 @@ Identifiers are `D-NNN` and are never reused.
   browser and CI has none; it still fails when any of the three rules is
   removed, which was confirmed by reverting the stylesheet.
 - Files: `fabric/server/ui/app.css`, `tests/test_server.py`.
+
+---
+
+### D-021: A run attaches to its condition by name, with its id as corroboration
+
+- Date / work area / commit: 2026-10-13, `fabric/analysis/results.py`,
+  `tests/test_result_attribution.py`
+- Context: found while re-running the shipped demonstration against the
+  current code, after D-017 had changed how a condition's content-addressed
+  id is computed. `fabric reproduce demo-bundle` re-executed all 93 runs
+  successfully and then reported:
+
+      reproducibility   INCONCLUSIVE
+      note: The original experiment has no condition to reproduce.
+
+  Two statements, one screen apart, and the second one was false.
+- Verified root cause: `ResultSet.build()` keyed runs by `condition_id`
+  only. A condition id is content-addressed, so *any* change to how a
+  condition is identified mints a new id for the same logical arm. Measured
+  on the bundle: 93 runs across 9 conditions, and **not one** id matched the
+  replanned condition — every condition received zero runs. Downstream, that
+  read as "no data" rather than as an error, so
+  `primary_treatment()` returned `None` and the reproduction had nothing to
+  compare, while `fabric reproduce` still reported the runs as completed.
+- Decision: two passes.
+  1. Every condition first takes the runs whose `condition_id` matches it
+     exactly. This is the normal path and the only one where the id is
+     authoritative.
+  2. Whatever is left attaches **by name** to the condition that declares
+     that name, and a run already claimed under its id is never re-claimed.
+
+  The name is used because it is what the author wrote and what every report
+  shows; the id is used first because it is stricter where it holds.
+- Why not name-only: two arms can be declared with the same name in one plan
+  (different configurations, for instance), and a name alone cannot tell a
+  re-identification from a different arm. The two-pass order resolves that —
+  `test_two_conditions_with_different_names_keep_their_own_runs` pins it.
+- Consequences: the shipped bundle now reproduces honestly —
+  `PASS WITH DEVIATION`, `accuracy` and `robustness` exact to 1e-4, with the
+  real differences listed (`git_commit`, driver, lockfiles, platform, package
+  version) and explicitly labelled as hypotheses to test rather than
+  findings. Before this, the same bundle reported `INCONCLUSIVE` for having
+  nothing to compare.
+- Remaining limitation: a bundle recorded by a version that wrote neither a
+  usable name nor a matching id cannot be attributed; it reports empty, which
+  is the honest answer but is still an empty result. Five tests in
+  `tests/test_result_attribution.py`, three of which were confirmed to fail
+  before the fix.
+- Files: `fabric/analysis/results.py`, `tests/test_result_attribution.py`.

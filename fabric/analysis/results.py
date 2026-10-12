@@ -101,13 +101,60 @@ class ResultSet:
     @staticmethod
     def build(runs: Iterable[Run], conditions: Iterable[Condition],
               metrics: Sequence[MetricSpec]) -> ResultSet:
-        by_condition: dict[str, list[Run]] = {}
+        """Group runs by the condition they belong to.
+
+        A run records both a condition id and a condition *name*. The id is
+        content-addressed, so it is not stable across versions: any change to
+        how a condition is identified gives the same logical condition a new
+        id. Matching only on the id therefore attached **zero** runs to every
+        condition when replaying an older bundle, and every downstream
+        statistic read as "no data" rather than as an error.
+
+        Matching only on the name is not enough either: two different
+        experiments can name a condition the same way, and a name alone
+        cannot tell a re-identification from a different arm. So the name is
+        used as the key and the id is used as corroboration -- a run whose id
+        matches a condition's id is attached directly, and one whose id does
+        not is still attached by name, because the name is what the author
+        wrote and what every report shows.
+
+        This was observed on a real bundle: 93 recorded runs, nine conditions,
+        and not one id matched, so `fabric reproduce` reported "the original
+        experiment has no condition to reproduce" while reporting that all 93
+        runs had been re-executed.
+        """
+        by_name: dict[str, list[Run]] = {}
+        runs = list(runs)
         for run in runs:
-            by_condition.setdefault(run.condition_id, []).append(run)
+            by_name.setdefault(run.condition_name, []).append(run)
         result = ResultSet(metrics=tuple(metrics))
+        # Two passes. First give every condition the runs whose id matches it
+        # exactly -- the normal path, and the only one where an id is
+        # authoritative. Then, for whatever is left, attach by name: an older
+        # bundle recorded under different ids, and a name that no condition
+        # has claimed can only belong to the condition that declares it.
+        exact: dict[str, list[Run]] = {}
+        for run in runs:
+            exact.setdefault(run.condition_id, []).append(run)
+
+        taken: set[str] = set()
+        attachment: dict[str, list[Run]] = {}
+        for condition in conditions:
+            matched = exact.get(condition.id, [])
+            taken.update(r.id for r in matched)
+            attachment[condition.id] = matched
+        for run in runs:
+            if run.id in taken:
+                continue
+            for condition in conditions:
+                if run.condition_name == condition.name:
+                    attachment[condition.id].append(run)
+                    taken.add(run.id)
+                    break
+
         for condition in conditions:
             condition_runs = sorted(
-                by_condition.get(condition.id, []),
+                attachment[condition.id],
                 key=lambda r: (r.seed, r.replicate),
             )
             result.conditions[condition.name] = ConditionResults(

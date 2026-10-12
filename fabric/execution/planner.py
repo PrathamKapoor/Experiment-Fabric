@@ -451,7 +451,8 @@ def plan_experiment(
             if b_model:
                 extra_models[b_model.id] = b_model
         if baseline.algorithm:
-            b_algorithm = _resolve_algorithm(baseline.algorithm, registry, root=root, strict=strict)
+            b_algorithm = _resolve_algorithm(baseline.algorithm, registry, root=root,
+                                             strict=strict, spec_paths=excluded)
             if b_algorithm:
                 extra_algorithms[b_algorithm.id] = b_algorithm
 
@@ -491,6 +492,7 @@ def plan_experiment(
             spec, reference, registry, root=root, strict=strict,
             extra_datasets=extra_datasets, extra_models=extra_models,
             extra_algorithms=extra_algorithms,
+            exclude_from_digest=excluded,
         )
         conditions.extend(new_conditions)
         perturbation_seeds = seeds_added
@@ -546,6 +548,7 @@ def _build_perturbations(
     extra_datasets: dict[str, Dataset],
     extra_models: dict[str, Model],
     extra_algorithms: dict[str, Algorithm],
+    exclude_from_digest: Sequence[str] = (),
 ) -> tuple[list[Condition], list[int]]:
     """Build one counterfactual condition per perturbation value.
 
@@ -624,7 +627,7 @@ def _build_perturbations(
             elif axis == "implementation":
                 other_algorithm = _resolve_algorithm(
                     EntityRef.parse(value, "reproducibility.implementation"),
-                    registry, root=root, strict=strict,
+                    registry, root=root, strict=strict, spec_paths=exclude_from_digest,
                 )
                 if other_algorithm is None:
                     continue

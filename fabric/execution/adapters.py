@@ -320,7 +320,9 @@ def entrypoint_digest(entrypoint: str, *, root: str = "",
             spec_identities.add(identity)
 
     def is_excluded(path: str) -> bool:
-        return _spec_identity(path) in spec_identities if spec_identities else False
+        if spec_identities and _spec_identity(path) in spec_identities:
+            return True
+        return _is_generated_output(path)
     scheme, target = parse_entrypoint(entrypoint)
     file_digest_value = ""
     try:
@@ -353,7 +355,10 @@ def entrypoint_digest(entrypoint: str, *, root: str = "",
                 exclude=_SNAPSHOT_EXCLUDES,
                 suffixes=_SNAPSHOT_SUFFIXES,
                 exclude_paths=extra_excludes,
-                exclude_predicate=is_excluded if spec_identities else None,
+                # Always passed: the predicate recognises Fabric's own
+                # generated scripts whether or not a specification is being
+                # excluded, and gating it on that would let them back in.
+                exclude_predicate=is_excluded,
             )
         except (OSError, ValueError):
             pass
@@ -392,6 +397,32 @@ _SNAPSHOT_SUFFIXES = frozenset({
     ".c", ".h", ".cpp", ".hpp", ".cc", ".rs", ".go", ".java", ".rb", ".pl",
     ".R", ".r", ".jl", ".m", ".lua", ".sql",
 })
+
+
+#: Text that marks a script as Fabric's own output rather than the user's.
+#:
+#: ``fabric export`` emits ``reproduce.sh`` so a bundle can be re-run without
+#: Fabric installed. Its *extension* says nothing about authorship -- a user
+#: may equally have a hand-written ``run.sh`` beside their entrypoint, and
+#: that one must count as source -- but its banner is written by
+#: :data:`fabric.bundle.REPRODUCE_SH` and is distinctive. Matching on content
+#: rather than on name keeps hand-written scripts in the fingerprint and keeps
+#: Fabric's output out of it.
+_GENERATED_MARKERS = (
+    "Regenerate this experiment from its specification.",
+)
+
+
+def _is_generated_output(path: str) -> bool:
+    """Whether ``path`` is a script Fabric wrote, rather than one the user wrote."""
+    if not path.lower().endswith((".sh", ".ps1", ".bat", ".cmd")):
+        return False
+    try:
+        with open(path, encoding="utf-8", errors="replace") as handle:
+            head = handle.read(2048)
+    except OSError:
+        return False
+    return any(marker in head for marker in _GENERATED_MARKERS)
 
 
 def _spec_identity(path: str) -> str:

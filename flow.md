@@ -163,7 +163,10 @@ Two halves:
   `exclude_predicate` compares `ExperimentSpec.digest` — so the user's YAML,
   the workspace copy and the copy inside an exported bundle are all removed
   whichever path they are read from, even though re-serialisation makes them
-  byte-different.
+  byte-different. The same predicate drops Fabric's own `reproduce.sh` by its
+  banner (`_is_generated_output`, `D-019`): an extension cannot tell
+  authorship — a user's `run.sh` is equally a `.sh` file and equally changes
+  the result — so the banner is what distinguishes them.
 
 Scope is the package, **not** the workspace and not a project root found by
 climbing. `sys.path` decides whether a module resolves to a workspace copy

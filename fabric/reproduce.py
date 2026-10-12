@@ -465,7 +465,20 @@ def reproduce(
         raise ReproductionError(f"{label} has no recorded runs to reproduce")
 
     spec = ExperimentSpec.from_file(spec_path)
-    plan = plan_experiment(spec, workspace, root=root or workspace.root)
+    # Exclude the specification explicitly. `plan_experiment` excludes
+    # `spec.source_path`, which is this bundle copy; the user's original YAML
+    # is still inside the workspace and would re-enter the fingerprint, so
+    # planning a reproduction would disagree with the plan that produced the
+    # bundle. Both are recognised by identity (D-017), so passing either is
+    # enough; the original is passed when the record knows it.
+    excluded = [spec_path]
+    for record in workspace.list_experiments():
+        source = str(record.get("source") or "")
+        if source and os.path.isfile(source):
+            excluded.append(source)
+            break
+    plan = plan_experiment(spec, workspace, root=root or workspace.root,
+                           exclude_from_digest=excluded)
 
     options = ExecutionOptions(
         max_workers=max_workers or spec.execution.max_workers,

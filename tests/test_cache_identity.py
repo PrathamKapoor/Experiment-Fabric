@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import os
 
+from fabric.bundle import REPRODUCE_SH
 from fabric.execution.adapters import entrypoint_digest
 
 ENTRY = "def main(ctx):\n    ctx.record('accuracy', 0.5)\n"
@@ -76,6 +77,40 @@ def test_generated_output_does_not_invalidate(tmp_path):
     _write(tmp_path / "bundle" / "manifest.json", "{}")
 
     assert _digest(str(tmp_path)) == baseline
+
+
+def test_a_generated_reproduction_script_does_not_invalidate(tmp_path):
+    """`fabric export` writes reproduce.sh; exporting must not re-identify the code.
+
+    Reproduced: after `fabric export`, `fabric reproduce` died with
+
+        m@v1 is already registered as alg-d6aa955189573acb, but the incoming
+        algorithm has different contents
+
+    because the bundle's `reproduce.sh` sat inside the snapshot. Its extension
+    makes it look like source; only its contents identify it as Fabric's.
+    """
+    _write(tmp_path / "entry.py", ENTRY)
+    baseline = _digest(str(tmp_path))
+
+    _write(tmp_path / "bundle" / "reproduce.sh",
+           REPRODUCE_SH.replace("{name}", "x").replace("{experiment_id}", "EXP-1"))
+    _write(tmp_path / "bundle" / "README.md", "# bundle\n")
+    _write(tmp_path / "bundle" / "results.json", '{"runs": []}')
+    assert _digest(str(tmp_path)) == baseline
+
+
+def test_a_hand_written_script_does_invalidate(tmp_path):
+    """The counterpart: the user's own shell script is source and must count."""
+    _write(tmp_path / "entry.py", ENTRY)
+    baseline = _digest(str(tmp_path))
+
+    _write(tmp_path / "run.sh", "#!/usr/bin/env bash\npython entry.py\n")
+    after_first = _digest(str(tmp_path))
+    assert after_first != baseline, "a hand-written script is source"
+
+    _write(tmp_path / "run.sh", "#!/usr/bin/env bash\npython entry.py --fast\n")
+    assert _digest(str(tmp_path)) != after_first
 
 
 def test_editing_the_specification_does_not_reidentify_the_algorithm(tmp_path):

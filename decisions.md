@@ -669,3 +669,43 @@ Identifiers are `D-NNN` and are never reused.
   `rmtree` the old code failed. Confirmed to fail before the fix.
 - Files: `fabric/server/jobs.py`, `fabric/server/worker.py`,
   `fabric/server/app.py`, `tests/test_server_shutdown.py`.
+
+---
+
+### D-019: Fabric's own reproduction script is excluded by its banner, not its name
+
+- Date / work area / commit: 2026-10-13, `fabric/execution/adapters.py`,
+  `fabric/reproduce.py`, `tests/test_cache_identity.py`
+- Context: D-017 excluded the specification by identity, which fixed the
+  registry conflicts for `run`, `export` and `reproduce`. The clean-install
+  check still failed at the last step, and it failed for a reason D-017's
+  allowlist could not address.
+- Verified root cause: `fabric export` writes `reproduce.sh` into the bundle.
+  When the entrypoint lives beside the workspace, the bundle directory is
+  inside the snapshot scope, and `reproduce.sh` has a source extension
+  (`.sh`), so it was hashed as though the user had written it. Planning a
+  reproduction therefore produced a different algorithm identity from the plan
+  that produced the bundle:
+
+      m@v1 is already registered as alg-d6aa955189573acb, but the incoming
+      algorithm has different contents (alg-d112f42fd1e9e653)
+
+  An extension cannot distinguish authorship: a user's own `run.sh` beside
+  their entrypoint is equally a `.sh` file and equally changes the result.
+- Decision: `_is_generated_output()` matches the banner
+  `REPRODUCE_SH` writes ("Regenerate this experiment from its
+  specification."). A user's script is excluded from nothing; Fabric's is
+  excluded from the fingerprint. The predicate is passed unconditionally —
+  gating it on "was a specification also excluded" let the script back in for
+  exactly the runs that needed it, which was my own first attempt and was
+  caught by the regression test.
+- Also in this change: `fabric/reproduce.py` now passes the original
+  specification path to `plan_experiment`, so a reproduction excludes the
+  user's YAML and not only the bundle's copy of it.
+- Consequences: `plan → run → analyze → report → certify → export → verify →
+  reproduce` all exit 0 from a clean wheel installation in a fresh virtualenv
+  outside the source checkout. Eight tests in `tests/test_cache_identity.py`,
+  including a counterpart test asserting that a *hand-written* shell script
+  still invalidates, so the fix cannot be trivially over-applied.
+- Files: `fabric/execution/adapters.py`, `fabric/reproduce.py`,
+  `tests/test_cache_identity.py`.

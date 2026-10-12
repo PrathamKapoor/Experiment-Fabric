@@ -556,5 +556,116 @@ Identifiers are `D-NNN` and are never reused.
 - Decision: Expanded exclusions to `bundle`, `.egg-info`, `.local`, `.coverage`, `graph.html`, `variant.yaml`, `benchmarks/`, `demo-bundle`, and `paper`. This keeps the fingerprint focused on source and specification files rather than generated outputs.
 - Why exclusions rather than a different root: Changing `source_root` to the repository root (rather than the workspace root) would break temporary workspace setups and would miss specification-level files like `experiment.yaml`. Comprehensive exclusions preserve the design intent of `D-015`.
 - Consequences: All 15 `test_failed_evidence.py` tests pass. The full `test_end_to_end.py` module passes (30 tests). The `test_diff.py` benchmark-change test passes. Registry conflicts no longer occur when running the complete experiment lifecycle multiple times in the same workspace.
-- Remaining limitation: A workspace that contains non-standard user files (e.g., custom helper directories not under `.fabric`) will still include them in the snapshot. This is by design: any file that could contain source changes should affect identity. If false misses become excessive, exclusions can be expanded further.
+- Remaining limitation: superseded by D-017. The blocklist could not keep up: `scripts/smoke.sh`, the CI job that runs every command the README claims, failed on an artifact nobody had thought of (`examples/*/data/`), because a deny-list cannot enumerate what a future version will write.
 - Files: `fabric/execution/adapters.py`.
+
+---
+
+### D-017: Fingerprint source by what it is, anchored to the entrypoint's package
+
+- Date / work area / commit: 2026-10-12, `fabric/execution/adapters.py`,
+  `fabric/execution/planner.py`, `fabric/cli/main.py`, `fabric/util/hashing.py`
+- Context: D-015 widened the cache fingerprint from the entrypoint file to a
+  whole tree; D-016 tried to repair it by listing what to exclude. Both took
+  the **workspace** as the snapshot root. The workspace is where experiments
+  *write*, so the fingerprint changed every time Fabric or the user's own
+  scripts produced output, re-identifying the algorithm mid-experiment.
+- Verified root cause, in three stages, each found by running rather than by
+  reading:
+  1. `test_end_to_end.py` failed 5 tests: after `fabric export`, the
+     workspace root contained `bundle/` and `graph.html`.
+  2. Adding those names to the blocklist fixed the suite and **broke
+     `scripts/smoke.sh`**, the CI job whose purpose is to run every command
+     the README claims. Editing a seed list in a live workspace then failed
+     with `method@v1 is already registered as alg-f463afd391f24ba4`.
+     The seed list lives in `experiment.yaml` — a file inside the snapshot —
+     and the specification is already hashed as `spec_digest`.
+  3. Excluding the specification by path did not survive
+     `fabric reproduce bundle`, because export writes a **re-serialised
+     copy**: the two files have the same `ExperimentSpec.digest` and
+     different bytes, so a byte comparison stops excluding it the moment it
+     is read from the second path. The fingerprint then disagreed with
+     itself between planning and reproducing, and the registry refused to
+     re-run an experiment it had just produced.
+- Decision, three parts:
+  1. **Scope is the entrypoint's own top-level package**, found through
+     `importlib.util.find_spec`. Not the workspace, and not a project root
+     found by climbing: `sys.path` decides whether
+     `examples.agent_pipeline` resolves to a workspace copy or to the source
+     checkout, so any enclosing directory makes the fingerprint depend on
+     which copy won.
+  2. **Files are selected by extension** (`_SNAPSHOT_SUFFIXES`) rather than
+     excluded by name. Reports, run records, datasets, coverage data and
+     SQLite files are then excluded by construction, and the next artifact
+     a future version writes needs no entry anywhere.
+  3. **The specification is excluded by identity, not by path or bytes.**
+     `tree_digest` takes an `exclude_predicate`; Fabric passes one that
+     compares `ExperimentSpec.digest`. Every copy of the specification --
+     the user's YAML, the workspace's, the bundle's -- is recognised and
+     removed, wherever it is and however it was re-serialised.
+- Why not simply drop `.yaml` from the fingerprint: a user may keep the
+  entrypoint's own configuration in a YAML file beside it, and a change
+  there legitimately changes the result. Selecting *source* and excluding
+  *the specification specifically* keeps that case working.
+- Alternatives considered: (a) keep growing the blocklist — rejected, D-016
+  is what that looked like and it failed the moment an unlisted artifact
+  appeared; (b) digest only the entrypoint file — rejected, that is the
+  D-015 bug this whole line of work exists to fix, since editing an imported
+  helper must invalidate; (c) exclude by file bytes — tried, and it is the
+  trap above.
+- Consequences, measured: the full suite passes (523 passed, 1 skipped);
+  `scripts/smoke.sh` passes all 35 checks; `fabric reproduce` on a bundle
+  exits 0 where it previously died with a registry conflict. Six regression
+  tests in `tests/test_cache_identity.py`; the two that pin the defect were
+  confirmed to fail against the previous implementation.
+- Remaining limitation: a module that imports code from *outside* its own
+  top-level package (a sibling directory reached by `sys.path`) will not see
+  those files in the snapshot. Fabric's own runtime is unaffected — Fabric is
+  the caller, not the callee — and the cache still invalidates on the
+  entrypoint file and its own package. This is a deliberate narrowing: the
+  alternative was a fingerprint that is not stable across two commands over
+  the same code, which is worse than a documented gap.
+- Files: `fabric/execution/adapters.py`, `fabric/execution/planner.py`,
+  `fabric/cli/main.py`, `fabric/util/hashing.py`,
+  `tests/test_cache_identity.py`.
+
+---
+
+### D-018: A thread closes the SQLite connection it opened
+
+- Date / work area / commit: 2026-10-12, `fabric/server/jobs.py`,
+  `fabric/server/worker.py`, `fabric/server/app.py`
+- Context: `JobStore` caches one `sqlite3.Connection` per thread in a
+  `threading.local`. Nothing released them. SQLite holds the file open for
+  the lifetime of every connection, so the queue file stayed locked after
+  the server stopped.
+- Verified root cause: with a real server on a real socket, `shutil.rmtree`
+  of the workspace raised
+  `PermissionError: [WinError 32] The process cannot access the file because
+  it is being used by another process: '.fabric\jobs.sqlite3'`. Enumerating
+  live connections afterwards found one created in a worker thread, still
+  open, reachable only through the exited Thread object's thread-local
+  storage. Calling `gc.collect()` released the file, which is the signature
+  of a handle whose lifetime nobody arranged.
+- Decision: two changes, because either alone is insufficient.
+  1. `JobStore.release_thread()` closes and forgets the *calling* thread's
+     connection; `Worker.run()` calls it in a `finally`. A thread closes what
+     it opened — closing another thread's connection is refused by sqlite3
+     by design ("SQLite objects created in a thread can only be used in that
+     same thread"), so no amount of central bookkeeping can replace this.
+  2. `JobStore.close()` now closes *every* connection the store opened,
+     tracked in a list under a lock, instead of only the caller's;
+     `FabricServer.stop_workers()` calls it. Order matters: workers are
+     stopped first, then the store closes.
+- Alternatives considered: (a) leave it to the garbage collector — rejected,
+  it is not a shutdown guarantee and it is unbounded; (b) open one shared
+  connection with `check_same_thread=False` — rejected as a larger change to
+  the store's concurrency model, taken on for a bug that does not need it.
+- Consequences: a workspace can be archived, moved or deleted after its
+  server stops. This is the normal end of a `docker compose down` or a
+  `Ctrl-C` during a demo, so the defect sat on a common path.
+- Regression test: `tests/test_server_shutdown.py`,
+  `test_a_stopped_server_releases_its_queue_file`, which performs the
+  `rmtree` the old code failed. Confirmed to fail before the fix.
+- Files: `fabric/server/jobs.py`, `fabric/server/worker.py`,
+  `fabric/server/app.py`, `tests/test_server_shutdown.py`.

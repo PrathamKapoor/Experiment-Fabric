@@ -148,12 +148,30 @@ ablated components, and an environment key (python version, git commit, git
 dirty flag, numerically-relevant package versions, accelerator runtime, env
 vars). Hardware is included only when `policy.include_hardware`. A
 determinism replicate is never cacheable, because its whole purpose is to
-execute again (`cache.py:102`). The `source_digest` now combines the
-entrypoint file digest with a project-root snapshot (`D-015`), so editing
-any imported module invalidates cached results. The exclusions (`D-016`) cover
-`bundle/`, `.egg-info`, `.local`, `.coverage`, `graph.html`, `variant.yaml`,
-`benchmarks/`, `demo-bundle/`, and `paper/` to prevent generated artifacts
-from continuously changing the fingerprint.
+execute again (`cache.py:102`).
+
+`source_digest` — `entrypoint_digest()` (`fabric/execution/adapters.py:281`).
+Two halves:
+
+* **The entrypoint's own file digest.** Always present for a `python:`,
+  `script:` or `command:` entrypoint whose target resolves.
+* **A snapshot of the entrypoint's top-level package**, obtained from
+  `importlib.util.find_spec` (`_source_root_for`). Files are selected by
+  extension (`_SNAPSHOT_SUFFIXES`), so reports, run records, datasets,
+  coverage data and SQLite files are excluded by construction rather than by
+  name (`D-017`). The specification is excluded by *identity* —
+  `exclude_predicate` compares `ExperimentSpec.digest` — so the user's YAML,
+  the workspace copy and the copy inside an exported bundle are all removed
+  whichever path they are read from, even though re-serialisation makes them
+  byte-different.
+
+Scope is the package, **not** the workspace and not a project root found by
+climbing. `sys.path` decides whether a module resolves to a workspace copy
+or to the source checkout, so an enclosing directory would make the
+fingerprint depend on which copy won — one command over the same code would
+disagree with the next, and the registry would reject its own experiment.
+Earlier attempts and their measured failures are recorded in D-015, D-016
+and D-017.
 
 **FAILURE CLASSIFICATION** — `fabric/execution/failures.py`. `classify()`
 orders its patterns so the first match wins: OOM, TIMEOUT, NAN, DIVERGENCE,

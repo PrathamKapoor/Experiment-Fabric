@@ -13,7 +13,7 @@ import hashlib
 import json
 import math
 import os
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from typing import Any
 
 _FLOAT_PRECISION = 12
@@ -90,14 +90,34 @@ def tree_digest(
     root: str | os.PathLike[str],
     *,
     exclude: Iterable[str] = (),
+    suffixes: Iterable[str] | None = None,
+    exclude_paths: Iterable[str | os.PathLike[str]] = (),
+    exclude_predicate: Callable[[str], bool] | None = None,
 ) -> str:
     """Return a digest over a directory tree.
 
     The digest covers relative paths *and* content, so a renamed file
     changes the fingerprint.  Paths are normalised to forward slashes so a
     dataset registered on Windows matches the same dataset on Linux.
+
+    ``suffixes`` restricts the digest to files ending in one of those
+    extensions (case-insensitive), which is how a caller asks for *source*
+    rather than "everything present".  Restricting by what a file is beats
+    listing what it is not: a caller cannot enumerate the artifacts a future
+    version might write, so a deny-list needs a new entry for each one.
+    Extensionless files are skipped when ``suffixes`` is given; a file with
+    no extension cannot be matched against a suffix set.
+
+    ``exclude_paths`` removes specific absolute paths.  ``exclude_predicate``
+    additionally removes any file for which it returns True, which is for
+    files known by *what they mean* rather than where they are: the same
+    specification is read from the user's YAML, from the workspace copy and
+    from an exported bundle, and a path rule silently stops excluding it
+    when the caller uses the other one.
     """
     excluded = tuple(exclude)
+    unwanted = {os.path.abspath(os.fspath(p)) for p in exclude_paths}
+    wanted = tuple(s.lower() for s in suffixes) if suffixes is not None else None
     entries: list[tuple[str, str]] = []
     root = os.fspath(root)
     if os.path.isfile(root):
@@ -108,6 +128,12 @@ def tree_digest(
             if name in excluded:
                 continue
             abs_path = os.path.join(dirpath, name)
+            if os.path.abspath(abs_path) in unwanted:
+                continue
+            if wanted is not None and not name.lower().endswith(wanted):
+                continue
+            if exclude_predicate is not None and exclude_predicate(abs_path):
+                continue
             rel = os.path.relpath(abs_path, root).replace(os.sep, "/")
             entries.append((rel, file_digest(abs_path)))
     return full_digest(entries)

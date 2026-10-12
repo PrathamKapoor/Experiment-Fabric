@@ -278,16 +278,49 @@ def resolve(entrypoint: str, *, root: str = "") -> Callable[[RunContext], Any] |
     return target
 
 
-def entrypoint_digest(entrypoint: str, *, root: str = "") -> str:
+def entrypoint_digest(entrypoint: str, *, root: str = "",
+                      exclude: Iterable[str] = ()) -> str:
     """Digest of the source file behind an entrypoint, when reachable.
 
     Included in the cache key so that editing the method invalidates
     cached results instead of silently reusing them -- the failure mode
     that makes experiment caches untrustworthy.
 
-    The fingerprint also covers the project source tree so that a change
-    to any imported module or dependency is visible to the cache.
+    The fingerprint also covers the package's source so that a change to
+    any imported module or dependency is visible to the cache.
+
+    ``exclude`` names files that live inside the snapshot but are not
+    source. The specification belongs there: it is hashed independently as
+    ``spec_digest``, and counting it again re-identifies the algorithm every
+    time an experiment is re-tuned, which made the registry refuse to re-plan
+    a specification the user had merely amended. Duplicate coverage must not
+    become contradictory coverage.
+
+    Exclusions match on **content as well as path**, because the same
+    specification exists at more than one path. ``fabric run`` reads the
+    user's ``experiment.yaml``; ``fabric export`` writes a copy into the
+    bundle; ``fabric reproduce`` then reads *that copy*. Excluding by path
+    alone let the original back into the snapshot during reproduction, so
+    the fingerprint changed between planning an experiment and re-running it
+    -- and the registry rejected its own result.
     """
+    extra_excludes = {os.path.abspath(p) for p in exclude if p}
+    # Exclude by *semantic* identity, not by file bytes. The same
+    # specification is written out more than once -- the user's YAML, the
+    # copy stored in the workspace, the copy inside an exported bundle -- and
+    # those copies are not byte-identical (re-serialisation reorders keys and
+    # normalises quoting) while meaning exactly the same thing. A byte
+    # comparison therefore stops excluding the specification the moment it is
+    # read from a second path, which is precisely when the fingerprint starts
+    # disagreeing with itself.
+    spec_identities = set()
+    for path in extra_excludes:
+        identity = _spec_identity(path)
+        if identity:
+            spec_identities.add(identity)
+
+    def is_excluded(path: str) -> bool:
+        return _spec_identity(path) in spec_identities if spec_identities else False
     scheme, target = parse_entrypoint(entrypoint)
     file_digest_value = ""
     try:
@@ -311,19 +344,16 @@ def entrypoint_digest(entrypoint: str, *, root: str = "") -> str:
     except (OSError, ValueError, ImportError):
         pass
 
-    # A broader source snapshot captures changes to imported modules that
-    # the entrypoint file digest alone misses. The exclusions keep the
-    # fingerprint focused on source rather than artifacts.
     snapshot = ""
-    source_root = root or os.getcwd()
+    source_root = _source_root_for(entrypoint, root)
     if source_root and os.path.isdir(source_root):
         try:
             snapshot = tree_digest(
                 source_root,
-                exclude={".fabric", ".git", "__pycache__", ".pytest_cache",
-                         ".ruff_cache", ".venv", ".tox", "build", "dist",
-                         ".eggs", ".egg-info", "bundle", ".coverage",
-                         ".local", "graph.html", "variant.yaml", "benchmarks", "demo-bundle", "paper"},
+                exclude=_SNAPSHOT_EXCLUDES,
+                suffixes=_SNAPSHOT_SUFFIXES,
+                exclude_paths=extra_excludes,
+                exclude_predicate=is_excluded if spec_identities else None,
             )
         except (OSError, ValueError):
             pass
@@ -332,6 +362,102 @@ def entrypoint_digest(entrypoint: str, *, root: str = "") -> str:
     if file_digest_value:
         return file_digest_value
     return snapshot or ""
+
+
+#: Directories that never hold the user's source. ``.fabric`` is Fabric's own
+#: output; the rest are caches, build products and virtual environments.
+_SNAPSHOT_EXCLUDES = frozenset({
+    ".fabric", ".git", "__pycache__", ".pytest_cache", ".ruff_cache",
+    ".mypy_cache", ".venv", "venv", ".tox", ".nox", "build", "dist",
+    ".eggs", "node_modules", ".idea", ".vscode", ".DS_Store",
+})
+
+#: Files that can change what an experiment computes.
+#:
+#: This allowlist is the mechanism that keeps generated output out of the
+#: fingerprint, and it is the reason the previous blocklist approach had to
+#: grow an entry for every new kind of artifact: ``bundle/``,
+#: ``variant.yaml``, ``graph.html`` and finally the data files
+#: ``scripts/smoke.sh`` generates were all unknown-in-advance names that a
+#: deny-list cannot anticipate. Selecting source by what it *is* means the
+#: next artifact is excluded without anyone remembering it.
+#:
+#: Reports (``.html``/``.md``/``.tex``), run records, datasets, SQLite files
+#: and coverage data are excluded by construction, because none of them can
+#: change what the code does when re-executed.
+_SNAPSHOT_SUFFIXES = frozenset({
+    ".py", ".pyi", ".pyx",
+    ".yaml", ".yml", ".toml", ".cfg", ".ini",
+    ".sh", ".bash", ".zsh", ".ps1", ".bat", ".cmd",
+    ".c", ".h", ".cpp", ".hpp", ".cc", ".rs", ".go", ".java", ".rb", ".pl",
+    ".R", ".r", ".jl", ".m", ".lua", ".sql",
+})
+
+
+def _spec_identity(path: str) -> str:
+    """The canonical digest of a specification file, or ``""``.
+
+    Used to recognise the same specification at a different path. Parsing is
+    best-effort: a file that is not a specification is simply not a
+    specification, and returns nothing to exclude.
+    """
+    try:
+        from fabric.core.spec import ExperimentSpec
+
+        return ExperimentSpec.from_file(path).digest
+    except Exception:  # noqa: BLE001 - any parse problem means "not this spec"
+        return ""
+
+
+def _source_root_for(entrypoint: str, root: str) -> str:
+    """The directory whose source changes should invalidate the cache.
+
+    Derived from the entrypoint's own location rather than from the
+    workspace. The workspace is where experiments *write*, so a snapshot
+    taken over it changes every time Fabric or the user's scripts produce
+    output — which silently re-identified the algorithm mid-experiment and
+    made the registry refuse to re-plan a specification it had just run.
+    The entrypoint's directory is where the code that computes the result
+    actually lives, so it is both stable and the correct unit.
+
+    Walks up to the enclosing package (the directory containing the
+    entrypoint's top-level module) so that sibling helpers it imports are
+    covered, and stops at a project marker so it does not climb into an
+    unrelated parent. Falls back to ``root`` when the entrypoint resolves to
+    no file at all.
+    """
+    scheme, target = parse_entrypoint(entrypoint)
+    origin = ""
+    try:
+        if scheme == "python":
+            top_level = target.rpartition(":")[0].split(".")[0]
+            if top_level:
+                spec = importlib.util.find_spec(top_level)
+                if spec and spec.origin and os.path.isfile(spec.origin):
+                    origin = spec.origin
+        elif scheme == "script":
+            path_part = target.rpartition(":")[0]
+            if os.path.isfile(path_part):
+                origin = path_part
+        else:
+            first = shlex.split(target, posix=os.name != "nt")[0] if target else ""
+            if first and os.path.isfile(first):
+                origin = first
+    except (ImportError, OSError, ValueError):
+        origin = ""
+
+    if not origin:
+        return root or os.getcwd()
+    # `find_spec` was given the *top-level* module, so `origin` is already
+    # that package's own file: its directory is the scope. Climbing further --
+    # to a project marker, or even out of the package -- makes the fingerprint
+    # depend on where that directory happens to sit, and `sys.path` decides
+    # that: `examples.agent_pipeline` can resolve to a copy inside a
+    # workspace or to the source checkout. One run, one digest; the next
+    # command over the same code, a different one, and the registry refused to
+    # re-plan an experiment it had just produced. The package directory is
+    # identical under both resolutions, so the fingerprint is too.
+    return os.path.dirname(os.path.abspath(origin))
 
 
 # --------------------------------------------------------------------------

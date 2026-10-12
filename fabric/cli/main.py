@@ -81,9 +81,11 @@ def _load_spec(path: str) -> ExperimentSpec:
         raise CommandError(f"invalid specification: {exc}") from exc
 
 
-def _plan(workspace: Workspace, spec: ExperimentSpec, *, strict: bool = True) -> ExperimentPlan:
+def _plan(workspace: Workspace, spec: ExperimentSpec, *, strict: bool = True,
+          exclude_from_digest: Sequence[str] = ()) -> ExperimentPlan:
     try:
-        return plan_experiment(spec, workspace, strict=strict, root=workspace.root)
+        return plan_experiment(spec, workspace, strict=strict, root=workspace.root,
+                               exclude_from_digest=exclude_from_digest)
     except (PlanError, RegistryError, SpecError) as exc:
         raise CommandError(str(exc)) from exc
 
@@ -97,7 +99,20 @@ def _stored_plan(workspace: Workspace, experiment_id: str) -> ExperimentPlan:
             "an older version of Fabric; rerun it from its YAML file."
         )
     spec = _load_spec(spec_path)
-    return _plan(workspace, spec, strict=False)
+    # Exclude the *original* specification's path too, not just this stored
+    # copy. `fabric run` planned from the user's YAML and excluded that file
+    # from the algorithm's source fingerprint; re-planning from the stored
+    # copy without excluding the original makes the two plans disagree about
+    # the algorithm's identity, and the registry then refuses to re-plan an
+    # experiment it successfully ran minutes earlier.
+    excluded = [spec_path]
+    for record in workspace.list_experiments():
+        if str(record.get("id")) == experiment_id:
+            source = str(record.get("source") or "")
+            if source:
+                excluded.append(source)
+            break
+    return _plan(workspace, spec, strict=False, exclude_from_digest=excluded)
 
 
 def _resolve(workspace: Workspace, reference: str) -> str:

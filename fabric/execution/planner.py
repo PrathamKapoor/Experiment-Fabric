@@ -280,7 +280,7 @@ def _resolve_model(ref: EntityRef | None, registry: Registry) -> Model | None:
 
 
 def _resolve_algorithm(ref: EntityRef | None, registry: Registry, *, root: str,
-                       strict: bool) -> Algorithm | None:
+                       strict: bool, spec_paths: Sequence[str] = ()) -> Algorithm | None:
     if ref is None:
         return None
     if ref.id:
@@ -296,7 +296,7 @@ def _resolve_algorithm(ref: EntityRef | None, registry: Registry, *, root: str,
             name=ref.name,
             entrypoint=entrypoint,
             commit=commit,
-            source_digest=entrypoint_digest(entrypoint, root=root),
+            source_digest=entrypoint_digest(entrypoint, root=root, exclude=spec_paths),
             version=ref.version or str(inline.pop("version", "v1")),
             description=str(inline.pop("description", "")),
             params=dict(inline.pop("params", {}) or {}),
@@ -330,15 +330,28 @@ def plan_experiment(
     *,
     strict: bool = True,
     root: str = "",
+    exclude_from_digest: Sequence[str] = (),
 ) -> ExperimentPlan:
-    """Expand a specification into a complete execution plan."""
+    """Expand a specification into a complete execution plan.
+
+    ``exclude_from_digest`` names files that must not contribute to the
+    algorithm's source fingerprint. The caller's own specification is always
+    among them: it is hashed separately as ``spec_digest``, and counting it
+    again means the algorithm's identity depends on which copy of the YAML
+    happened to be used to plan, so re-planning a stored experiment
+    disagreed with the plan that produced it.
+    """
     root = root or workspace.root
     registry = Registry(workspace)
     advisories = list(spec.validate())
+    excluded = list(exclude_from_digest)
+    if spec.source_path:
+        excluded.append(spec.source_path)
 
     dataset = _resolve_dataset(spec.dataset, registry, root=root)
     model = _resolve_model(spec.model, registry)
-    algorithm = _resolve_algorithm(spec.algorithm, registry, root=root, strict=strict)
+    algorithm = _resolve_algorithm(spec.algorithm, registry, root=root, strict=strict,
+                                   spec_paths=excluded)
     if algorithm is None:
         raise PlanError("the experiment has no algorithm to run")
 

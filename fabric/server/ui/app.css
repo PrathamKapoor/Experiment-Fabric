@@ -92,6 +92,10 @@ a:hover { text-decoration: underline; }
   position: sticky;
   top: 0;
   z-index: 10;
+  /* The status pill is a long single-line string ("v0.3.1 · execute on ·
+     0 running · 0 queued"). Without wrapping or shrinking, it is wider
+     than a phone viewport and pushes the whole document sideways. */
+  flex-wrap: wrap;
 }
 
 .brand { font-weight: 640; letter-spacing: -0.01em; color: var(--ink); }
@@ -154,9 +158,22 @@ code {
 
 /* ---------------------------------------------------------------- tables */
 
-.scroll { overflow-x: auto; }
+/* A data table with `white-space: nowrap` is as wide as its widest cell, and
+   a plain block-level `overflow-x: auto` does not stop that: the element
+   still takes its content's intrinsic width, so the *page* scrolls sideways
+   instead of the table. Measured in Chrome at a 390px viewport: the
+   conditions table pushed the document 715px wider than the window.
+   `max-width: 100%` on the wrapper and `width: 100%` on the table make the
+   wrapper the constraint, which is what turns the table into its own
+   scroll container. `WebkitOverflowScrolling` keeps momentum scrolling on
+   iOS, where a scroll container without it feels stuck. */
+.scroll {
+  overflow-x: auto;
+  max-width: 100%;
+  -webkit-overflow-scrolling: touch;
+}
 
-table { border-collapse: collapse; width: 100%; font-size: 13px; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; min-width: 100%; }
 caption { caption-side: top; text-align: left; font-size: 12px;
           color: var(--ink-muted); padding-bottom: 8px; }
 th, td { padding: 7px 10px; border-bottom: 1px solid var(--line); text-align: left;
@@ -255,13 +272,24 @@ pre.block {
 .tree .v { color: var(--ink); }
 .tree .indent { color: var(--line-strong); }
 
-.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin: 0 0 18px; }
+/* The tab strip has five entries; on a narrow viewport it must become its
+   own scroll container rather than widening the document. */
+.tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--line);
+  margin: 0 0 18px;
+  overflow-x: auto;
+  max-width: 100%;
+}
 .tabs a {
   padding: 8px 13px;
   font-size: 13px;
   color: var(--ink-soft);
   border-bottom: 2px solid transparent;
   margin-bottom: -1px;
+  white-space: nowrap;
+  flex: 0 0 auto;
 }
 .tabs a.on { color: var(--ink); border-bottom-color: var(--c1); font-weight: 560; }
 .tabs a:hover { text-decoration: none; color: var(--ink); }
@@ -277,4 +305,8 @@ pre.block {
 @media (max-width: 620px) {
   .view { padding: 16px 12px 40px; }
   .crumbs { display: none; }
+  /* Long identifiers (EXP-…, RUN-…, sha256:…) are monospace and must not be
+     allowed to widen the layout on their own. They wrap instead; the tables
+     themselves scroll, which is the behaviour a data table should have. */
+  .mono, code, .pill { word-break: break-word; }
 }

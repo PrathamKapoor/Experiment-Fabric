@@ -533,6 +533,50 @@ def test_the_interface_assets_are_served(read_only, asset, media):
     assert media in headers["Content-Type"]
 
 
+def test_wide_tables_and_headers_do_not_widen_the_page(read_only):
+    """A data table must scroll inside its own box, not push the page sideways.
+
+    Measured in Chrome at a 390px viewport before this was fixed: the
+    conditions table (`white-space: nowrap`) made the document 715px wider
+    than the window, and the header's status pill added another 74px. The
+    table now scrolls within `.scroll`, and the pill wraps.
+
+    The assertions are on the CSS rules that achieve that rather than on a
+    rendering, because a rendering assertion needs a browser and CI has none.
+    They still catch the regression: removing `max-width: 100%` from
+    `.scroll`, or `flex-wrap` from the header bar, fails here.
+    """
+    _status, _headers, css = request(f"{read_only.url}/ui/app.css")
+
+    scroll = _rule(css, ".scroll")
+    assert "overflow-x: auto" in scroll
+    assert "max-width: 100%" in scroll, (
+        "without max-width the wrapper still takes its content's intrinsic "
+        "width, so the *page* scrolls instead of the table"
+    )
+
+    bar = _rule(css, ".bar")
+    assert "flex-wrap: wrap" in bar, (
+        "the status pill is a single long line and widens the page on a phone"
+    )
+
+    tabs = _rule(css, ".tabs")
+    assert "overflow-x: auto" in tabs
+    assert "max-width: 100%" in tabs
+
+    narrow = css[css.index("@media (max-width: 620px)"):]
+    assert "word-break" in narrow, (
+        "long EXP-/RUN-/sha256 identifiers must wrap rather than widen the "
+        "layout on their own"
+    )
+
+
+def _rule(css: str, selector: str) -> str:
+    """The declaration block for a top-level selector."""
+    start = css.index(selector + " {")
+    return css[start:css.index("}", start)]
+
+
 def test_the_static_handler_refuses_to_escape_its_directory(read_only):
     """``/ui/../../secrets`` must not be a file read."""
     for attempt in ("/ui/../app.py", "/ui/..%2f..%2fsetup.py",

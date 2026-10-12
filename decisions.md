@@ -709,3 +709,43 @@ Identifiers are `D-NNN` and are never reused.
   still invalidates, so the fix cannot be trivially over-applied.
 - Files: `fabric/execution/adapters.py`, `fabric/reproduce.py`,
   `tests/test_cache_identity.py`.
+
+---
+
+### D-020: A wide table scrolls inside its own box
+
+- Date / work area / commit: 2026-10-13, `fabric/server/ui/app.css`,
+  `tests/test_server.py`
+- Context: Verified in a real Chrome (headless, driven over the DevTools
+  protocol — no driver dependency) at a 390 px viewport. The document was
+  **715 px wider than the window**: the widest overflowing element was the
+  experiment's conditions table. On desktop the layout was clean (0 px), so
+  this was invisible to every check that only looked at a laptop-sized view.
+- Verified root cause: two independent causes, both measured.
+  1. `.scroll { overflow-x: auto; }` wraps every table, but a block-level
+     box with no width constraint still takes its *content's* intrinsic
+     width. `th, td { white-space: nowrap }` makes a data table as wide as
+     its widest cell, so the page scrolled sideways instead of the table.
+     Fixed by `max-width: 100%` on the wrapper (making the wrapper the
+     constraint) and `min-width: 100%` on the table.
+  2. The header's status pill (`v0.3.1 · execute on · 0 running · 0 queued`)
+     is one long unbreakable line, worth 74 px of overflow on its own.
+     Fixed by `flex-wrap: wrap` on the bar. The tab strip had the same
+     problem and now scrolls within itself with `flex: 0 0 auto` on items,
+     so tabs do not shrink into unreadability either.
+  Long `EXP-`/`RUN-`/`sha256:` identifiers are additionally allowed to
+  break inside the existing narrow-viewport media query.
+- Measured result: document overflow at 390 px went from 715 px to **0 px**.
+  The conditions table is still wider than the viewport, which is correct —
+  it scrolls within its own container, which is what a data table should do.
+  Re-verified by screenshot at 390 px and 1440 px.
+- Alternatives considered: (a) a stacked card layout on phones — rejected as
+  a redesign for a layout defect, and it would hide columns a researcher
+  compares; (b) dropping `white-space: nowrap` — rejected, aligned numeric
+  columns are the point of a results table.
+- Regression test: `tests/test_server.py`,
+  `test_wide_tables_and_headers_do_not_widen_the_page`. It asserts on the
+  CSS rules rather than a rendering, because a rendering assertion needs a
+  browser and CI has none; it still fails when any of the three rules is
+  removed, which was confirmed by reverting the stylesheet.
+- Files: `fabric/server/ui/app.css`, `tests/test_server.py`.

@@ -132,16 +132,23 @@ execution:
         else:
             print("\n[7] TAMPERING — No artifact found to modify; skipped.")
 
-        # 9. REPRODUCTION — reproduce from stored bundle (optional, brief)
-        # Use the existing demo-bundle instead for speed
-        bundle_path = os.path.join(ROOT, "demo-bundle")
-        if os.path.isdir(bundle_path):
-            print(f"\n[8] REPRODUCTION — Using verified bundle at {bundle_path}")
-            result = cmd(["reproduce", bundle_path], workspace, timeout=120)
-            if result.returncode == 0:
-                print("    Reproduction completed with matching verdict.")
-            else:
-                print("    Reproduction produced a different result (expected if environments differ).")
+        # 9. REPRODUCTION — re-execute the experiment from its own bundle and
+        # compare. The bundle is exported above, so this is a genuine
+        # re-execution, not a replay of recorded numbers.
+        bundle = os.path.join(workspace, "demo-bundle")
+        export = cmd(["export", experiment_id, "--out", bundle], workspace, timeout=120)
+        if export.returncode == 0:
+            print("\n[8] REPRODUCTION — Re-executing from the exported bundle")
+            print("    (cache disabled and rerun forced: a reproduction that reads")
+            print("     its answer from the cache has reproduced nothing)")
+            result = cmd(["reproduce", bundle], workspace, timeout=900)
+            for line in result.stdout.splitlines():
+                if any(k in line for k in ("REPRODUCTION COMPLETE", "reproducibility",
+                                           "PASS", "FAIL", "INCONCLUSIVE")):
+                    print("   ", line.strip())
+            if result.returncode != 0:
+                print("    Non-zero exit is the honest answer when the rerun did not")
+                print("    match; the comparison above says by how much and why.")
 
         # 10. SUMMARY — what the user should trust
         print("\n" + "=" * 70)

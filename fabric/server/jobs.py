@@ -234,6 +234,13 @@ class JobStore:
         if directory:
             os.makedirs(directory, exist_ok=True)
         self._local = threading.local()
+        # Every connection this store has opened, so close() can close all of
+        # them rather than only the calling thread's. A connection left open
+        # holds the file, and on Windows that makes the queue file
+        # undeletable: archiving a workspace after its server stopped failed
+        # with PermissionError WinError 32 on jobs.sqlite3.
+        self._connections: list[sqlite3.Connection] = []
+        self._connections_lock = threading.Lock()
         connection = self._connection
         # executescript() commits and starts its own transaction, so this
         # deliberately does not go through _connect(): wrapping it would
@@ -264,6 +271,8 @@ class JobStore:
             existing.execute("PRAGMA journal_mode=WAL")
             existing.execute("PRAGMA busy_timeout=30000")
             self._local.connection = existing
+            with self._connections_lock:
+                self._connections.append(existing)
         return existing
 
     @contextmanager
@@ -279,10 +288,43 @@ class JobStore:
             connection.execute("COMMIT")
 
     def close(self) -> None:
-        existing = getattr(self._local, "connection", None)
-        if existing is not None:
-            existing.close()
-            self._local.connection = None
+        """Close every connection this store opened, on every thread.
+
+        Closing only the caller's connection leaves each worker's file handle
+        open until the garbage collector gets to it, which is not a shutdown
+        guarantee and is not long enough on Windows to unlink the file.
+        """
+        with self._connections_lock:
+            connections = list(self._connections)
+            self._connections.clear()
+        self._local.connection = None
+        for connection in connections:
+            try:
+                connection.close()
+            except sqlite3.Error:  # pragma: no cover - already closed
+                pass
+
+    def release_thread(self) -> None:
+        """Close the *calling* thread's connection and forget it.
+
+        A thread closes what it opened. Without this a worker that has exited
+        still holds its handle alive through the Thread object's thread-local
+        storage, which on Windows keeps ``jobs.sqlite3`` locked after the
+        server has stopped. Closing from another thread is not an option:
+        sqlite3 refuses, by design, to touch a connection from a thread that
+        did not create it.
+        """
+        connection = getattr(self._local, "connection", None)
+        if connection is None:
+            return
+        self._local.connection = None
+        with self._connections_lock:
+            if connection in self._connections:
+                self._connections.remove(connection)
+        try:
+            connection.close()
+        except sqlite3.Error:  # pragma: no cover - already closed
+            pass
 
     # -- writing -----------------------------------------------------------
 

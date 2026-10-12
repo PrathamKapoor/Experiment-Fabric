@@ -104,6 +104,13 @@ class FabricServer:
 
     def stop_workers(self) -> None:
         self.pool.stop()
+        # SQLite keeps a file handle open for the lifetime of every connection,
+        # and JobStore holds one per thread. On Windows an open handle makes
+        # `jobs.sqlite3` undeletable, so a workspace cannot be archived or
+        # removed after the server that served it has stopped. Verified:
+        # removing the workspace raised PermissionError on WinError 32 until
+        # this close was added.
+        self.jobs.close()
 
     # -- routing -----------------------------------------------------------
 

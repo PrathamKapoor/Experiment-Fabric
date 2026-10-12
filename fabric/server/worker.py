@@ -89,12 +89,18 @@ class Worker(threading.Thread):
         self._stopping.set()
 
     def run(self) -> None:  # pragma: no cover - exercised through the server
-        while not self._stopping.is_set():
-            job = self.store.claim(self.name)
-            if job is None:
-                self._stopping.wait(self.poll_seconds)
-                continue
-            self.handle(job)
+        try:
+            while not self._stopping.is_set():
+                job = self.store.claim(self.name)
+                if job is None:
+                    self._stopping.wait(self.poll_seconds)
+                    continue
+                self.handle(job)
+        finally:
+            # This thread opened a SQLite connection; this thread closes it.
+            # An exited worker whose handle is left to the garbage collector
+            # keeps jobs.sqlite3 locked on Windows after shutdown.
+            self.store.release_thread()
 
     # -- one job -----------------------------------------------------------
 

@@ -393,18 +393,84 @@ serving user.
 
 ---
 
-## Appendix: Updates from this session (2026-10-11)
+## Appendix: Updates from this session (2026-10-13)
 
-- `D-014`: Added explicit `Host` header validation (`fabric/server/app.py`).
-- `D-015`: Expanded `entrypoint_digest` to include `tree_digest` of project root.
-- `D-016`: Expanded exclusions (`bundle`, `.egg-info`, `.local`, `.coverage`,
-  `graph.html`, `variant.yaml`, `benchmarks`, etc.) so generated artifacts do
-  not continuously change the algorithm identity and break registry registration.
-- Committed previous uncommitted fixes: process-tree timeout, retry limits,
-  adapter updates, and exclusions.
-- Verified full suite passes (`tests/` exit 0) — 537 passed, 1 skipped (PyYAML
-  parity). End-to-end module passes all 30 scenarios. Process timeout tests
-  pass (10). Server security tests pass (59). Failed-evidence tests pass (15).
+Release validation found four further defects, each reproduced before being
+fixed and each pinned by a test that fails without the fix. All four were in
+code paths the previous session had just changed, which is the argument for
+re-running the whole lifecycle rather than the unit tests.
+
+### D-017 — the cache fingerprint was unstable across the lifecycle
+
+`D-015` widened the fingerprint from the entrypoint file to a tree, `D-016`
+repaired it with a deny-list, and both took the **workspace** as the root —
+which is where experiments write. Every generated artifact therefore changed
+the algorithm's identity, and the registry refused to re-plan a specification
+it had just run. `scripts/smoke.sh`, the CI job that runs every command the
+README claims, was the thing that caught it.
+
+Scope is now the entrypoint's own top-level package, files are selected by
+extension rather than excluded by name, and the specification is excluded by
+`ExperimentSpec.digest` so every copy of it is recognised — the user's YAML,
+the workspace's, and the bundle's, which re-serialises to different bytes.
+
+### D-018 — a stopped server kept its queue file locked
+
+`JobStore` cached one SQLite connection per thread and nothing closed them.
+`rmtree` of the workspace raised `PermissionError WinError 32` on
+`jobs.sqlite3` after a normal shutdown — which sits on the path of every
+`docker compose down` and every Ctrl-C during a demo. A thread now closes the
+connection it opened.
+
+### D-019 — Fabric's own `reproduce.sh` counted as source
+
+`fabric export` writes it, it has a source extension, and when the entrypoint
+lives beside the workspace it sits inside the snapshot. Excluded by the banner
+its template writes, so a user's own `run.sh` still invalidates.
+
+### D-020 — a wide results table pushed the page sideways on a phone
+
+Measured in a real Chrome at 390 px: the document was **715 px wider than the
+viewport**. `.scroll` had `overflow-x: auto` but no width constraint, so a
+`nowrap` table still took its content's intrinsic width; the header's status
+pill added another 74 px. Now 0 px, with the table scrolling inside its own
+box. Desktop was clean throughout, so nothing laptop-sized would have caught
+it.
+
+### D-021 — runs did not attach to their conditions
+
+`ResultSet.build` keyed runs by `condition_id`, which is content-addressed.
+Because D-017 changed how that id is computed, the shipped `demo-bundle`'s 93
+runs matched **none** of its 9 conditions, so `fabric reproduce` reported "the
+original experiment has no condition to reproduce" — one line after reporting
+that all 93 runs had been re-executed. Runs now attach by id where it matches
+and by name where it does not. That bundle now reproduces as
+`PASS WITH DEVIATION`, with accuracy and robustness exact.
+
+### Verification performed this session
+
+| Check | Result |
+|---|---|
+| `python -m pytest` | **531 passed, 1 skipped** (the skip needs PyYAML, absent here) |
+| `bash scripts/smoke.sh` | all 35 checks passed |
+| Clean-wheel install, fresh venv, run from outside the checkout | `plan → run → analyze → report → certify → export → verify → reproduce` all exit 0 |
+| Third-party modules visible inside the installed environment | none; `dependencies = []` holds |
+| Process-tree termination, 7 scenarios | direct child, sleeping descendant, multiple descendants, inherited pipes, early exit — tree killed in every case, descendants confirmed not running via `GetExitCodeProcess` |
+| All-runs-fail experiment | `run` exit 1, `certify` exit 1, verdict `FAIL`, provenance `failed`, run records still on disk |
+| HTTP over a real socket | `Host: evil.example` → 400; cross-origin POST → 403; POST with no provenance headers → 403; `/ui/../../../../etc/passwd` → 403 |
+| Real Chrome (headless, DevTools protocol) | full journey: submit → queue → run → monitor → analysis → provenance → certificate → report; 0 px document overflow at 390 px and 1440 px |
+| `scripts/demo_final.py` | completes; reproduction `PASS` |
+
+### Not performed, and why
+
+- **Docker.** No daemon on this machine; the image was not built or run.
+- **Linux and macOS.** WSL has no distribution installed. The POSIX branches
+  in `fabric/execution/process.py` are therefore **unverified on this
+  machine** — the tests that cover them pass on Windows without exercising
+  `killpg`.
+- **CI.** No remote is configured and none was added, so the workflows were
+  read but never executed. Nothing here should be read as "CI is green".
+- **Lint.** `ruff` is not installed in the interpreter available here.
 - `fabric` CLI naming collision remains documented as a limitation; the import
   namespace and console script are preserved for compatibility.
 - `paper/` files remain uncommitted per repository rules.
